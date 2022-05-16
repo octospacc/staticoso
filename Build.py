@@ -46,7 +46,6 @@ def PreProcessor(File):
 	File = ReadFile(File)
 	Content, Titles, Meta = '', [], {
 		'Template': 'Standard.html',
-		'Background': '',
 		'Style': ''}
 	for l in File.splitlines():
 		ls = l.lstrip()
@@ -57,7 +56,7 @@ def PreProcessor(File):
 		elif ls.startswith('% Template: '):
 			Meta['Template'] = ls[len('% Template: '):]
 		elif ls.startswith('% Background: '):
-			Meta['Background'] = ls[len('% Background: '):]
+			Meta['Style'] += "#MainBox{Background:" + ls[len('% Background: '):] + ";} "
 		elif ls.startswith('% Style: '):
 			Meta['Style'] += ls[len('% Style: '):] + ' '
 		else:

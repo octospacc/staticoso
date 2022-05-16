@@ -15,6 +15,8 @@ Body {
 	Position: Absolute;
 	Left: Auto;
 	Right: Auto;
+	Background: #eeddff;
+	Font-Family: "Liberation Mono";
 }
 #Container {
 	Box-Sizing: Border-Box;
@@ -61,3 +63,57 @@ Body {
 	Width: 100vw;
 	Text-Align: Right;
 }
+
+@Media (Max-Width: 800px) {
+	#LeftBox {Display: None;}
+	#RightBox {Display: None;}
+}
+
+.BlinkA {
+	Animation: BlinkerA 0.25s Step-Start Infinite;
+}
+@keyframes BlinkerA {
+	0% {Position: Absolute; Visibility: Hidden;}
+	50% {Position: Static; Visibility: Visible;}
+	100% {Position: Absolute; Visibility: Hidden;}
+}
+.BlinkO {
+	Animation: BlinkerO 0.25s Step-Start Infinite;
+}
+@keyframes BlinkerO {
+	0% {Position: Static; Visibility: Visible;}
+	50% {Position: Absolute; Visibility: Hidden;}
+	100% {Position: Static; Visibility: Visible;}
+}
+
+@import url("https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@699;700&display=swap");
+:root {
+  --lower: 100;
+  --upper: 700;
+}
+
+/* Credits: https://codepen.io/jh3y/pen/WNrXqYz */
+.WavyText {
+  font-family: 'Roboto Mono', monospace;
+  text-align: center;
+  position: absolute;
+  left: 50%;
+  white-space: nowrap;
+  transform: translate(-50%, -50%) translate(calc(var(--x, 0) * 1%), calc(var(--y, 0) * 1%));
+  font-variation-settings: 'wght' var(--lower);
+  margin: 0;
+}
+.WavyText span {
+  color: hsla(300, 100%, 10%, var(--alpha-l));
+  animation: rise 2.25s infinite ease-in-out;
+  animation-delay: calc((var(--index) - 6) * 0.225s);
+  display: inline-block;
+}
+@keyframes rise {
+  50% {
+    font-variation-settings: 'wght' var(--upper);
+    color: hsla(300, 100%, 20%, var(--alpha-u));
+    transform: translate(0, -15%);
+  }
+}
+
