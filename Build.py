@@ -26,46 +26,14 @@ def ResetPublic():
 		shutil.rmtree('public')
 	except FileNotFoundError:
 		pass
-#	os.mkdir('public')
-
-def GetTitles(c):
-	Titles = []
-	
-	return Titles
 
 def FormatTitles(Titles):
-	return ''
-
-"""
-def GetAssociations():
-	f = ReadFile('Associations.txt')
-	Templates = f.splitlines()
-	Uses = {}
-	for t in Templates:
-		t = t.split(' ')
-		Uses.update({t[0][:-1]: t[1:]})
-	print(Uses)
-	return Uses
-
-def LoadTemplates():
-	Templates = {}
-	for p in Path('Templates').rglob('*.html'):
-		p = str(p)[len('Templates')+1:]
-		Templates.update({p: ReadFile('Parts/{}'.format(p))})
-	return Templates
-
-	Templates = {}
-	for t in Associations:
-		Templates.update({t: ReadFile('Templates/{}'.format(t))})
-	return Templates
-
-def LoadParts():
-	Parts = {}
-	for p in Path('Parts').rglob('*.html'):
-		p = str(p)[len('Parts')+1:]
-		Parts.update({p: ReadFile('Parts/{}'.format(p))})
-	return Parts
-"""
+	HTMLTitles = ''
+	for t in Titles:
+		Heading = '- ' * (t.split(' ')[0].count('#')-1)
+		t = t.lstrip('#')
+		HTMLTitles += Heading + t + '  \n'
+	return Markdown().convert(HTMLTitles)
 
 def LoadFromDir(Dir):
 	Contents = {}
@@ -99,18 +67,12 @@ def PreProcessor(File):
 				Titles += [ls]
 	return Content, Titles, Meta
 
-"""
-def MetaProcessor(Meta):
-	Meta[]
-	return Meta
-"""
-
 def PatchHTML(Template, Parts, Content, Titles, Meta):
 	HTMLTitles = FormatTitles(Titles)
 
-	Template = Template.replace('[HTML:Page:Title]', 'Untitled' if not Titles else Titles[0])
+	Template = Template.replace('[HTML:Page:Title]', 'Untitled' if not Titles else Titles[0].lstrip('#'))
 	Template = Template.replace('[HTML:Page:Style]', Meta['Style'])
-	Template = Template.replace('[HTML:Page:RightBox]', str(Titles))
+	Template = Template.replace('[HTML:Page:RightBox]', HTMLTitles)
 	Template = Template.replace('[HTML:Page:MainBox]', Content)
 
 	for p in Parts:
@@ -126,8 +88,8 @@ def MakeSite(Templates, Parts):
 
 		Template = Templates[Meta['Template']]
 		Template = Template.replace(
-			'Style.css',
-			'{}Style.css'.format('../'*File.count('/')))
+			'[HTML:Page:CSS]',
+			'{}{}.css'.format('../'*File.count('/'), Meta['Template'][:-5]))
 
 		print(Content, Titles, Meta)
 		WriteFile(
@@ -143,17 +105,13 @@ def IgnoreFiles(dir, files):
     return [f for f in files if os.path.isfile(os.path.join(dir, f))]
 def CopyAssets():
 	shutil.copytree('Pages', 'public', ignore=IgnoreFiles)
-#	for File in Path('Assets').rglob('*'):
-#		File = str(File)
-#		shutil.copy(File, 'public/{}'.format(File[len('Assets/'):]))
 	os.system("cp -R Assets/* public/")
 
 def Main():
 	os.chdir(os.path.dirname(os.path.abspath(__file__)))
 	ResetPublic()
-#	Associations = GetAssociations()
-	Templates = LoadFromDir('Templates') #LoadTemplates(Associations)
-	Parts = LoadFromDir('Parts') #LoadParts()
+	Templates = LoadFromDir('Templates')
+	Parts = LoadFromDir('Parts')
 	print(Templates, Parts)
 	CopyAssets()
 	MakeSite(Templates, Parts)
