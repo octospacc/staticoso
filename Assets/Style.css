@@ -1,0 +1,44 @@
+:root {
+	--ScreenBorderPadding: 4px;
+}
+
+* {
+	Box-Sizing: Border-Box;
+}
+
+Body {
+	Margin: 0;
+	Padding: var(--ScreenBorderPadding);
+	Box-Sizing: Border-Box;
+	Width: 100vw;
+	Height: 100vh;
+}
+#Container {
+	Box-Sizing: Border-Box;
+}
+
+#TopBox {
+	Border: 2px Solid Purple;
+	Padding: 8px;
+}
+#LeftBox {
+	Float: Left;
+	//Border: 2px Solid Purple;
+}
+#RightBox {
+	Position: Inherit;
+	Top: 16px;
+	Right: 16px;
+	Float: Right;
+}
+#MainBox {
+	Text-Align: Center;
+	Margin: Auto;
+}
+#BottomBox {
+	Box-Sizing: Border-Box;
+	//Border: 2px Solid Purple;
+	Position: Fixed;
+	Bottom: var(--ScreenBorderPadding);
+	Width: 100vw;
+}
