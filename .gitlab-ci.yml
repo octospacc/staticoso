@@ -2,7 +2,8 @@ image: alpine:latest
 
 before_script:
   - apk update
-  - apk add python3
+  - apk add python3 py3-pip
+  - pip3 install importlib-metadata
 
 pages:
   stage: deploy
