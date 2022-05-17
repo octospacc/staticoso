@@ -1,9 +1,15 @@
 #!/usr/bin/env python3
+""" ================================= |
+| staticoso                           |
+| Just a simple Static Site Generator |
+| Licensed under AGPLv3 by OctoSpacc  |
+| ================================= """
 
 import os
+#import pypugjs
 import shutil
-from pathlib import Path
 from markdown import Markdown
+from pathlib import Path
 
 def ReadFile(p):
 	try:
@@ -28,10 +34,18 @@ def ResetPublic():
 	except FileNotFoundError:
 		pass
 
+def DashifyStr(s, Limit=32):
+	Str, lc = '', Limit
+	for c in s[:Limit].replace(' ','-').replace('	','-'):
+		if c.lower() in '0123456789qwfpbjluyarstgmneiozxcdvkh-':
+			Str += c
+	return Str
+
 def FormatTitles(Titles):
 	HTMLTitles = ''
 	for t in Titles:
-		Heading = '- ' * (t.split(' ')[0].count('#')-1)
+		n = t.split(' ')[0].count('#')
+		Heading = '\-'*n + ' '
 		t = t.lstrip('#')
 		HTMLTitles += Heading + t + '  \n'
 	return Markdown().convert(HTMLTitles)
@@ -43,31 +57,54 @@ def LoadFromDir(Dir):
 		Contents.update({File: ReadFile('{}/{}'.format(Dir, File))})
 	return Contents
 
-def PreProcessor(File):
-	File = ReadFile(File)
+def PreProcessor(p):
+	File = ReadFile(p)
 	Content, Titles, Meta = '', [], {
 		'Template': 'Standard.html',
 		'Style': ''}
 	for l in File.splitlines():
 		ls = l.lstrip()
-		if ls.startswith('//'):
-			if ls.startswith('// Template: '):
-				Meta['Template'] = ls[len('// Template: '):]
-			elif ls.startswith('// Background: '):
-				Meta['Style'] += "#MainBox{Background:" + ls[len('// Background: '):] + ";} "
-			elif ls.startswith('// Style: '):
-				Meta['Style'] += ls[len('// Style: '):] + ' '
-		else:
-			Content += l + '\n'
-			if ls.startswith(('h1', 'h2', 'h3', 'h4', 'h5', 'h6')):
-				if not ls.startswith(("h1(class='NoTitle", 'h1(class="NoTitle')):
-					Titles += ['#'*int(ls[1]) + ls]
+		if p.endswith('.pug'):
+			if ls.startswith('//'):
+				if ls.startswith('// Template: '):
+					Meta['Template'] = ls[len('// Template: '):]
+				elif ls.startswith('// Background: '):
+					Meta['Style'] += "#MainBox{Background:" + ls[len('// Background: '):] + ";} "
+				elif ls.startswith('// Style: '):
+					Meta['Style'] += ls[len('// Style: '):] + ' '
+			else:
+				Content += l + '\n'
+				if ls.startswith(('h1', 'h2', 'h3', 'h4', 'h5', 'h6')):
+					if not ls.startswith(("h1(class='NoTitle", 'h1(class="NoTitle')):
+						Titles += ['#'*int(ls[1]) + str(ls[3:])]
+		elif p.endswith('.md'):
+			if ls.startswith('\%'):
+				Content += ls[1:] + '\n'
+			elif ls.startswith('% - '):
+				Content += '<!-- {} -->'.format(ls[4:]) + '\n'
+			elif ls.startswith('% Template: '):
+				Meta['Template'] = ls[len('% Template: '):]
+			elif ls.startswith('% Background: '):
+				Meta['Style'] += "#MainBox{Background:" + ls[len('% Background: '):] + ";} "
+			elif ls.startswith('% Style: '):
+				Meta['Style'] += ls[len('% Style: '):] + ' '
+			else:
+				Content += l + '\n'
+				Heading = ls.split(' ')[0].count('#')
+				if Heading > 0:
+					Titles += [ls]
 	return Content, Titles, Meta
 
-def PugCompiler(c):
+def PugCompileList(Pages):
+	Paths = ''
+	for File, Content, Titles, Meta in Pages:
+		Paths += '"public/' + File + '" '
+	os.system('pug {} > /dev/null'.format(Paths))
+"""
 	WriteFile('tmp.pug', c)
 	os.system('pug tmp.pug > /dev/null')
 	return ReadFile('tmp.html')
+"""
 
 def PatchHTML(Template, Parts, Content, Titles, Meta):
 	HTMLTitles = FormatTitles(Titles)
@@ -81,33 +118,53 @@ def PatchHTML(Template, Parts, Content, Titles, Meta):
 		Template = Template.replace('[HTML:Part:{}]'.format(p), Parts[p])
 	return Template
 
+def DelTmp():
+	for File in Path('public').rglob('*.pug'):
+		os.remove(File)
+	for File in Path('public').rglob('*.md'):
+		os.remove(File)
+
 def MakeSite(Templates, Parts):
 	Pages = []
 	for File in Path('Pages').rglob('*.pug'):
 		File = str(File)[len('Pages/'):]
 		Content, Titles, Meta = PreProcessor('Pages/{}'.format(File))
-
+		Pages += [[File, Content, Titles, Meta]]
+	PugCompileList(Pages)
+	for File, Content, Titles, Meta in Pages:
 		Template = Templates[Meta['Template']]
 		Template = Template.replace(
 			'[HTML:Page:CSS]',
 			'{}{}.css'.format('../'*File.count('/'), Meta['Template'][:-5]))
-
 		WriteFile(
 			'public/{}.html'.format(File.rstrip('.pug')),
-			PatchHTML(Template, Parts, PugCompiler(Content), Titles, Meta))
-
-def IgnoreFiles(dir, files):
-    return [f for f in files if os.path.isfile(os.path.join(dir, f))]
-def CopyAssets():
-	shutil.copytree('Pages', 'public', ignore=IgnoreFiles)
-	os.system("cp -R Assets/* public/")
+			PatchHTML(
+				Template, Parts,
+				ReadFile('public/{}.html'.format(File.rstrip('.pug'))),
+				#pypugjs.Compiler(pypugjs.Parser(Content).parse()).compile(),
+				Titles, Meta))
+	for File in Path('Pages').rglob('*.md'):
+		File = str(File)[len('Pages/'):]
+		Content, Titles, Meta = PreProcessor('Pages/{}'.format(File))
+		Template = Templates[Meta['Template']]
+		Template = Template.replace(
+			'[HTML:Page:CSS]',
+			'{}{}.css'.format('../'*File.count('/'), Meta['Template'][:-5]))
+		WriteFile(
+			'public/{}.html'.format(File.rstrip('.md')), 
+			PatchHTML(
+				Template, Parts,
+				Markdown().convert(Content),
+				Titles, Meta))
+	DelTmp()
 
 def Main():
 	ResetPublic()
 	Templates = LoadFromDir('Templates')
 	Parts = LoadFromDir('Parts')
-	CopyAssets()
+	shutil.copytree('Pages', 'public')
 	MakeSite(Templates, Parts)
+	os.system("cp -R Assets/* public/")
 
 if __name__ == '__main__':
 	Main()
