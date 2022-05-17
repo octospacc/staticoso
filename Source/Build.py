@@ -107,7 +107,6 @@ def CopyAssets():
 	os.system("cp -R Assets/* public/")
 
 def Main():
-	os.chdir(os.path.dirname(os.path.abspath(__file__)))
 	ResetPublic()
 	Templates = LoadFromDir('Templates')
 	Parts = LoadFromDir('Parts')
