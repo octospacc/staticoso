@@ -10,6 +10,7 @@ pages:
   script:
   - cd Source
   - python3 Build.py
+  - mv public ../public
   artifacts:
     paths:
     - public
