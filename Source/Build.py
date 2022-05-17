@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
+
 import os
 import shutil
 from pathlib import Path
-from Libs.markdown import Markdown
+from markdown import Markdown
 
 def ReadFile(p):
 	try:
@@ -49,22 +50,24 @@ def PreProcessor(File):
 		'Style': ''}
 	for l in File.splitlines():
 		ls = l.lstrip()
-		if ls.startswith('\%'):
-			Content += ls[1:] + '\n'
-		elif ls.startswith('% - '):
-			Content += '<!-- {} -->'.format(ls[4:]) + '\n'
-		elif ls.startswith('% Template: '):
-			Meta['Template'] = ls[len('% Template: '):]
-		elif ls.startswith('% Background: '):
-			Meta['Style'] += "#MainBox{Background:" + ls[len('% Background: '):] + ";} "
-		elif ls.startswith('% Style: '):
-			Meta['Style'] += ls[len('% Style: '):] + ' '
+		if ls.startswith('//'):
+			if ls.startswith('// Template: '):
+				Meta['Template'] = ls[len('// Template: '):]
+			elif ls.startswith('// Background: '):
+				Meta['Style'] += "#MainBox{Background:" + ls[len('// Background: '):] + ";} "
+			elif ls.startswith('// Style: '):
+				Meta['Style'] += ls[len('// Style: '):] + ' '
 		else:
 			Content += l + '\n'
-			Heading = ls.split(' ')[0].count('#')
-			if Heading > 0:
-				Titles += [ls]
+			if ls.startswith(('h1', 'h2', 'h3', 'h4', 'h5', 'h6')):
+				if not ls.startswith(("h1(class='NoTitle", 'h1(class="NoTitle')):
+					Titles += ['#'*int(ls[1]) + ls]
 	return Content, Titles, Meta
+
+def PugCompiler(c):
+	WriteFile('tmp.pug', c)
+	os.system('pug tmp.pug > /dev/null')
+	return ReadFile('tmp.html')
 
 def PatchHTML(Template, Parts, Content, Titles, Meta):
 	HTMLTitles = FormatTitles(Titles)
@@ -76,12 +79,11 @@ def PatchHTML(Template, Parts, Content, Titles, Meta):
 
 	for p in Parts:
 		Template = Template.replace('[HTML:Part:{}]'.format(p), Parts[p])
-	print(Template)
 	return Template
 
 def MakeSite(Templates, Parts):
 	Pages = []
-	for File in Path('Pages').rglob('*.md'):
+	for File in Path('Pages').rglob('*.pug'):
 		File = str(File)[len('Pages/'):]
 		Content, Titles, Meta = PreProcessor('Pages/{}'.format(File))
 
@@ -90,15 +92,9 @@ def MakeSite(Templates, Parts):
 			'[HTML:Page:CSS]',
 			'{}{}.css'.format('../'*File.count('/'), Meta['Template'][:-5]))
 
-		print(Content, Titles, Meta)
 		WriteFile(
-			'public/{}.html'.format(File.rstrip('.md')), 
-			PatchHTML(
-				Template,
-				Parts,
-				Markdown().convert(Content),
-				Titles,
-				Meta))
+			'public/{}.html'.format(File.rstrip('.pug')),
+			PatchHTML(Template, Parts, PugCompiler(Content), Titles, Meta))
 
 def IgnoreFiles(dir, files):
     return [f for f in files if os.path.isfile(os.path.join(dir, f))]
@@ -110,7 +106,6 @@ def Main():
 	ResetPublic()
 	Templates = LoadFromDir('Templates')
 	Parts = LoadFromDir('Parts')
-	print(Templates, Parts)
 	CopyAssets()
 	MakeSite(Templates, Parts)
 
