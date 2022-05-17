@@ -1,0 +1,16 @@
+image: alpine:latest
+
+before_script:
+  - apk update
+  - apk add python3
+
+pages:
+  stage: deploy
+  script:
+  - cd Source
+  - python3 Build.py
+  artifacts:
+    paths:
+    - public
+  rules:
+    - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
