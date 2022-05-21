@@ -38,10 +38,20 @@ def DashifyStr(s, Limit=32):
 	for c in s[:Limit].replace(' ','-').replace('	','-'):
 		if c.lower() in '0123456789qwfpbjluyarstgmneiozxcdvkh-':
 			Str += c
-	return Str
+	return '-' + Str
+
+def GetTitleIdLine(Line, Title):
+	Title = DashifyStr(Title.lstrip('#'))
+	Index = Line.find('h')
+	NewLine = ''
+	NewLine += Line[:Index]
+	NewLine += "{}(id='{}')".format(Line[Index:Index+2], Title)
+	NewLine += Line[Index+2:]
+	print(NewLine)
+	return NewLine
 
 def FormatTitles(Titles):
-	MD = ''
+	MDTitles = ''
 	for t in Titles:
 		n = t.split(' ')[0].count('#')
 		Heading = '\-'*n + ' '
@@ -62,7 +72,7 @@ def PreProcessor(p):
 	Content, Titles, Meta = '', [], {
 		'Template': 'Standard.html',
 		'Style': '',
-		'Index': 'True'}}
+		'Index': 'True'}
 	for l in File.splitlines():
 		ls = l.lstrip()
 		if p.endswith('.pug'):
@@ -75,11 +85,19 @@ def PreProcessor(p):
 					Meta['Style'] += ls[len('// Style: '):] + ' '
 				elif ls.startswith('// Index: '):
 					Meta['Index'] += ls[len('// Index: '):] + ' '
+			elif ls.startswith(('h1', 'h2', 'h3', 'h4', 'h5', 'h6')):
+				if ls[2:].startswith(("(class='NoTitle", '(class="NoTitle')):
+					Content += l + '\n'
+				else:
+					Title = '#'*int(ls[1]) + str(ls[3:])
+					Titles += [Title]
+					# We should handle headers that for any reason already have parenthesis
+					if ls[2:] == '(':
+						Content += l + '\n'
+					else:
+						Content += GetTitleIdLine(l, Title) + '\n'
 			else:
 				Content += l + '\n'
-				if ls.startswith(('h1', 'h2', 'h3', 'h4', 'h5', 'h6')):
-					if not ls.startswith(("h1(class='NoTitle", 'h1(class="NoTitle')):
-						Titles += ['#'*int(ls[1]) + str(ls[3:])]
 		elif p.endswith('.md'):
 			if ls.startswith('\%'):
 				Content += ls[1:] + '\n'
@@ -96,12 +114,16 @@ def PreProcessor(p):
 				Heading = ls.split(' ')[0].count('#')
 				if Heading > 0:
 					Titles += [ls]
+	print(Content)
 	return Content, Titles, Meta
 
 def PugCompileList(Pages):
 	Paths = ''
 	for File, Content, Titles, Meta in Pages:
-		Paths += '"public/' + File + '" '
+		FilePath = 'public/{}'.format(File)
+		WriteFile(FilePath, Content)
+		Paths += '"{}" '.format(FilePath)
+	# Pug-cli seems to shit itself with folder paths as input, so we pass ALL the files as arguments
 	os.system('pug {} > /dev/null'.format(Paths))
 
 def PatchHTML(Template, Parts, Content, Titles, Meta):
@@ -128,6 +150,7 @@ def MakeSite(Templates, Parts):
 	for File in Path('Pages').rglob('*.pug'):
 		File = str(File)[len('Pages/'):]
 		Content, Titles, Meta = PreProcessor('Pages/{}'.format(File))
+		print(Content)
 		Pages += [[File, Content, Titles, Meta]]
 	PugCompileList(Pages)
 	for File, Content, Titles, Meta in Pages:
