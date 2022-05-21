@@ -2,7 +2,9 @@
 """ ================================= |
 | staticoso                           |
 | Just a simple Static Site Generator |
-| Licensed under AGPLv3 by OctoSpacc  |
+|                                     |
+| Licensed under the AGPLv3 license   |
+| Copyright (C) 2022, OctoSpacc       |
 | ================================= """
 
 import os
