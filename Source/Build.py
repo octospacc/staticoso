@@ -6,7 +6,6 @@
 | ================================= """
 
 import os
-#import pypugjs
 import shutil
 from markdown import Markdown
 from pathlib import Path
@@ -42,13 +41,14 @@ def DashifyStr(s, Limit=32):
 	return Str
 
 def FormatTitles(Titles):
-	HTMLTitles = ''
+	MD = ''
 	for t in Titles:
 		n = t.split(' ')[0].count('#')
 		Heading = '\-'*n + ' '
-		t = t.lstrip('#')
-		HTMLTitles += Heading + t + '  \n'
-	return Markdown().convert(HTMLTitles)
+		Title = t.lstrip('#')
+		Title = '[{}](#{})'.format(Title, DashifyStr(Title))
+		MDTitles += Heading + Title + '  \n'
+	return Markdown().convert(MDTitles)
 
 def LoadFromDir(Dir):
 	Contents = {}
@@ -61,7 +61,8 @@ def PreProcessor(p):
 	File = ReadFile(p)
 	Content, Titles, Meta = '', [], {
 		'Template': 'Standard.html',
-		'Style': ''}
+		'Style': '',
+		'Index': 'True'}}
 	for l in File.splitlines():
 		ls = l.lstrip()
 		if p.endswith('.pug'):
@@ -72,6 +73,8 @@ def PreProcessor(p):
 					Meta['Style'] += "#MainBox{Background:" + ls[len('// Background: '):] + ";} "
 				elif ls.startswith('// Style: '):
 					Meta['Style'] += ls[len('// Style: '):] + ' '
+				elif ls.startswith('// Index: '):
+					Meta['Index'] += ls[len('// Index: '):] + ' '
 			else:
 				Content += l + '\n'
 				if ls.startswith(('h1', 'h2', 'h3', 'h4', 'h5', 'h6')):
@@ -100,17 +103,13 @@ def PugCompileList(Pages):
 	for File, Content, Titles, Meta in Pages:
 		Paths += '"public/' + File + '" '
 	os.system('pug {} > /dev/null'.format(Paths))
-"""
-	WriteFile('tmp.pug', c)
-	os.system('pug tmp.pug > /dev/null')
-	return ReadFile('tmp.html')
-"""
 
 def PatchHTML(Template, Parts, Content, Titles, Meta):
 	HTMLTitles = FormatTitles(Titles)
 
 	Template = Template.replace('[HTML:Page:Title]', 'Untitled' if not Titles else Titles[0].lstrip('#'))
 	Template = Template.replace('[HTML:Page:Style]', Meta['Style'])
+	#Template = Template.replace('[HTML:Page:LeftBox]', HTMLSiteTree)
 	Template = Template.replace('[HTML:Page:RightBox]', HTMLTitles)
 	Template = Template.replace('[HTML:Page:MainBox]', Content)
 
@@ -141,7 +140,6 @@ def MakeSite(Templates, Parts):
 			PatchHTML(
 				Template, Parts,
 				ReadFile('public/{}.html'.format(File.rstrip('.pug'))),
-				#pypugjs.Compiler(pypugjs.Parser(Content).parse()).compile(),
 				Titles, Meta))
 	for File in Path('Pages').rglob('*.md'):
 		File = str(File)[len('Pages/'):]
