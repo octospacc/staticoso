@@ -49,17 +49,16 @@ def GetTitleIdLine(Line, Title):
 	NewLine += Line[:Index]
 	NewLine += "{}(id='{}')".format(Line[Index:Index+2], Title)
 	NewLine += Line[Index+2:]
-	print(NewLine)
 	return NewLine
 
 def FormatTitles(Titles):
 	MDTitles = ''
 	for t in Titles:
 		n = t.split(' ')[0].count('#')
-		Heading = '\-'*n + ' '
+		Heading = '- ' * n
 		Title = t.lstrip('#')
 		Title = '[{}](#{})'.format(Title, DashifyStr(Title))
-		MDTitles += Heading + Title + '  \n'
+		MDTitles += Heading + Title + '\n'
 	return Markdown().convert(MDTitles)
 
 def LoadFromDir(Dir):
@@ -116,7 +115,6 @@ def PreProcessor(p):
 				Heading = ls.split(' ')[0].count('#')
 				if Heading > 0:
 					Titles += [ls]
-	print(Content)
 	return Content, Titles, Meta
 
 def PugCompileList(Pages):
@@ -152,7 +150,6 @@ def MakeSite(Templates, Parts):
 	for File in Path('Pages').rglob('*.pug'):
 		File = str(File)[len('Pages/'):]
 		Content, Titles, Meta = PreProcessor('Pages/{}'.format(File))
-		print(Content)
 		Pages += [[File, Content, Titles, Meta]]
 	PugCompileList(Pages)
 	for File, Content, Titles, Meta in Pages:
