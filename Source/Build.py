@@ -73,7 +73,8 @@ def PreProcessor(p):
 	Content, Titles, Meta = '', [], {
 		'Template': 'Standard.html',
 		'Style': '',
-		'Index': 'True'}
+		'Index': 'True',
+		'Title': ''}
 	for l in File.splitlines():
 		ls = l.lstrip()
 		if p.endswith('.pug'):
@@ -86,6 +87,8 @@ def PreProcessor(p):
 					Meta['Style'] += ls[len('// Style: '):] + ' '
 				elif ls.startswith('// Index: '):
 					Meta['Index'] += ls[len('// Index: '):] + ' '
+				elif ls.startswith('// Title: '):
+					Meta['Title'] += ls[len('// Title: '):] + ' '
 			elif ls.startswith(('h1', 'h2', 'h3', 'h4', 'h5', 'h6')):
 				if ls[2:].startswith(("(class='NoTitle", '(class="NoTitle')):
 					Content += l + '\n'
@@ -110,6 +113,10 @@ def PreProcessor(p):
 				Meta['Style'] += "#MainBox{Background:" + ls[len('% Background: '):] + ";} "
 			elif ls.startswith('% Style: '):
 				Meta['Style'] += ls[len('% Style: '):] + ' '
+			elif ls.startswith('% Index: '):
+					Meta['Index'] += ls[len('% Index: '):] + ' '
+			elif ls.startswith('% Title: '):
+					Meta['Title'] += ls[len('% Title: '):] + ' '
 			else:
 				Content += l + '\n'
 				Heading = ls.split(' ')[0].count('#')
@@ -126,18 +133,60 @@ def PugCompileList(Pages):
 	# Pug-cli seems to shit itself with folder paths as input, so we pass ALL the files as arguments
 	os.system('pug {} > /dev/null'.format(Paths))
 
-def PatchHTML(Template, Parts, Content, Titles, Meta):
+def PatchHTML(Template, Parts, HTMLPagesList, Content, Titles, Meta):
 	HTMLTitles = FormatTitles(Titles)
 
 	Template = Template.replace('[HTML:Page:Title]', 'Untitled' if not Titles else Titles[0].lstrip('#'))
 	Template = Template.replace('[HTML:Page:Style]', Meta['Style'])
-	#Template = Template.replace('[HTML:Page:LeftBox]', HTMLSiteTree)
+	Template = Template.replace('[HTML:Page:LeftBox]', HTMLPagesList)
 	Template = Template.replace('[HTML:Page:RightBox]', HTMLTitles)
 	Template = Template.replace('[HTML:Page:MainBox]', Content)
 
 	for p in Parts:
 		Template = Template.replace('[HTML:Part:{}]'.format(p), Parts[p])
 	return Template
+
+def FileToStr(File, Truncate=''):
+	return str(File)[len(Truncate):]
+
+def GetHTMLPagesList(Pages):
+	List = ''
+	LastParent = []
+	for File, Content, Titles, Meta in Pages:
+		if Meta['Index'] == 'True' and Titles:
+			n = File.count('/') + 1
+			if n > 1:
+				CurParent = File.split('/')[:-1]
+				for i,s in enumerate(CurParent):
+					if LastParent != CurParent:
+						LastParent = CurParent
+						Levels = '- ' * (n-1+i)
+						Title = CurParent[n-2+i]
+						List += Levels + Title + '\n'
+			Levels = '- ' * n
+			Title = Meta['Title'] if Meta['Title'] else 'Untitled' if not Titles else Titles[0].lstrip('#')
+			Title = '[{}]({})'.format(
+				Title,
+				'/{}.html'.format(File.rstrip('.pug')))
+			List += Levels + Title + '\n'
+	return Markdown().convert(List)
+"""
+	for t in Titles:
+		n = t.split(' ')[0].count('#')
+		Heading = '- ' * n
+		Title = t.lstrip('#')
+		Title = '[{}](#{})'.format(Title, DashifyStr(Title))
+		MDTitles += Heading + Title + '\n'
+
+	Pages = ''
+	for File in Path('Pages').rglob('*.pug'):
+		File = FileToStr(File, 'Pages/')
+		Content = ReadFile(File)
+	for File in Path('Pages').rglob('*.md'):
+		File = FileToStr(File, 'Pages/')
+		Content = ReadFile(File)
+	return Pages
+"""
 
 def DelTmp():
 	for File in Path('public').rglob('*.pug'):
@@ -148,10 +197,11 @@ def DelTmp():
 def MakeSite(Templates, Parts):
 	Pages = []
 	for File in Path('Pages').rglob('*.pug'):
-		File = str(File)[len('Pages/'):]
+		File = FileToStr(File, 'Pages/')
 		Content, Titles, Meta = PreProcessor('Pages/{}'.format(File))
 		Pages += [[File, Content, Titles, Meta]]
 	PugCompileList(Pages)
+	HTMLPagesList = GetHTMLPagesList(Pages)
 	for File, Content, Titles, Meta in Pages:
 		Template = Templates[Meta['Template']]
 		Template = Template.replace(
@@ -160,11 +210,11 @@ def MakeSite(Templates, Parts):
 		WriteFile(
 			'public/{}.html'.format(File.rstrip('.pug')),
 			PatchHTML(
-				Template, Parts,
+				Template, Parts, HTMLPagesList,
 				ReadFile('public/{}.html'.format(File.rstrip('.pug'))),
 				Titles, Meta))
 	for File in Path('Pages').rglob('*.md'):
-		File = str(File)[len('Pages/'):]
+		File = FileToStr(File, 'Pages/')
 		Content, Titles, Meta = PreProcessor('Pages/{}'.format(File))
 		Template = Templates[Meta['Template']]
 		Template = Template.replace(
@@ -173,7 +223,7 @@ def MakeSite(Templates, Parts):
 		WriteFile(
 			'public/{}.html'.format(File.rstrip('.md')), 
 			PatchHTML(
-				Template, Parts,
+				Template, Parts, HTMLPagesList,
 				Markdown().convert(Content),
 				Titles, Meta))
 	DelTmp()
@@ -182,8 +232,9 @@ def Main():
 	ResetPublic()
 	Templates = LoadFromDir('Templates')
 	Parts = LoadFromDir('Parts')
+	#HTMLPages = SearchIndexedPages()
 	shutil.copytree('Pages', 'public')
-	MakeSite(Templates, Parts)
+	MakeSite(Templates, Parts) #, HTMLPages)
 	os.system("cp -R Assets/* public/")
 
 if __name__ == '__main__':

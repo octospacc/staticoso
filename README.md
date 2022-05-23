@@ -15,13 +15,13 @@ Feel free to experiment with all of this stuff!
 - [pug-cli >= 1.0.0-alpha6](https://npmjs.com/package/pug-cli)
 
 ## Features roadmap
-- [] SCSS compilation support for CSS templates
-- [] Pug support for base templates and page side parts
-- [] Differential recompile (to optimize resource waste on non-ephemeral servers)
-- [] Hot-recompile (for website development)
-- [] XML sitemap generation
-- [] RSS feed generation
-- [] Generation of website page tree in left sidebar
+- [ ] SCSS compilation support for CSS templates
+- [ ] Pug support for base templates and page side parts
+- [ ] Differential recompile (to optimize resource waste on non-ephemeral servers)
+- [ ] Hot-recompile (for website development)
+- [ ] XML sitemap generation
+- [ ] RSS feed generation
+- [x] Generation of website page tree in left sidebar
 - [x] Generation of titles in right sidebar with clickable links
 - [x] Detections of titles in a page
 - [x] Pug support for pages
