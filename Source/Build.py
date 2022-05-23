@@ -7,6 +7,7 @@
 | Copyright (C) 2022, OctoSpacc       |
 | ================================= """
 
+import argparse
 import os
 import shutil
 from markdown import Markdown
@@ -149,7 +150,7 @@ def PatchHTML(Template, Parts, HTMLPagesList, Content, Titles, Meta):
 def FileToStr(File, Truncate=''):
 	return str(File)[len(Truncate):]
 
-def GetHTMLPagesList(Pages):
+def GetHTMLPagesList(Pages, Root):
 	List = ''
 	LastParent = []
 	for File, Content, Titles, Meta in Pages:
@@ -167,26 +168,9 @@ def GetHTMLPagesList(Pages):
 			Title = Meta['Title'] if Meta['Title'] else 'Untitled' if not Titles else Titles[0].lstrip('#')
 			Title = '[{}]({})'.format(
 				Title,
-				'/{}.html'.format(File.rstrip('.pug')))
+				'{}{}.html'.format(Root, File.rstrip('.pug')))
 			List += Levels + Title + '\n'
 	return Markdown().convert(List)
-"""
-	for t in Titles:
-		n = t.split(' ')[0].count('#')
-		Heading = '- ' * n
-		Title = t.lstrip('#')
-		Title = '[{}](#{})'.format(Title, DashifyStr(Title))
-		MDTitles += Heading + Title + '\n'
-
-	Pages = ''
-	for File in Path('Pages').rglob('*.pug'):
-		File = FileToStr(File, 'Pages/')
-		Content = ReadFile(File)
-	for File in Path('Pages').rglob('*.md'):
-		File = FileToStr(File, 'Pages/')
-		Content = ReadFile(File)
-	return Pages
-"""
 
 def DelTmp():
 	for File in Path('public').rglob('*.pug'):
@@ -194,14 +178,14 @@ def DelTmp():
 	for File in Path('public').rglob('*.md'):
 		os.remove(File)
 
-def MakeSite(Templates, Parts):
+def MakeSite(Templates, Parts, Root):
 	Pages = []
 	for File in Path('Pages').rglob('*.pug'):
 		File = FileToStr(File, 'Pages/')
 		Content, Titles, Meta = PreProcessor('Pages/{}'.format(File))
 		Pages += [[File, Content, Titles, Meta]]
 	PugCompileList(Pages)
-	HTMLPagesList = GetHTMLPagesList(Pages)
+	HTMLPagesList = GetHTMLPagesList(Pages, Root)
 	for File, Content, Titles, Meta in Pages:
 		Template = Templates[Meta['Template']]
 		Template = Template.replace(
@@ -228,14 +212,20 @@ def MakeSite(Templates, Parts):
 				Titles, Meta))
 	DelTmp()
 
-def Main():
+def Main(Args):
 	ResetPublic()
+	Root = Args.Root if Args.Root else '/'
+
 	Templates = LoadFromDir('Templates')
 	Parts = LoadFromDir('Parts')
 	#HTMLPages = SearchIndexedPages()
 	shutil.copytree('Pages', 'public')
-	MakeSite(Templates, Parts) #, HTMLPages)
+	MakeSite(Templates, Parts, Root)
 	os.system("cp -R Assets/* public/")
 
 if __name__ == '__main__':
-	Main()
+	Parser = argparse.ArgumentParser()
+	Parser.add_argument('--Root', type=str)
+	Args = Parser.parse_args()
+
+	Main(Args)
