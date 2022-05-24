@@ -75,54 +75,36 @@ def PreProcessor(p):
 		'Template': 'Standard.html',
 		'Style': '',
 		'Index': 'True',
-		'Title': ''}
+		'Title': '',
+		'Order': None}
 	for l in File.splitlines():
 		ls = l.lstrip()
-		if p.endswith('.pug'):
-			if ls.startswith('//'):
-				if ls.startswith('// Template: '):
-					Meta['Template'] = ls[len('// Template: '):]
-				elif ls.startswith('// Background: '):
-					Meta['Style'] += "#MainBox{Background:" + ls[len('// Background: '):] + ";} "
-				elif ls.startswith('// Style: '):
-					Meta['Style'] += ls[len('// Style: '):] + ' '
-				elif ls.startswith('// Index: '):
-					Meta['Index'] += ls[len('// Index: '):] + ' '
-				elif ls.startswith('// Title: '):
-					Meta['Title'] += ls[len('// Title: '):] + ' '
-			elif ls.startswith(('h1', 'h2', 'h3', 'h4', 'h5', 'h6')):
-				if ls[2:].startswith(("(class='NoTitle", '(class="NoTitle')):
+		if ls.startswith('//'):
+			if ls.startswith('// Template: '):
+				Meta['Template'] = ls[len('// Template: '):]
+			elif ls.startswith('// Background: '):
+				Meta['Style'] += "#MainBox{Background:" + ls[len('// Background: '):] + ";} "
+			elif ls.startswith('// Style: '):
+				Meta['Style'] += ls[len('// Style: '):] + ' '
+			elif ls.startswith('// Index: '):
+				Meta['Index'] = ls[len('// Index: '):]
+			elif ls.startswith('// Title: '):
+				Meta['Title'] = ls[len('// Title: '):]
+			elif ls.startswith('// Order: '):
+				Meta['Order'] = int(ls[len('// Order: '):])
+		elif ls.startswith(('h1', 'h2', 'h3', 'h4', 'h5', 'h6')):
+			if ls[2:].startswith(("(class='NoTitle", '(class="NoTitle')):
+				Content += l + '\n'
+			else:
+				Title = '#'*int(ls[1]) + str(ls[3:])
+				Titles += [Title]
+				# We should handle headers that for any reason already have parenthesis
+				if ls[2:] == '(':
 					Content += l + '\n'
 				else:
-					Title = '#'*int(ls[1]) + str(ls[3:])
-					Titles += [Title]
-					# We should handle headers that for any reason already have parenthesis
-					if ls[2:] == '(':
-						Content += l + '\n'
-					else:
-						Content += GetTitleIdLine(l, Title) + '\n'
-			else:
-				Content += l + '\n'
-		elif p.endswith('.md'):
-			if ls.startswith('\%'):
-				Content += ls[1:] + '\n'
-			elif ls.startswith('% - '):
-				Content += '<!-- {} -->'.format(ls[4:]) + '\n'
-			elif ls.startswith('% Template: '):
-				Meta['Template'] = ls[len('% Template: '):]
-			elif ls.startswith('% Background: '):
-				Meta['Style'] += "#MainBox{Background:" + ls[len('% Background: '):] + ";} "
-			elif ls.startswith('% Style: '):
-				Meta['Style'] += ls[len('% Style: '):] + ' '
-			elif ls.startswith('% Index: '):
-					Meta['Index'] += ls[len('% Index: '):] + ' '
-			elif ls.startswith('% Title: '):
-					Meta['Title'] += ls[len('% Title: '):] + ' '
-			else:
-				Content += l + '\n'
-				Heading = ls.split(' ')[0].count('#')
-				if Heading > 0:
-					Titles += [ls]
+					Content += GetTitleIdLine(l, Title) + '\n'
+		else:
+			Content += l + '\n'
 	return Content, Titles, Meta
 
 def PugCompileList(Pages):
@@ -150,9 +132,25 @@ def PatchHTML(Template, Parts, HTMLPagesList, Content, Titles, Meta):
 def FileToStr(File, Truncate=''):
 	return str(File)[len(Truncate):]
 
+def OrderPages(Old):
+	New = []
+	Max = 0
+	for i,e in enumerate(Old):
+		Curr = e[3]['Order']
+		if Curr > Max:
+			Max = Curr
+	for i in range(Max+1):
+		New += [[]]
+	for i,e in enumerate(Old):
+		New[e[3]['Order']] = e
+	while [] in New:
+		New.remove([])
+	return New
+
 def GetHTMLPagesList(Pages, Root):
 	List = ''
 	LastParent = []
+	Pages = OrderPages(Pages)
 	for File, Content, Titles, Meta in Pages:
 		if Meta['Index'] == 'True' and Titles:
 			n = File.count('/') + 1
@@ -218,7 +216,6 @@ def Main(Args):
 
 	Templates = LoadFromDir('Templates')
 	Parts = LoadFromDir('Parts')
-	#HTMLPages = SearchIndexedPages()
 	shutil.copytree('Pages', 'public')
 	MakeSite(Templates, Parts, Root)
 	os.system("cp -R Assets/* public/")

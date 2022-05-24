@@ -15,6 +15,7 @@ Feel free to experiment with all of this stuff!
 - [pug-cli >= 1.0.0-alpha6](https://npmjs.com/package/pug-cli)
 
 ## Features roadmap
+- [ ] Custom page ordering
 - [ ] SCSS compilation support for CSS templates
 - [ ] Pug support for base templates and page side parts
 - [ ] Differential recompile (to optimize resource waste on non-ephemeral servers)
