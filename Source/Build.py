@@ -62,9 +62,9 @@ def FormatTitles(Titles):
 		MDTitles += Heading + Title + '\n'
 	return Markdown().convert(MDTitles)
 
-def LoadFromDir(Dir):
+def LoadFromDir(Dir, Rglob):
 	Contents = {}
-	for File in Path(Dir).rglob('*.html'):
+	for File in Path(Dir).rglob(Rglob):
 		File = str(File)[len(Dir)+1:]
 		Contents.update({File: ReadFile('{}/{}'.format(Dir, File))})
 	return Contents
@@ -166,7 +166,7 @@ def GetHTMLPagesList(Pages, Root):
 			Title = Meta['Title'] if Meta['Title'] else 'Untitled' if not Titles else Titles[0].lstrip('#')
 			Title = '[{}]({})'.format(
 				Title,
-				'{}{}.html'.format(Root, File.rstrip('.pug')))
+				'{}{}html'.format(Root, File[:-3]))
 			List += Levels + Title + '\n'
 	return Markdown().convert(List)
 
@@ -190,10 +190,10 @@ def MakeSite(Templates, Parts, Root):
 			'[HTML:Page:CSS]',
 			'{}{}.css'.format('../'*File.count('/'), Meta['Template'][:-5]))
 		WriteFile(
-			'public/{}.html'.format(File.rstrip('.pug')),
+			'public/{}html'.format(File[:-3]),
 			PatchHTML(
 				Template, Parts, HTMLPagesList,
-				ReadFile('public/{}.html'.format(File.rstrip('.pug'))),
+				ReadFile('public/{}html'.format(File[:-3])),
 				Titles, Meta))
 	for File in Path('Pages').rglob('*.md'):
 		File = FileToStr(File, 'Pages/')
@@ -203,7 +203,7 @@ def MakeSite(Templates, Parts, Root):
 			'[HTML:Page:CSS]',
 			'{}{}.css'.format('../'*File.count('/'), Meta['Template'][:-5]))
 		WriteFile(
-			'public/{}.html'.format(File.rstrip('.md')), 
+			'public/{}html'.format(File[:-2]),
 			PatchHTML(
 				Template, Parts, HTMLPagesList,
 				Markdown().convert(Content),
@@ -214,8 +214,8 @@ def Main(Args):
 	ResetPublic()
 	Root = Args.Root if Args.Root else '/'
 
-	Templates = LoadFromDir('Templates')
-	Parts = LoadFromDir('Parts')
+	Templates = LoadFromDir('Templates', '*.html')
+	Parts = LoadFromDir('Parts', '*.html')
 	shutil.copytree('Pages', 'public')
 	MakeSite(Templates, Parts, Root)
 	os.system("cp -R Assets/* public/")
