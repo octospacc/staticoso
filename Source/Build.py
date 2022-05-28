@@ -69,7 +69,7 @@ def LoadFromDir(Dir, Rglob):
 		Contents.update({File: ReadFile('{}/{}'.format(Dir, File))})
 	return Contents
 
-def PreProcessor(p):
+def PreProcessor(p, SiteRoot):
 	File = ReadFile(p)
 	Content, Titles, Meta = '', [], {
 		'Template': 'Standard.html',
@@ -116,7 +116,7 @@ def PugCompileList(Pages):
 	# Pug-cli seems to shit itself with folder paths as input, so we pass ALL the files as arguments
 	os.system('pug {} > /dev/null'.format(Paths))
 
-def PatchHTML(Template, Parts, HTMLPagesList, Content, Titles, Meta):
+def PatchHTML(Template, Parts, HTMLPagesList, Content, Titles, Meta, SiteRoot):
 	HTMLTitles = FormatTitles(Titles)
 
 	Template = Template.replace('[HTML:Page:Title]', 'Untitled' if not Titles else Titles[0].lstrip('#'))
@@ -126,6 +126,7 @@ def PatchHTML(Template, Parts, HTMLPagesList, Content, Titles, Meta):
 	Template = Template.replace('[HTML:Page:MainBox]', Content)
 
 	for p in Parts:
+		Template = Template.replace('[HTML:Site:AbsoluteRoot]', SiteRoot)
 		Template = Template.replace('[HTML:Part:{}]'.format(p), Parts[p])
 	return Template
 
@@ -147,7 +148,7 @@ def OrderPages(Old):
 		New.remove([])
 	return New
 
-def GetHTMLPagesList(Pages, Root):
+def GetHTMLPagesList(Pages, SiteRoot):
 	List = ''
 	LastParent = []
 	Pages = OrderPages(Pages)
@@ -166,7 +167,7 @@ def GetHTMLPagesList(Pages, Root):
 			Title = Meta['Title'] if Meta['Title'] else 'Untitled' if not Titles else Titles[0].lstrip('#')
 			Title = '[{}]({})'.format(
 				Title,
-				'{}{}html'.format(Root, File[:-3]))
+				'{}{}html'.format(SiteRoot, File[:-3]))
 			List += Levels + Title + '\n'
 	return Markdown().convert(List)
 
@@ -176,53 +177,59 @@ def DelTmp():
 	for File in Path('public').rglob('*.md'):
 		os.remove(File)
 
-def MakeSite(Templates, Parts, Root):
+def MakeSite(Templates, Parts, SiteRoot):
 	Pages = []
 	for File in Path('Pages').rglob('*.pug'):
 		File = FileToStr(File, 'Pages/')
-		Content, Titles, Meta = PreProcessor('Pages/{}'.format(File))
+		Content, Titles, Meta = PreProcessor('Pages/{}'.format(File), SiteRoot)
 		Pages += [[File, Content, Titles, Meta]]
 	PugCompileList(Pages)
-	HTMLPagesList = GetHTMLPagesList(Pages, Root)
+	HTMLPagesList = GetHTMLPagesList(Pages, SiteRoot)
 	for File, Content, Titles, Meta in Pages:
 		Template = Templates[Meta['Template']]
 		Template = Template.replace(
-			'[HTML:Page:CSS]',
-			'{}{}.css'.format('../'*File.count('/'), Meta['Template'][:-5]))
+			'[HTML:Site:AbsoluteRoot]',
+			SiteRoot)
+		Template = Template.replace(
+			'[HTML:Site:RelativeRoot]',
+			'../'*File.count('/'))
 		WriteFile(
 			'public/{}html'.format(File[:-3]),
 			PatchHTML(
 				Template, Parts, HTMLPagesList,
 				ReadFile('public/{}html'.format(File[:-3])),
-				Titles, Meta))
+				Titles, Meta, SiteRoot))
 	for File in Path('Pages').rglob('*.md'):
 		File = FileToStr(File, 'Pages/')
-		Content, Titles, Meta = PreProcessor('Pages/{}'.format(File))
+		Content, Titles, Meta = PreProcessor('Pages/{}'.format(File), SiteRoot)
 		Template = Templates[Meta['Template']]
 		Template = Template.replace(
-			'[HTML:Page:CSS]',
-			'{}{}.css'.format('../'*File.count('/'), Meta['Template'][:-5]))
+			'[HTML:Site:AbsoluteRoot]',
+			SiteRoot)
+		Template = Template.replace(
+			'[HTML:Site:RelativeRoot]',
+			'../'*File.count('/'))
 		WriteFile(
 			'public/{}html'.format(File[:-2]),
 			PatchHTML(
 				Template, Parts, HTMLPagesList,
 				Markdown().convert(Content),
-				Titles, Meta))
+				Titles, Meta, SiteRoot))
 	DelTmp()
 
 def Main(Args):
 	ResetPublic()
-	Root = Args.Root if Args.Root else '/'
+	SiteRoot = Args.SiteRoot if Args.SiteRoot else '/'
 
 	Templates = LoadFromDir('Templates', '*.html')
 	Parts = LoadFromDir('Parts', '*.html')
 	shutil.copytree('Pages', 'public')
-	MakeSite(Templates, Parts, Root)
+	MakeSite(Templates, Parts, SiteRoot)
 	os.system("cp -R Assets/* public/")
 
 if __name__ == '__main__':
 	Parser = argparse.ArgumentParser()
-	Parser.add_argument('--Root', type=str)
+	Parser.add_argument('--SiteRoot', type=str)
 	Args = Parser.parse_args()
 
 	Main(Args)
