@@ -118,16 +118,14 @@ def PugCompileList(Pages):
 
 def PatchHTML(Template, Parts, HTMLPagesList, Content, Titles, Meta, SiteRoot):
 	HTMLTitles = FormatTitles(Titles)
-
+	for p in Parts:
+		Template = Template.replace('[HTML:Part:{}]'.format(p), Parts[p])
+		Template = Template.replace('[HTML:Site:AbsoluteRoot]', SiteRoot)
 	Template = Template.replace('[HTML:Page:Title]', 'Untitled' if not Titles else Titles[0].lstrip('#'))
 	Template = Template.replace('[HTML:Page:Style]', Meta['Style'])
 	Template = Template.replace('[HTML:Page:LeftBox]', HTMLPagesList)
 	Template = Template.replace('[HTML:Page:RightBox]', HTMLTitles)
 	Template = Template.replace('[HTML:Page:MainBox]', Content)
-
-	for p in Parts:
-		Template = Template.replace('[HTML:Site:AbsoluteRoot]', SiteRoot)
-		Template = Template.replace('[HTML:Part:{}]'.format(p), Parts[p])
 	return Template
 
 def FileToStr(File, Truncate=''):
