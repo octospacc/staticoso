@@ -43,6 +43,14 @@ def DashifyStr(s, Limit=32):
 			Str += c
 	return '-' + Str
 
+def GetTitle(Meta, Titles, Prefer='MetaTitle'):
+	if Prefer == 'Title':
+		return Titles[0].lstrip('#') if Titles else Meta['Title'] if Meta['Title'] else 'Untitled'
+	elif Prefer == 'MetaTitle':
+		return Meta['Title'] if Meta['Title'] else Titles[0].lstrip('#') if Titles else 'Untitled'
+	elif Prefer == 'HTMLTitle':
+		return Meta['HTMLTitle'] if Meta['HTMLTitle'] else Meta['Title'] if Meta['Title'] else Titles[0].lstrip('#') if Titles else 'Untitled'
+
 def GetTitleIdLine(Line, Title):
 	Title = DashifyStr(Title.lstrip('#'))
 	Index = Line.find('h')
@@ -76,10 +84,11 @@ def PreProcessor(p, SiteRoot):
 		'Style': '',
 		'Index': 'True',
 		'Title': '',
+		'HTMLTitle': '',
 		'Order': None}
 	for l in File.splitlines():
 		ls = l.lstrip()
-		if ls.startswith('//'):
+		if ls.startswith('// '):
 			if ls.startswith('// Template: '):
 				Meta['Template'] = ls[len('// Template: '):]
 			elif ls.startswith('// Background: '):
@@ -90,6 +99,8 @@ def PreProcessor(p, SiteRoot):
 				Meta['Index'] = ls[len('// Index: '):]
 			elif ls.startswith('// Title: '):
 				Meta['Title'] = ls[len('// Title: '):]
+			elif ls.startswith('// HTMLTitle: '):
+				Meta['HTMLTitle'] = ls[len('// HTMLTitle: '):]
 			elif ls.startswith('// Order: '):
 				Meta['Order'] = int(ls[len('// Order: '):])
 		elif ls.startswith(('h1', 'h2', 'h3', 'h4', 'h5', 'h6')):
@@ -123,7 +134,9 @@ def PatchHTML(Template, Parts, HTMLPagesList, Content, Titles, Meta, SiteRoot):
 	Template = Template.replace('[HTML:Site:AbsoluteRoot]', SiteRoot)
 	Template = Template.replace('[HTML:Page:LeftBox]', HTMLPagesList)
 	Template = Template.replace('[HTML:Page:RightBox]', HTMLTitles)
-	Template = Template.replace('[HTML:Page:Title]', 'Untitled' if not Titles else Titles[0].lstrip('#'))
+	Template = Template.replace('[HTML:Page:Title]', GetTitle(Meta, Titles, 'MetaTitle'))
+	# Titles[0].lstrip('#') if Titles else 'Untitled')
+	# Meta['Title'] if Meta['Title'] else Titles[0].lstrip('#') if Titles else 'Untitled')
 	Template = Template.replace('[HTML:Page:Style]', Meta['Style'])
 	Template = Template.replace('[HTML:Page:MainBox]', Content)
 	return Template
@@ -134,16 +147,23 @@ def FileToStr(File, Truncate=''):
 def OrderPages(Old):
 	New = []
 	Max = 0
+	#Off = 0
 	for i,e in enumerate(Old):
-		Curr = e[3]['Order']
+		Curr = e[3]['Order'] #if e[3]['Order'] else 0
 		if Curr > Max:
 			Max = Curr
 	for i in range(Max+1):
 		New += [[]]
 	for i,e in enumerate(Old):
+		#if e[3]['Order']:
 		New[e[3]['Order']] = e
+		#else:
+			#Off += 1
+			#New += [[e]]
 	while [] in New:
 		New.remove([])
+	#for i in New:
+		#print(i)
 	return New
 
 def GetHTMLPagesList(Pages, SiteRoot):
@@ -151,7 +171,7 @@ def GetHTMLPagesList(Pages, SiteRoot):
 	LastParent = []
 	Pages = OrderPages(Pages)
 	for File, Content, Titles, Meta in Pages:
-		if Meta['Index'] == 'True' and Titles:
+		if Meta['Index'] == 'True' and GetTitle(Meta, Titles, Prefer='HTMLTitle') != 'Untitled':
 			n = File.count('/') + 1
 			if n > 1:
 				CurParent = File.split('/')[:-1]
@@ -159,14 +179,21 @@ def GetHTMLPagesList(Pages, SiteRoot):
 					if LastParent != CurParent:
 						LastParent = CurParent
 						Levels = '- ' * (n-1+i)
-						Title = CurParent[n-2+i]
+						if File[:-3].endswith('index.'):
+							Title = GetTitle(Meta, Titles, 'HTMLTitle')
+							Title = '[{}]({})'.format(
+								Title,
+								'{}{}html'.format(SiteRoot, File[:-3]))
+						else:
+							Title = CurParent[n-2+i]
 						List += Levels + Title + '\n'
-			Levels = '- ' * n
-			Title = Meta['Title'] if Meta['Title'] else 'Untitled' if not Titles else Titles[0].lstrip('#')
-			Title = '[{}]({})'.format(
-				Title,
-				'{}{}html'.format(SiteRoot, File[:-3]))
-			List += Levels + Title + '\n'
+			if not (n > 1 and File[:-3].endswith('index.')):
+				Levels = '- ' * n
+				Title = GetTitle(Meta, Titles, 'HTMLTitle')
+				Title = '[{}]({})'.format(
+					Title,
+					'{}{}html'.format(SiteRoot, File[:-3]))
+				List += Levels + Title + '\n'
 	return Markdown().convert(List)
 
 def DelTmp():
@@ -231,3 +258,4 @@ if __name__ == '__main__':
 	Args = Parser.parse_args()
 
 	Main(Args)
+	

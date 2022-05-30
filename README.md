@@ -15,6 +15,9 @@ Feel free to experiment with all of this stuff!
 - [pug-cli >= 1.0.0-alpha6](https://npmjs.com/package/pug-cli)
 
 ## Features roadmap
+- [ ] Handle showing creation and modified date for any page
+- [ ] Generation of category pages (ex. page with list of blog posts)
+- [x] Custom title choosing type (HTML/Plaintext)
 - [x] Custom page ordering
 - [ ] SCSS compilation support for CSS templates
 - [ ] Pug support for base templates and page side parts
@@ -28,3 +31,4 @@ Feel free to experiment with all of this stuff!
 - [x] Pug support for pages
 - [x] Markdown support for pages
 - [x] First working version
+
