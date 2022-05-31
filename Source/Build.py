@@ -89,19 +89,16 @@ def PreProcessor(p, SiteRoot):
 	for l in File.splitlines():
 		ls = l.lstrip()
 		if ls.startswith('// '):
-			if ls.startswith('// Template: '):
-				Meta['Template'] = ls[len('// Template: '):]
-			elif ls.startswith('// Background: '):
+			lss = ls[3:]
+			for Item in ['Template', 'Index', 'Title', 'HTMLTitle']:
+				ItemText = '{}: '.format(Item)
+				if lss.startswith(ItemText):
+					Meta[Item] = lss[len(ItemText):]
+			if lss.startswith('Background: '):
 				Meta['Style'] += "#MainBox{Background:" + ls[len('// Background: '):] + ";} "
-			elif ls.startswith('// Style: '):
+			elif lss.startswith('Style: '):
 				Meta['Style'] += ls[len('// Style: '):] + ' '
-			elif ls.startswith('// Index: '):
-				Meta['Index'] = ls[len('// Index: '):]
-			elif ls.startswith('// Title: '):
-				Meta['Title'] = ls[len('// Title: '):]
-			elif ls.startswith('// HTMLTitle: '):
-				Meta['HTMLTitle'] = ls[len('// HTMLTitle: '):]
-			elif ls.startswith('// Order: '):
+			elif lss.startswith('Order: '):
 				Meta['Order'] = int(ls[len('// Order: '):])
 		elif ls.startswith(('h1', 'h2', 'h3', 'h4', 'h5', 'h6')):
 			if ls[2:].startswith(("(class='NoTitle", '(class="NoTitle')):
@@ -135,8 +132,6 @@ def PatchHTML(Template, Parts, HTMLPagesList, Content, Titles, Meta, SiteRoot):
 	Template = Template.replace('[HTML:Page:LeftBox]', HTMLPagesList)
 	Template = Template.replace('[HTML:Page:RightBox]', HTMLTitles)
 	Template = Template.replace('[HTML:Page:Title]', GetTitle(Meta, Titles, 'MetaTitle'))
-	# Titles[0].lstrip('#') if Titles else 'Untitled')
-	# Meta['Title'] if Meta['Title'] else Titles[0].lstrip('#') if Titles else 'Untitled')
 	Template = Template.replace('[HTML:Page:Style]', Meta['Style'])
 	Template = Template.replace('[HTML:Page:MainBox]', Content)
 	return Template
@@ -169,8 +164,12 @@ def OrderPages(Old):
 def GetHTMLPagesList(Pages, SiteRoot):
 	List = ''
 	LastParent = []
-	Pages = OrderPages(Pages)
-	for File, Content, Titles, Meta in Pages:
+	IndexPages = Pages.copy()
+	for e in IndexPages:
+		if e[3]['Index'] == 'False':
+			IndexPages.remove(e)
+	IndexPages = OrderPages(IndexPages)
+	for File, Content, Titles, Meta in IndexPages:
 		if Meta['Index'] == 'True' and GetTitle(Meta, Titles, Prefer='HTMLTitle') != 'Untitled':
 			n = File.count('/') + 1
 			if n > 1:
