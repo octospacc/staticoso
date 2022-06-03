@@ -60,6 +60,20 @@ def GetTitleIdLine(Line, Title):
 	NewLine += Line[Index+2:]
 	return NewLine
 
+def MakeListTitle(File, Meta, Titles, Prefer, SiteRoot):
+	Title = GetTitle(Meta, Titles, Prefer)
+	if Meta['Type'] == 'Post':
+		Title = '[{}] [{}]({})'.format(
+			Meta['CreatedOn'],
+			Title,
+			'{}{}html'.format(SiteRoot, File[:-3]))
+	else:
+		Title = '[{}]({})'.format(
+			Title,
+			'{}{}html'.format(SiteRoot, File[:-3]))
+	return Title
+	
+
 def FormatTitles(Titles):
 	MDTitles = ''
 	for t in Titles:
@@ -82,15 +96,18 @@ def PreProcessor(p, SiteRoot):
 	Content, Titles, Meta = '', [], {
 		'Template': 'Standard.html',
 		'Style': '',
+		'Type': 'Page',
 		'Index': 'True',
 		'Title': '',
 		'HTMLTitle': '',
+		'CreatedOn': '',
+		'EditedOn': '',
 		'Order': None}
 	for l in File.splitlines():
 		ls = l.lstrip()
 		if ls.startswith('// '):
 			lss = ls[3:]
-			for Item in ['Template', 'Index', 'Title', 'HTMLTitle']:
+			for Item in ['Template', 'Type', 'Index', 'Title', 'HTMLTitle', 'CreatedOn', 'EditedOn']:
 				ItemText = '{}: '.format(Item)
 				if lss.startswith(ItemText):
 					Meta[Item] = lss[len(ItemText):]
@@ -124,16 +141,20 @@ def PugCompileList(Pages):
 		Paths += '"{}" '.format(FilePath)
 	os.system('pug {} > /dev/null'.format(Paths))
 
-def PatchHTML(Template, Parts, HTMLPagesList, Content, Titles, Meta, SiteRoot):
+def PatchHTML(Template, Parts, HTMLPagesList, Content, Titles, Meta, SiteRoot, Macros):
 	HTMLTitles = FormatTitles(Titles)
-	for p in Parts:
-		Template = Template.replace('[HTML:Part:{}]'.format(p), Parts[p])
-	Template = Template.replace('[HTML:Site:AbsoluteRoot]', SiteRoot)
+	for i in Parts:
+		Template = Template.replace('[HTML:Part:{}]'.format(i), Parts[i])
 	Template = Template.replace('[HTML:Page:LeftBox]', HTMLPagesList)
 	Template = Template.replace('[HTML:Page:RightBox]', HTMLTitles)
 	Template = Template.replace('[HTML:Page:Title]', GetTitle(Meta, Titles, 'MetaTitle'))
 	Template = Template.replace('[HTML:Page:Style]', Meta['Style'])
 	Template = Template.replace('[HTML:Page:MainBox]', Content)
+	Template = Template.replace('[HTML:Site:AbsoluteRoot]', SiteRoot)
+	for i in Macros:
+		#print(i)
+		#print(Macros[i])
+		Template = Template.replace('<span>[HTML:Macro:{}]</span>'.format(i), Macros[i])
 	return Template
 
 def FileToStr(File, Truncate=''):
@@ -161,16 +182,25 @@ def OrderPages(Old):
 		#print(i)
 	return New
 
-def GetHTMLPagesList(Pages, SiteRoot):
+def GetHTMLPagesList(Pages, SiteRoot, Type='Page'):
 	List = ''
 	LastParent = []
 	IndexPages = Pages.copy()
 	for e in IndexPages:
+		#print(e[3]['Index'])
 		if e[3]['Index'] == 'False':
-			IndexPages.remove(e)
-	IndexPages = OrderPages(IndexPages)
+			IndexPages = IndexPages.remove(e)
+	#print(IndexPages)
+	for i,e in enumerate(IndexPages):
+		#print(e[3]['Type'])
+		if e[3]['Type'] != Type:
+				#print('rem')
+				IndexPages.pop(i)
+	#print(IndexPages)
+	if Type == 'Page':
+		IndexPages = OrderPages(IndexPages)
 	for File, Content, Titles, Meta in IndexPages:
-		if Meta['Index'] == 'True' and GetTitle(Meta, Titles, Prefer='HTMLTitle') != 'Untitled':
+		if Meta['Type'] == Type and Meta['Index'] == 'True' and GetTitle(Meta, Titles, Prefer='HTMLTitle') != 'Untitled':
 			n = File.count('/') + 1
 			if n > 1:
 				CurParent = File.split('/')[:-1]
@@ -179,19 +209,13 @@ def GetHTMLPagesList(Pages, SiteRoot):
 						LastParent = CurParent
 						Levels = '- ' * (n-1+i)
 						if File[:-3].endswith('index.'):
-							Title = GetTitle(Meta, Titles, 'HTMLTitle')
-							Title = '[{}]({})'.format(
-								Title,
-								'{}{}html'.format(SiteRoot, File[:-3]))
+							Title = MakeListTitle(File, Meta, Titles, 'HTMLTitle', SiteRoot)
 						else:
 							Title = CurParent[n-2+i]
 						List += Levels + Title + '\n'
 			if not (n > 1 and File[:-3].endswith('index.')):
 				Levels = '- ' * n
-				Title = GetTitle(Meta, Titles, 'HTMLTitle')
-				Title = '[{}]({})'.format(
-					Title,
-					'{}{}html'.format(SiteRoot, File[:-3]))
+				Title = MakeListTitle(File, Meta, Titles, 'HTMLTitle', SiteRoot)
 				List += Levels + Title + '\n'
 	return Markdown().convert(List)
 
@@ -203,12 +227,16 @@ def DelTmp():
 
 def MakeSite(Templates, Parts, SiteRoot):
 	Pages = []
+	Macros = {
+		'BlogPosts': ''}
 	for File in Path('Pages').rglob('*.pug'):
 		File = FileToStr(File, 'Pages/')
 		Content, Titles, Meta = PreProcessor('Pages/{}'.format(File), SiteRoot)
 		Pages += [[File, Content, Titles, Meta]]
 	PugCompileList(Pages)
-	HTMLPagesList = GetHTMLPagesList(Pages, SiteRoot)
+	HTMLPagesList = GetHTMLPagesList(Pages, SiteRoot, 'Page')
+	#print(GetHTMLPagesList(Pages, SiteRoot, 'Post'))
+	Macros['BlogPosts'] = GetHTMLPagesList(Pages, SiteRoot, 'Post')
 	for File, Content, Titles, Meta in Pages:
 		Template = Templates[Meta['Template']]
 		Template = Template.replace(
@@ -222,7 +250,7 @@ def MakeSite(Templates, Parts, SiteRoot):
 			PatchHTML(
 				Template, Parts, HTMLPagesList,
 				ReadFile('public/{}html'.format(File[:-3])),
-				Titles, Meta, SiteRoot))
+				Titles, Meta, SiteRoot, Macros))
 	for File in Path('Pages').rglob('*.md'):
 		File = FileToStr(File, 'Pages/')
 		Content, Titles, Meta = PreProcessor('Pages/{}'.format(File), SiteRoot)
@@ -238,7 +266,7 @@ def MakeSite(Templates, Parts, SiteRoot):
 			PatchHTML(
 				Template, Parts, HTMLPagesList,
 				Markdown().convert(Content),
-				Titles, Meta, SiteRoot))
+				Titles, Meta, SiteRoot, Macros))
 	DelTmp()
 
 def Main(Args):
