@@ -10,6 +10,7 @@
 import argparse
 import os
 import shutil
+from ast import literal_eval
 from markdown import Markdown
 from pathlib import Path
 
@@ -141,10 +142,27 @@ def PugCompileList(Pages):
 		Paths += '"{}" '.format(FilePath)
 	os.system('pug {} > /dev/null'.format(Paths))
 
-def PatchHTML(Template, Parts, HTMLPagesList, Content, Titles, Meta, SiteRoot, Macros):
+def PatchHTML(Template, PartsText, ContextParts, ContextPartsText, HTMLPagesList, Content, Titles, Meta, SiteRoot, Macros):
 	HTMLTitles = FormatTitles(Titles)
-	for i in Parts:
-		Template = Template.replace('[HTML:Part:{}]'.format(i), Parts[i])
+	for Line in Template.splitlines():
+		Line = Line.lstrip().rstrip()
+		print(ContextPartsText)
+		if Line.startswith('[HTML:ContextPart:') and Line.endswith(']'):
+			Path =  Line[len('[HTML:ContextPart:'):-1]
+			Section = Path.split('/')[-1]
+			if Section in ContextParts:
+				Part = ContextParts[Section]
+				Text = ''
+				if type(Part) == list:
+					for i in Part:
+						Text += ContextPartsText['{}/{}'.format(Path, i)] + '\n'
+				elif type(Part) == str:
+					Text = ContextPartsText['{}/{}'.format(Path, Part)]
+			else:
+				Text = ''
+			Template = Template.replace('[HTML:ContextPart:{}]'.format(Path), Text)
+	for i in PartsText:
+		Template = Template.replace('[HTML:Part:{}]'.format(i), PartsText[i])
 	Template = Template.replace('[HTML:Page:LeftBox]', HTMLPagesList)
 	Template = Template.replace('[HTML:Page:RightBox]', HTMLTitles)
 	Template = Template.replace('[HTML:Page:Title]', GetTitle(Meta, Titles, 'MetaTitle'))
@@ -152,8 +170,6 @@ def PatchHTML(Template, Parts, HTMLPagesList, Content, Titles, Meta, SiteRoot, M
 	Template = Template.replace('[HTML:Page:MainBox]', Content)
 	Template = Template.replace('[HTML:Site:AbsoluteRoot]', SiteRoot)
 	for i in Macros:
-		#print(i)
-		#print(Macros[i])
 		Template = Template.replace('<span>[HTML:Macro:{}]</span>'.format(i), Macros[i])
 	return Template
 
@@ -225,7 +241,7 @@ def DelTmp():
 	for File in Path('public').rglob('*.md'):
 		os.remove(File)
 
-def MakeSite(Templates, Parts, SiteRoot):
+def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteRoot):
 	Pages = []
 	Macros = {
 		'BlogPosts': ''}
@@ -238,7 +254,7 @@ def MakeSite(Templates, Parts, SiteRoot):
 	#print(GetHTMLPagesList(Pages, SiteRoot, 'Post'))
 	Macros['BlogPosts'] = GetHTMLPagesList(Pages, SiteRoot, 'Post')
 	for File, Content, Titles, Meta in Pages:
-		Template = Templates[Meta['Template']]
+		Template = TemplatesText[Meta['Template']]
 		Template = Template.replace(
 			'[HTML:Site:AbsoluteRoot]',
 			SiteRoot)
@@ -248,13 +264,13 @@ def MakeSite(Templates, Parts, SiteRoot):
 		WriteFile(
 			'public/{}html'.format(File[:-3]),
 			PatchHTML(
-				Template, Parts, HTMLPagesList,
+				Template, PartsText, ContextParts, ContextPartsText, HTMLPagesList,
 				ReadFile('public/{}html'.format(File[:-3])),
 				Titles, Meta, SiteRoot, Macros))
 	for File in Path('Pages').rglob('*.md'):
 		File = FileToStr(File, 'Pages/')
 		Content, Titles, Meta = PreProcessor('Pages/{}'.format(File), SiteRoot)
-		Template = Templates[Meta['Template']]
+		Template = TemplatesText[Meta['Template']]
 		Template = Template.replace(
 			'[HTML:Site:AbsoluteRoot]',
 			SiteRoot)
@@ -264,25 +280,37 @@ def MakeSite(Templates, Parts, SiteRoot):
 		WriteFile(
 			'public/{}html'.format(File[:-2]),
 			PatchHTML(
-				Template, Parts, HTMLPagesList,
+				Template, PartsText, ContextParts, ContextPartsText, HTMLPagesList,
 				Markdown().convert(Content),
 				Titles, Meta, SiteRoot, Macros))
 	DelTmp()
 
+"""
+def GetContextPartsText(ContextParts):
+	List = {}
+	Contents = LoadFromDir('ContextParts', '*.html')
+	for i in ContextParts:
+		if type(ContextParts[i]) == str:
+			if
+		elif type(ContextParts[i]) == list:
+			
+"""
+
 def Main(Args):
 	ResetPublic()
-	SiteRoot = Args.SiteRoot if Args.SiteRoot else '/'
-
-	Templates = LoadFromDir('Templates', '*.html')
-	Parts = LoadFromDir('Parts', '*.html')
 	shutil.copytree('Pages', 'public')
-	MakeSite(Templates, Parts, SiteRoot)
+	MakeSite(
+		LoadFromDir('Templates', '*.html'),
+		LoadFromDir('Parts', '*.html'),
+		literal_eval(Args.ContextParts) if Args.ContextParts else {},
+		LoadFromDir('ContextParts', '*.html'),
+		Args.SiteRoot if Args.SiteRoot else '/')
 	os.system("cp -R Assets/* public/")
 
 if __name__ == '__main__':
 	Parser = argparse.ArgumentParser()
 	Parser.add_argument('--SiteRoot', type=str)
+	Parser.add_argument('--ContextParts', type=str)
 	Args = Parser.parse_args()
 
 	Main(Args)
-	
