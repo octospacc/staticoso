@@ -46,11 +46,15 @@ def DashifyStr(s, Limit=32):
 
 def GetTitle(Meta, Titles, Prefer='MetaTitle'):
 	if Prefer == 'Title':
-		return Titles[0].lstrip('#') if Titles else Meta['Title'] if Meta['Title'] else 'Untitled'
+		Title = Titles[0].lstrip('#') if Titles else Meta['Title'] if Meta['Title'] else 'Untitled'
 	elif Prefer == 'MetaTitle':
-		return Meta['Title'] if Meta['Title'] else Titles[0].lstrip('#') if Titles else 'Untitled'
+		Title = Meta['Title'] if Meta['Title'] else Titles[0].lstrip('#') if Titles else 'Untitled'
 	elif Prefer == 'HTMLTitle':
-		return Meta['HTMLTitle'] if Meta['HTMLTitle'] else Meta['Title'] if Meta['Title'] else Titles[0].lstrip('#') if Titles else 'Untitled'
+		Title = Meta['HTMLTitle'] if Meta['HTMLTitle'] else Meta['Title'] if Meta['Title'] else Titles[0].lstrip('#') if Titles else 'Untitled'
+	if Meta['Type'] == 'Post':
+		# TODO: This hardcodes my blog name, bad, will fix asap
+		Title += ' - Blogocto'
+	return Title
 
 def GetTitleIdLine(Line, Title):
 	Title = DashifyStr(Title.lstrip('#'))
@@ -73,7 +77,6 @@ def MakeListTitle(File, Meta, Titles, Prefer, SiteRoot):
 			Title,
 			'{}{}html'.format(SiteRoot, File[:-3]))
 	return Title
-	
 
 def FormatTitles(Titles):
 	MDTitles = ''
@@ -108,7 +111,7 @@ def PreProcessor(p, SiteRoot):
 		ls = l.lstrip()
 		if ls.startswith('// '):
 			lss = ls[3:]
-			for Item in ['Template', 'Type', 'Index', 'Title', 'HTMLTitle', 'CreatedOn', 'EditedOn']:
+			for Item in ('Template', 'Type', 'Index', 'Title', 'HTMLTitle', 'CreatedOn', 'EditedOn'):
 				ItemText = '{}: '.format(Item)
 				if lss.startswith(ItemText):
 					Meta[Item] = lss[len(ItemText):]
@@ -142,11 +145,22 @@ def PugCompileList(Pages):
 		Paths += '"{}" '.format(FilePath)
 	os.system('pug {} > /dev/null'.format(Paths))
 
+def MakeContentHeader(Meta):
+	Header = ''
+	if Meta['Type'] == 'Post':
+		# TODO: Fix the hardcoded italian
+		if Meta['CreatedOn'] and Meta['EditedOn']:
+			Header += "Creato in data {}  \nModificato in data {}  \n".format(Meta['CreatedOn'], Meta['EditedOn'])
+		elif Meta['CreatedOn'] and not Meta['EditedOn']:
+			Header += "Creato in data {}  \n".format(Meta['CreatedOn'])
+		elif Meta['EditedOn'] and not Meta['CreatedOn']:
+			Header += "Modificato in data {}  \n".format(Meta['EditedOn'])
+	return Markdown().convert(Header)
+
 def PatchHTML(Template, PartsText, ContextParts, ContextPartsText, HTMLPagesList, Content, Titles, Meta, SiteRoot, Macros):
 	HTMLTitles = FormatTitles(Titles)
 	for Line in Template.splitlines():
 		Line = Line.lstrip().rstrip()
-		print(ContextPartsText)
 		if Line.startswith('[HTML:ContextPart:') and Line.endswith(']'):
 			Path =  Line[len('[HTML:ContextPart:'):-1]
 			Section = Path.split('/')[-1]
@@ -167,7 +181,8 @@ def PatchHTML(Template, PartsText, ContextParts, ContextPartsText, HTMLPagesList
 	Template = Template.replace('[HTML:Page:RightBox]', HTMLTitles)
 	Template = Template.replace('[HTML:Page:Title]', GetTitle(Meta, Titles, 'MetaTitle'))
 	Template = Template.replace('[HTML:Page:Style]', Meta['Style'])
-	Template = Template.replace('[HTML:Page:MainBox]', Content)
+	Template = Template.replace('[HTML:Page:Content]', Content)
+	Template = Template.replace('[HTML:Page:ContentHeader]', MakeContentHeader(Meta))
 	Template = Template.replace('[HTML:Site:AbsoluteRoot]', SiteRoot)
 	for i in Macros:
 		Template = Template.replace('<span>[HTML:Macro:{}]</span>'.format(i), Macros[i])
@@ -179,40 +194,33 @@ def FileToStr(File, Truncate=''):
 def OrderPages(Old):
 	New = []
 	Max = 0
-	#Off = 0
 	for i,e in enumerate(Old):
-		Curr = e[3]['Order'] #if e[3]['Order'] else 0
+		Curr = e[3]['Order']
 		if Curr > Max:
 			Max = Curr
 	for i in range(Max+1):
 		New += [[]]
 	for i,e in enumerate(Old):
-		#if e[3]['Order']:
 		New[e[3]['Order']] = e
-		#else:
-			#Off += 1
-			#New += [[e]]
 	while [] in New:
 		New.remove([])
-	#for i in New:
-		#print(i)
 	return New
 
 def GetHTMLPagesList(Pages, SiteRoot, Type='Page'):
 	List = ''
+	ToPop = []
 	LastParent = []
 	IndexPages = Pages.copy()
 	for e in IndexPages:
-		#print(e[3]['Index'])
-		if e[3]['Index'] == 'False':
-			IndexPages = IndexPages.remove(e)
-	#print(IndexPages)
+		if e[3]['Index'] == 'False' or e[3]['Index'] == 'None':
+			IndexPages.remove(e)
 	for i,e in enumerate(IndexPages):
-		#print(e[3]['Type'])
 		if e[3]['Type'] != Type:
-				#print('rem')
-				IndexPages.pop(i)
-	#print(IndexPages)
+			ToPop += [i]
+	ToPop.sort()
+	ToPop.reverse()
+	for i in ToPop:
+		IndexPages.pop(i)
 	if Type == 'Page':
 		IndexPages = OrderPages(IndexPages)
 	for File, Content, Titles, Meta in IndexPages:
@@ -251,7 +259,6 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteRoot)
 		Pages += [[File, Content, Titles, Meta]]
 	PugCompileList(Pages)
 	HTMLPagesList = GetHTMLPagesList(Pages, SiteRoot, 'Page')
-	#print(GetHTMLPagesList(Pages, SiteRoot, 'Post'))
 	Macros['BlogPosts'] = GetHTMLPagesList(Pages, SiteRoot, 'Post')
 	for File, Content, Titles, Meta in Pages:
 		Template = TemplatesText[Meta['Template']]
@@ -284,17 +291,6 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteRoot)
 				Markdown().convert(Content),
 				Titles, Meta, SiteRoot, Macros))
 	DelTmp()
-
-"""
-def GetContextPartsText(ContextParts):
-	List = {}
-	Contents = LoadFromDir('ContextParts', '*.html')
-	for i in ContextParts:
-		if type(ContextParts[i]) == str:
-			if
-		elif type(ContextParts[i]) == list:
-			
-"""
 
 def Main(Args):
 	ResetPublic()
