@@ -61,12 +61,11 @@ def GetTitle(Meta, Titles, Prefer='MetaTitle'):
 
 def GetTitleIdLine(Line, Title, Type):
 	DashTitle = DashifyStr(Title.lstrip('#'))
-	NewLine = ''
 	if Type == 'md':
 		Index = Title.split(' ')[0].count('#')
-		#return "{} [{}]({})".format('#'*Index, Title, DashTitle)
 		return '<h{} id="{}">{}</h{}>'.format(Index, DashTitle, Title[Index+1:], Index)
 	elif Type == 'pug':
+		NewLine = ''
 		Index = Line.find('h')
 		NewLine += Line[:Index]
 		NewLine += "{}(id='{}')".format(Line[Index:Index+2], DashTitle)
@@ -156,9 +155,10 @@ def PugCompileList(Pages):
 	# Pug-cli seems to shit itself with folder paths as input, so we pass ALL the files as arguments
 	Paths = ''
 	for File, Content, Titles, Meta in Pages:
-		FilePath = 'public/{}'.format(File)
-		WriteFile(FilePath, Content)
-		Paths += '"{}" '.format(FilePath)
+		if File.endswith('.pug'):
+			Path = 'public/{}'.format(File)
+			WriteFile(Path, Content)
+			Paths += '"{}" '.format(Path)
 	os.system('pug {} > /dev/null'.format(Paths))
 
 def MakeContentHeader(Meta):
@@ -266,18 +266,20 @@ def DelTmp():
 		os.remove(File)
 
 def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteRoot):
+	Files = []
 	Pages = []
 	Macros = {
 		'BlogPosts': ''}
 	for File in Path('Pages').rglob('*.pug'):
-		File = FileToStr(File, 'Pages/')
+		Files += [FileToStr(File, 'Pages/')]
+	for File in Path('Pages').rglob('*.md'):
+		Files += [FileToStr(File, 'Pages/')]
+	Files.sort()
+	Files.reverse()
+	for File in Files:
 		Content, Titles, Meta = PreProcessor('Pages/{}'.format(File), SiteRoot)
 		Pages += [[File, Content, Titles, Meta]]
 	PugCompileList(Pages)
-	for File in Path('Pages').rglob('*.md'):
-		File = FileToStr(File, 'Pages/')
-		Content, Titles, Meta = PreProcessor('Pages/{}'.format(File), SiteRoot)
-		Pages += [[File, Content, Titles, Meta]]
 	HTMLPagesList = GetHTMLPagesList(Pages, SiteRoot, 'Page')
 	Macros['BlogPosts'] = GetHTMLPagesList(Pages, SiteRoot, 'Post')
 	for File, Content, Titles, Meta in Pages:
