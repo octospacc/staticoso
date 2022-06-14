@@ -31,6 +31,9 @@ def WriteFile(p, c):
 		print("Error writing file {}".format(p))
 		return False
 
+def StripExt(Path):
+	return ".".join(Path.split('.')[:-1])
+
 def ResetPublic():
 	try:
 		shutil.rmtree('public')
@@ -56,14 +59,19 @@ def GetTitle(Meta, Titles, Prefer='MetaTitle'):
 		Title += ' - Blogocto'
 	return Title
 
-def GetTitleIdLine(Line, Title):
-	Title = DashifyStr(Title.lstrip('#'))
-	Index = Line.find('h')
+def GetTitleIdLine(Line, Title, Type):
+	DashTitle = DashifyStr(Title.lstrip('#'))
 	NewLine = ''
-	NewLine += Line[:Index]
-	NewLine += "{}(id='{}')".format(Line[Index:Index+2], Title)
-	NewLine += Line[Index+2:]
-	return NewLine
+	if Type == 'md':
+		Index = Title.split(' ')[0].count('#')
+		#return "{} [{}]({})".format('#'*Index, Title, DashTitle)
+		return '<h{} id="{}">{}</h{}>'.format(Index, DashTitle, Title[Index+1:], Index)
+	elif Type == 'pug':
+		Index = Line.find('h')
+		NewLine += Line[:Index]
+		NewLine += "{}(id='{}')".format(Line[Index:Index+2], DashTitle)
+		NewLine += Line[Index+2:]
+		return NewLine
 
 def MakeListTitle(File, Meta, Titles, Prefer, SiteRoot):
 	Title = GetTitle(Meta, Titles, Prefer)
@@ -71,11 +79,11 @@ def MakeListTitle(File, Meta, Titles, Prefer, SiteRoot):
 		Title = '[{}] [{}]({})'.format(
 			Meta['CreatedOn'],
 			Title,
-			'{}{}html'.format(SiteRoot, File[:-3]))
+			'{}{}.html'.format(SiteRoot, StripExt(File)))
 	else:
 		Title = '[{}]({})'.format(
 			Title,
-			'{}{}html'.format(SiteRoot, File[:-3]))
+			'{}{}.html'.format(SiteRoot, StripExt(File)))
 	return Title
 
 def FormatTitles(Titles):
@@ -95,8 +103,8 @@ def LoadFromDir(Dir, Rglob):
 		Contents.update({File: ReadFile('{}/{}'.format(Dir, File))})
 	return Contents
 
-def PreProcessor(p, SiteRoot):
-	File = ReadFile(p)
+def PreProcessor(Path, SiteRoot):
+	File = ReadFile(Path)
 	Content, Titles, Meta = '', [], {
 		'Template': 'Standard.html',
 		'Style': '',
@@ -121,19 +129,27 @@ def PreProcessor(p, SiteRoot):
 				Meta['Style'] += ls[len('// Style: '):] + ' '
 			elif lss.startswith('Order: '):
 				Meta['Order'] = int(ls[len('// Order: '):])
-		elif ls.startswith(('h1', 'h2', 'h3', 'h4', 'h5', 'h6')):
-			if ls[2:].startswith(("(class='NoTitle", '(class="NoTitle')):
-				Content += l + '\n'
-			else:
-				Title = '#'*int(ls[1]) + str(ls[3:])
-				Titles += [Title]
-				# We should handle headers that for any reason already have parenthesis
-				if ls[2:] == '(':
-					Content += l + '\n'
-				else:
-					Content += GetTitleIdLine(l, Title) + '\n'
 		else:
-			Content += l + '\n'
+			if Path.endswith('.md'):
+				if ls.startswith('#'):
+					Titles += [l]
+					Content += GetTitleIdLine(l, ls, 'md') + '\n'
+				else:
+					Content += l + '\n'
+			elif Path.endswith('.pug'):
+				if ls.startswith(('h1', 'h2', 'h3', 'h4', 'h5', 'h6')):
+					if ls[2:].startswith(("(class='NoTitle", '(class="NoTitle')):
+						Content += l + '\n'
+					else:
+						Title = '#'*int(ls[1]) + str(ls[3:])
+						Titles += [Title]
+						# We should handle headers that for any reason already have parenthesis
+						if ls[2:] == '(':
+							Content += l + '\n'
+						else:
+							Content += GetTitleIdLine(l, Title, 'pug') + '\n'
+				else:
+					Content += l + '\n'
 	return Content, Titles, Meta
 
 def PugCompileList(Pages):
@@ -258,25 +274,17 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteRoot)
 		Content, Titles, Meta = PreProcessor('Pages/{}'.format(File), SiteRoot)
 		Pages += [[File, Content, Titles, Meta]]
 	PugCompileList(Pages)
-	HTMLPagesList = GetHTMLPagesList(Pages, SiteRoot, 'Page')
-	Macros['BlogPosts'] = GetHTMLPagesList(Pages, SiteRoot, 'Post')
-	for File, Content, Titles, Meta in Pages:
-		Template = TemplatesText[Meta['Template']]
-		Template = Template.replace(
-			'[HTML:Site:AbsoluteRoot]',
-			SiteRoot)
-		Template = Template.replace(
-			'[HTML:Site:RelativeRoot]',
-			'../'*File.count('/'))
-		WriteFile(
-			'public/{}html'.format(File[:-3]),
-			PatchHTML(
-				Template, PartsText, ContextParts, ContextPartsText, HTMLPagesList,
-				ReadFile('public/{}html'.format(File[:-3])),
-				Titles, Meta, SiteRoot, Macros))
 	for File in Path('Pages').rglob('*.md'):
 		File = FileToStr(File, 'Pages/')
 		Content, Titles, Meta = PreProcessor('Pages/{}'.format(File), SiteRoot)
+		Pages += [[File, Content, Titles, Meta]]
+	HTMLPagesList = GetHTMLPagesList(Pages, SiteRoot, 'Page')
+	Macros['BlogPosts'] = GetHTMLPagesList(Pages, SiteRoot, 'Post')
+	for File, Content, Titles, Meta in Pages:
+		if File.endswith('.md'):
+			Content = Markdown().convert(Content)
+		elif File.endswith('.pug'):
+			Content = ReadFile('public/{}.html'.format(StripExt(File)))
 		Template = TemplatesText[Meta['Template']]
 		Template = Template.replace(
 			'[HTML:Site:AbsoluteRoot]',
@@ -285,11 +293,10 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteRoot)
 			'[HTML:Site:RelativeRoot]',
 			'../'*File.count('/'))
 		WriteFile(
-			'public/{}html'.format(File[:-2]),
+			'public/{}.html'.format(StripExt(File)),
 			PatchHTML(
 				Template, PartsText, ContextParts, ContextPartsText, HTMLPagesList,
-				Markdown().convert(Content),
-				Titles, Meta, SiteRoot, Macros))
+				Content, Titles, Meta, SiteRoot, Macros))
 	DelTmp()
 
 def Main(Args):

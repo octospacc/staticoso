@@ -16,7 +16,7 @@ Feel free to experiment with all of this stuff!
 
 ## Features roadmap
 - [x] Custom static page parts programmable by context
-- [ ] Handle showing creation and modified date for any page
+- [x] Handle showing creation and modified date for posts
 - [x] Generation of category pages (ex. page with list of blog posts)
 - [x] Custom title choosing type (HTML/Plaintext)
 - [x] Custom page ordering
@@ -33,4 +33,3 @@ Feel free to experiment with all of this stuff!
 - [x] Pug support for pages
 - [x] Markdown support for pages
 - [x] First working version
-
