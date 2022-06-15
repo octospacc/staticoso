@@ -56,8 +56,15 @@ def GetTitle(Meta, Titles, Prefer='MetaTitle'):
 		Title = Meta['HTMLTitle'] if Meta['HTMLTitle'] else Meta['Title'] if Meta['Title'] else Titles[0].lstrip('#') if Titles else 'Untitled'
 	if Meta['Type'] == 'Post':
 		# TODO: This hardcodes my blog name, bad, will fix asap
-		Title += ' - Blogocto'
+		Title += ' - blogoctt'
 	return Title
+
+def GetDescription(Meta, Prefer='MetaDescription'):
+	if Prefer == 'Description':
+		Description = Meta['Description']
+	elif Prefer == 'MetaDescription':
+		Description = Meta['Description']
+	return Description
 
 def GetTitleIdLine(Line, Title, Type):
 	DashTitle = DashifyStr(Title.lstrip('#'))
@@ -111,6 +118,8 @@ def PreProcessor(Path, SiteRoot):
 		'Index': 'True',
 		'Title': '',
 		'HTMLTitle': '',
+		'Description': '',
+		'Image': '',
 		'CreatedOn': '',
 		'EditedOn': '',
 		'Order': None}
@@ -118,7 +127,7 @@ def PreProcessor(Path, SiteRoot):
 		ls = l.lstrip()
 		if ls.startswith('// '):
 			lss = ls[3:]
-			for Item in ('Template', 'Type', 'Index', 'Title', 'HTMLTitle', 'CreatedOn', 'EditedOn'):
+			for Item in ('Template', 'Type', 'Index', 'Title', 'HTMLTitle', 'Description', 'Image', 'CreatedOn', 'EditedOn'):
 				ItemText = '{}: '.format(Item)
 				if lss.startswith(ItemText):
 					Meta[Item] = lss[len(ItemText):]
@@ -159,7 +168,7 @@ def PugCompileList(Pages):
 			Path = 'public/{}'.format(File)
 			WriteFile(Path, Content)
 			Paths += '"{}" '.format(Path)
-	os.system('pug {} > /dev/null'.format(Paths))
+	os.system('pug -P {} > /dev/null'.format(Paths))
 
 def MakeContentHeader(Meta):
 	Header = ''
@@ -173,7 +182,7 @@ def MakeContentHeader(Meta):
 			Header += "Modificato in data {}  \n".format(Meta['EditedOn'])
 	return Markdown().convert(Header)
 
-def PatchHTML(Template, PartsText, ContextParts, ContextPartsText, HTMLPagesList, Content, Titles, Meta, SiteRoot, Macros):
+def PatchHTML(Template, PartsText, ContextParts, ContextPartsText, HTMLPagesList, PagePath, Content, Titles, Meta, SiteRoot, Macros):
 	HTMLTitles = FormatTitles(Titles)
 	for Line in Template.splitlines():
 		Line = Line.lstrip().rstrip()
@@ -196,6 +205,8 @@ def PatchHTML(Template, PartsText, ContextParts, ContextPartsText, HTMLPagesList
 	Template = Template.replace('[HTML:Page:LeftBox]', HTMLPagesList)
 	Template = Template.replace('[HTML:Page:RightBox]', HTMLTitles)
 	Template = Template.replace('[HTML:Page:Title]', GetTitle(Meta, Titles, 'MetaTitle'))
+	Template = Template.replace('[HTML:Page:Description]', GetDescription(Meta, 'MetaDescription'))
+	Template = Template.replace('[HTML:Page:Path]', PagePath)
 	Template = Template.replace('[HTML:Page:Style]', Meta['Style'])
 	Template = Template.replace('[HTML:Page:Content]', Content)
 	Template = Template.replace('[HTML:Page:ContentHeader]', MakeContentHeader(Meta))
@@ -283,10 +294,11 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteRoot)
 	HTMLPagesList = GetHTMLPagesList(Pages, SiteRoot, 'Page')
 	Macros['BlogPosts'] = GetHTMLPagesList(Pages, SiteRoot, 'Post')
 	for File, Content, Titles, Meta in Pages:
+		PagePath = 'public/{}.html'.format(StripExt(File))
 		if File.endswith('.md'):
 			Content = Markdown().convert(Content)
 		elif File.endswith('.pug'):
-			Content = ReadFile('public/{}.html'.format(StripExt(File)))
+			Content = ReadFile(PagePath)
 		Template = TemplatesText[Meta['Template']]
 		Template = Template.replace(
 			'[HTML:Site:AbsoluteRoot]',
@@ -295,10 +307,10 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteRoot)
 			'[HTML:Site:RelativeRoot]',
 			'../'*File.count('/'))
 		WriteFile(
-			'public/{}.html'.format(StripExt(File)),
+			PagePath,
 			PatchHTML(
 				Template, PartsText, ContextParts, ContextPartsText, HTMLPagesList,
-				Content, Titles, Meta, SiteRoot, Macros))
+				PagePath[len('public/'):], Content, Titles, Meta, SiteRoot, Macros))
 	DelTmp()
 
 def Main(Args):

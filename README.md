@@ -15,6 +15,8 @@ Feel free to experiment with all of this stuff!
 - [pug-cli >= 1.0.0-alpha6](https://npmjs.com/package/pug-cli)
 
 ## Features roadmap
+- [-] Open Graph support
+- [ ] Custom categories for blog posts
 - [x] Custom static page parts programmable by context
 - [x] Handle showing creation and modified date for posts
 - [x] Generation of category pages (ex. page with list of blog posts)
