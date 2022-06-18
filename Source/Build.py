@@ -120,6 +120,7 @@ def PreProcessor(Path, SiteRoot):
 		'HTMLTitle': '',
 		'Description': '',
 		'Image': '',
+		'Categories': [],
 		'CreatedOn': '',
 		'EditedOn': '',
 		'Order': None}
@@ -131,12 +132,15 @@ def PreProcessor(Path, SiteRoot):
 				ItemText = '{}: '.format(Item)
 				if lss.startswith(ItemText):
 					Meta[Item] = lss[len(ItemText):]
-			if lss.startswith('Background: '):
-				Meta['Style'] += "#MainBox{Background:" + ls[len('// Background: '):] + ";} "
+			if lss.startswith('Categories: '):
+				for i in lss[len('Categories: '):].split(' '):
+					Meta['Categories'] += [i]
+			elif lss.startswith('Background: '):
+				Meta['Style'] += "#MainBox{Background:" + lss[len('Background: '):] + ";} "
 			elif lss.startswith('Style: '):
-				Meta['Style'] += ls[len('// Style: '):] + ' '
+				Meta['Style'] += lss[len('Style: '):] + ' '
 			elif lss.startswith('Order: '):
-				Meta['Order'] = int(ls[len('// Order: '):])
+				Meta['Order'] = int(lss[len('Order: '):])
 		else:
 			if Path.endswith('.md'):
 				if ls.startswith('#'):
@@ -233,7 +237,7 @@ def OrderPages(Old):
 		New.remove([])
 	return New
 
-def GetHTMLPagesList(Pages, SiteRoot, Type='Page'):
+def GetHTMLPagesList(Pages, SiteRoot, Type='Page', Category=None):
 	List = ''
 	ToPop = []
 	LastParent = []
@@ -251,7 +255,7 @@ def GetHTMLPagesList(Pages, SiteRoot, Type='Page'):
 	if Type == 'Page':
 		IndexPages = OrderPages(IndexPages)
 	for File, Content, Titles, Meta in IndexPages:
-		if Meta['Type'] == Type and Meta['Index'] == 'True' and GetTitle(Meta, Titles, Prefer='HTMLTitle') != 'Untitled':
+		if Meta['Type'] == Type and Meta['Index'] == 'True' and GetTitle(Meta, Titles, Prefer='HTMLTitle') != 'Untitled' and (not Category or Category in Meta['Categories']):
 			n = File.count('/') + 1
 			if n > 1:
 				CurParent = File.split('/')[:-1]
@@ -292,7 +296,7 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteRoot)
 		Pages += [[File, Content, Titles, Meta]]
 	PugCompileList(Pages)
 	HTMLPagesList = GetHTMLPagesList(Pages, SiteRoot, 'Page')
-	Macros['BlogPosts'] = GetHTMLPagesList(Pages, SiteRoot, 'Post')
+	Macros['BlogPosts'] = GetHTMLPagesList(Pages, SiteRoot, 'Post', 'Blog')
 	for File, Content, Titles, Meta in Pages:
 		PagePath = 'public/{}.html'.format(StripExt(File))
 		if File.endswith('.md'):
