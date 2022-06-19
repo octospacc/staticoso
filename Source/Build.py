@@ -186,7 +186,7 @@ def MakeContentHeader(Meta):
 			Header += "Modificato in data {}  \n".format(Meta['EditedOn'])
 	return Markdown().convert(Header)
 
-def PatchHTML(Template, PartsText, ContextParts, ContextPartsText, HTMLPagesList, PagePath, Content, Titles, Meta, SiteRoot, Categories):
+def PatchHTML(Template, PartsText, ContextParts, ContextPartsText, HTMLPagesList, PagePath, Content, Titles, Meta, SiteRoot, FolderRoots, Categories):
 	HTMLTitles = FormatTitles(Titles)
 	for Line in Template.splitlines():
 		Line = Line.lstrip().rstrip()
@@ -215,6 +215,8 @@ def PatchHTML(Template, PartsText, ContextParts, ContextPartsText, HTMLPagesList
 	Template = Template.replace('[HTML:Page:Content]', Content)
 	Template = Template.replace('[HTML:Page:ContentHeader]', MakeContentHeader(Meta))
 	Template = Template.replace('[HTML:Site:AbsoluteRoot]', SiteRoot)
+	for i in FolderRoots:
+		Template = Template.replace('[HTML:Folder:{}:AbsoluteRoot]'.format(i), FolderRoots[i])
 	for i in Categories:
 		Template = Template.replace('<span>[HTML:Category:{}]</span>'.format(i), Categories[i])
 	return Template
@@ -280,11 +282,10 @@ def DelTmp():
 	for File in Path('public').rglob('*.md'):
 		os.remove(File)
 
-def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteRoot):
+def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteRoot, FolderRoots):
 	Files = []
 	Pages = []
 	Categories = {}
-	#	'Blog': ''}
 	for File in Path('Pages').rglob('*.pug'):
 		Files += [FileToStr(File, 'Pages/')]
 	for File in Path('Pages').rglob('*.md'):
@@ -298,7 +299,6 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteRoot)
 			Categories.update({Category:''})
 	PugCompileList(Pages)
 	HTMLPagesList = GetHTMLPagesList(Pages, SiteRoot, 'Page')
-	#Categories['Blog'] = GetHTMLPagesList(Pages, SiteRoot, 'Post', 'Blog')
 	for Category in Categories:
 		Categories[Category] = GetHTMLPagesList(Pages, SiteRoot, 'Post', Category)
 	for File, Content, Titles, Meta in Pages:
@@ -318,7 +318,7 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteRoot)
 			PagePath,
 			PatchHTML(
 				Template, PartsText, ContextParts, ContextPartsText, HTMLPagesList,
-				PagePath[len('public/'):], Content, Titles, Meta, SiteRoot, Categories))
+				PagePath[len('public/'):], Content, Titles, Meta, SiteRoot, FolderRoots, Categories))
 	DelTmp()
 
 def Main(Args):
@@ -329,12 +329,14 @@ def Main(Args):
 		LoadFromDir('Parts', '*.html'),
 		literal_eval(Args.ContextParts) if Args.ContextParts else {},
 		LoadFromDir('ContextParts', '*.html'),
-		Args.SiteRoot if Args.SiteRoot else '/')
+		Args.SiteRoot if Args.SiteRoot else '/',
+		literal_eval(Args.FolderRoots) if Args.FolderRoots else {})
 	os.system("cp -R Assets/* public/")
 
 if __name__ == '__main__':
 	Parser = argparse.ArgumentParser()
 	Parser.add_argument('--SiteRoot', type=str)
+	Parser.add_argument('--FolderRoots', type=str)
 	Parser.add_argument('--ContextParts', type=str)
 	Args = Parser.parse_args()
 
