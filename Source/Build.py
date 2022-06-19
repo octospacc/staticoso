@@ -81,15 +81,15 @@ def GetTitleIdLine(Line, Title, Type):
 
 def MakeListTitle(File, Meta, Titles, Prefer, SiteRoot):
 	Title = GetTitle(Meta, Titles, Prefer)
-	if Meta['Type'] == 'Post':
-		Title = '[{}] [{}]({})'.format(
-			Meta['CreatedOn'],
-			Title,
-			'{}{}.html'.format(SiteRoot, StripExt(File)))
-	else:
+	Link = False if Meta['Index'] == 'Unlinked' else True
+	if Link:
 		Title = '[{}]({})'.format(
 			Title,
 			'{}{}.html'.format(SiteRoot, StripExt(File)))
+	if Meta['Type'] == 'Post' and Meta['CreatedOn']:
+		Title = '[{}] {}'.format(
+			Meta['CreatedOn'],
+			Title)
 	return Title
 
 def FormatTitles(Titles):
@@ -186,7 +186,7 @@ def MakeContentHeader(Meta):
 			Header += "Modificato in data {}  \n".format(Meta['EditedOn'])
 	return Markdown().convert(Header)
 
-def PatchHTML(Template, PartsText, ContextParts, ContextPartsText, HTMLPagesList, PagePath, Content, Titles, Meta, SiteRoot, Macros):
+def PatchHTML(Template, PartsText, ContextParts, ContextPartsText, HTMLPagesList, PagePath, Content, Titles, Meta, SiteRoot, Categories):
 	HTMLTitles = FormatTitles(Titles)
 	for Line in Template.splitlines():
 		Line = Line.lstrip().rstrip()
@@ -215,8 +215,8 @@ def PatchHTML(Template, PartsText, ContextParts, ContextPartsText, HTMLPagesList
 	Template = Template.replace('[HTML:Page:Content]', Content)
 	Template = Template.replace('[HTML:Page:ContentHeader]', MakeContentHeader(Meta))
 	Template = Template.replace('[HTML:Site:AbsoluteRoot]', SiteRoot)
-	for i in Macros:
-		Template = Template.replace('<span>[HTML:Macro:{}]</span>'.format(i), Macros[i])
+	for i in Categories:
+		Template = Template.replace('<span>[HTML:Category:{}]</span>'.format(i), Categories[i])
 	return Template
 
 def FileToStr(File, Truncate=''):
@@ -255,7 +255,7 @@ def GetHTMLPagesList(Pages, SiteRoot, Type='Page', Category=None):
 	if Type == 'Page':
 		IndexPages = OrderPages(IndexPages)
 	for File, Content, Titles, Meta in IndexPages:
-		if Meta['Type'] == Type and Meta['Index'] == 'True' and GetTitle(Meta, Titles, Prefer='HTMLTitle') != 'Untitled' and (not Category or Category in Meta['Categories']):
+		if Meta['Type'] == Type and (Meta['Index'] != 'False' or Meta['Index'] != 'None') and GetTitle(Meta, Titles, Prefer='HTMLTitle') != 'Untitled' and (not Category or Category in Meta['Categories']):
 			n = File.count('/') + 1
 			if n > 1:
 				CurParent = File.split('/')[:-1]
@@ -283,8 +283,8 @@ def DelTmp():
 def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteRoot):
 	Files = []
 	Pages = []
-	Macros = {
-		'BlogPosts': ''}
+	Categories = {}
+	#	'Blog': ''}
 	for File in Path('Pages').rglob('*.pug'):
 		Files += [FileToStr(File, 'Pages/')]
 	for File in Path('Pages').rglob('*.md'):
@@ -294,9 +294,13 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteRoot)
 	for File in Files:
 		Content, Titles, Meta = PreProcessor('Pages/{}'.format(File), SiteRoot)
 		Pages += [[File, Content, Titles, Meta]]
+		for Category in Meta['Categories']:
+			Categories.update({Category:''})
 	PugCompileList(Pages)
 	HTMLPagesList = GetHTMLPagesList(Pages, SiteRoot, 'Page')
-	Macros['BlogPosts'] = GetHTMLPagesList(Pages, SiteRoot, 'Post', 'Blog')
+	#Categories['Blog'] = GetHTMLPagesList(Pages, SiteRoot, 'Post', 'Blog')
+	for Category in Categories:
+		Categories[Category] = GetHTMLPagesList(Pages, SiteRoot, 'Post', Category)
 	for File, Content, Titles, Meta in Pages:
 		PagePath = 'public/{}.html'.format(StripExt(File))
 		if File.endswith('.md'):
@@ -314,7 +318,7 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteRoot)
 			PagePath,
 			PatchHTML(
 				Template, PartsText, ContextParts, ContextPartsText, HTMLPagesList,
-				PagePath[len('public/'):], Content, Titles, Meta, SiteRoot, Macros))
+				PagePath[len('public/'):], Content, Titles, Meta, SiteRoot, Categories))
 	DelTmp()
 
 def Main(Args):
