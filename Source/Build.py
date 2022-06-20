@@ -8,11 +8,16 @@
 | ================================= """
 
 import argparse
+import json
+from Libs import htmlmin
 import os
 import shutil
 from ast import literal_eval
 from markdown import Markdown
 from pathlib import Path
+
+Extensions = {
+	'Pages': ('md', 'pug')}
 
 def ReadFile(p):
 	try:
@@ -31,6 +36,15 @@ def WriteFile(p, c):
 		print("Error writing file {}".format(p))
 		return False
 
+def LoadLocale(Lang):
+	Lang = Lang + '.json'
+	Folder = os.path.dirname(os.path.abspath(__file__)) + '/../Locale/'
+	File = ReadFile(Folder + Lang)
+	if File:
+		return json.loads(File)
+	else:
+		return json.loads(ReadFile(Folder + 'en.json'))
+
 def StripExt(Path):
 	return ".".join(Path.split('.')[:-1])
 
@@ -43,20 +57,6 @@ def ResetPublic():
 def GetLevels(Path, Sub=0, AsNum=False):
 	n = Path.count('/')
 	return n if AsNum else '../' * n
-
-def GetDeepest(Paths):
-	Deepest = 0
-	for p in Paths:
-		l = GetLevels(p, True)
-		if l > Deepest:
-			Deepest = l
-	print(Deepest)
-	return Deepest
-
-def GetRelative(Path, Levels):
-	print(Path, Levels)
-	#return GetLevels(Path, Levels)
-	return '../' * Levels
 
 def DashifyStr(s, Limit=32):
 	Str, lc = '', Limit
@@ -97,14 +97,13 @@ def GetTitleIdLine(Line, Title, Type):
 		NewLine += Line[Index+2:]
 		return NewLine
 
-def MakeListTitle(File, Meta, Titles, Prefer, SiteRoot, CurLevels, PathPrefix=''):
-	print(PathPrefix)
+def MakeListTitle(File, Meta, Titles, Prefer, SiteRoot, PathPrefix=''):
 	Title = GetTitle(Meta, Titles, Prefer)
 	Link = False if Meta['Index'] == 'Unlinked' else True
 	if Link:
 		Title = '[{}]({})'.format(
 			Title,
-			'{}{}.html'.format(PathPrefix, StripExt(File))) #(GetRelative(File, CurLevels), StripExt(File)))
+			'{}{}.html'.format(PathPrefix, StripExt(File)))
 	if Meta['Type'] == 'Post' and Meta['CreatedOn']:
 		Title = '[{}] {}'.format(
 			Meta['CreatedOn'],
@@ -193,20 +192,16 @@ def PugCompileList(Pages):
 			Paths += '"{}" '.format(Path)
 	os.system('pug -P {} > /dev/null'.format(Paths))
 
-def MakeContentHeader(Meta):
+def MakeContentHeader(Meta, Locale):
 	Header = ''
 	if Meta['Type'] == 'Post':
-		# TODO: Fix the hardcoded italian
-		if Meta['CreatedOn'] and Meta['EditedOn']:
-			Header += "Creato in data {}  \nModificato in data {}  \n".format(Meta['CreatedOn'], Meta['EditedOn'])
-		elif Meta['CreatedOn'] and not Meta['EditedOn']:
-			Header += "Creato in data {}  \n".format(Meta['CreatedOn'])
-		elif Meta['EditedOn'] and not Meta['CreatedOn']:
-			Header += "Modificato in data {}  \n".format(Meta['EditedOn'])
+		if Meta['CreatedOn']:
+			Header += "{} {}  \n".format(Locale['CreatedOn'], Meta['CreatedOn'])
+		if Meta['EditedOn']:
+			Header += "{} {}  \n".format(Locale['EditedOn'], Meta['EditedOn'])
 	return Markdown().convert(Header)
 
-def PatchHTML(Template, PartsText, ContextParts, ContextPartsText, HTMLPagesList, PagePath, Content, Titles, Meta, SiteRoot, FolderRoots, Categories):
-	print(PagePath)
+def PatchHTML(Template, PartsText, ContextParts, ContextPartsText, HTMLPagesList, PagePath, Content, Titles, Meta, SiteRoot, FolderRoots, Categories, Locale):
 	HTMLTitles = FormatTitles(Titles)
 	for Line in Template.splitlines():
 		Line = Line.lstrip().rstrip()
@@ -233,7 +228,7 @@ def PatchHTML(Template, PartsText, ContextParts, ContextPartsText, HTMLPagesList
 	Template = Template.replace('[HTML:Page:Path]', PagePath)
 	Template = Template.replace('[HTML:Page:Style]', Meta['Style'])
 	Template = Template.replace('[HTML:Page:Content]', Content)
-	Template = Template.replace('[HTML:Page:ContentHeader]', MakeContentHeader(Meta))
+	Template = Template.replace('[HTML:Page:ContentHeader]', MakeContentHeader(Meta, Locale))
 	Template = Template.replace('[HTML:Site:AbsoluteRoot]', SiteRoot)
 	Template = Template.replace('[HTML:Site:RelativeRoot]', GetLevels(PagePath))
 	for i in FolderRoots:
@@ -260,10 +255,8 @@ def OrderPages(Old):
 		New.remove([])
 	return New
 
-def GetHTMLPagesList(Pages, SiteRoot, CurLevels, PathPrefix, Type='Page', Category=None):
-	List = ''
-	ToPop = []
-	LastParent = []
+def GetHTMLPagesList(Pages, SiteRoot, PathPrefix, Type='Page', Category=None):
+	List, ToPop, LastParent = '', [], []
 	IndexPages = Pages.copy()
 	for e in IndexPages:
 		if e[3]['Index'] == 'False' or e[3]['Index'] == 'None':
@@ -271,8 +264,7 @@ def GetHTMLPagesList(Pages, SiteRoot, CurLevels, PathPrefix, Type='Page', Catego
 	for i,e in enumerate(IndexPages):
 		if e[3]['Type'] != Type:
 			ToPop += [i]
-	ToPop.sort()
-	ToPop.reverse()
+	ToPop = RevSort(ToPop)
 	for i in ToPop:
 		IndexPages.pop(i)
 	if Type == 'Page':
@@ -287,83 +279,107 @@ def GetHTMLPagesList(Pages, SiteRoot, CurLevels, PathPrefix, Type='Page', Catego
 						LastParent = CurParent
 						Levels = '- ' * (n-1+i)
 						if File[:-3].endswith('index.'):
-							Title = MakeListTitle(File, Meta, Titles, 'HTMLTitle', SiteRoot, CurLevels, PathPrefix)
+							Title = MakeListTitle(File, Meta, Titles, 'HTMLTitle', SiteRoot, PathPrefix)
 						else:
 							Title = CurParent[n-2+i]
 						List += Levels + Title + '\n'
 			if not (n > 1 and File[:-3].endswith('index.')):
 				Levels = '- ' * n
-				Title = MakeListTitle(File, Meta, Titles, 'HTMLTitle', SiteRoot, CurLevels, PathPrefix)
+				Title = MakeListTitle(File, Meta, Titles, 'HTMLTitle', SiteRoot, PathPrefix)
 				List += Levels + Title + '\n'
 	return Markdown().convert(List)
 
 def DelTmp():
-	for File in Path('public').rglob('*.pug'):
-		os.remove(File)
-	for File in Path('public').rglob('*.md'):
-		os.remove(File)
+	for Ext in Extensions['Pages']:
+		for File in Path('public').rglob('*.{}'.format(Ext)):
+			os.remove(File)
 
-def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteRoot, FolderRoots):
-	Files = []
-	Pages = []
-	Categories = {}
-	for File in Path('Pages').rglob('*.pug'):
-		Files += [FileToStr(File, 'Pages/')]
-	for File in Path('Pages').rglob('*.md'):
-		Files += [FileToStr(File, 'Pages/')]
-	Files.sort()
-	Files.reverse()
+def RevSort(List):
+	List.sort()
+	List.reverse()
+	return List
+
+def DoMinify(HTML):
+	return htmlmin.minify(
+		input=HTML,
+		remove_comments=True,
+		remove_empty_space=True,
+		remove_all_empty_space=False,
+		reduce_empty_attributes=True,
+		reduce_boolean_attributes=True,
+		remove_optional_attribute_quotes=True,
+		convert_charrefs=True,
+		keep_pre=True)
+
+def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteRoot, FolderRoots, Locale, Minify):
+	Files, Pages, Categories = [], [], {}
+	for Ext in Extensions['Pages']:
+		for File in Path('Pages').rglob('*.{}'.format(Ext)):
+			Files += [FileToStr(File, 'Pages/')]
+	Files = RevSort(Files)
 	for File in Files:
 		Content, Titles, Meta = PreProcessor('Pages/{}'.format(File), SiteRoot)
 		Pages += [[File, Content, Titles, Meta]]
 		for Category in Meta['Categories']:
 			Categories.update({Category:''})
 	PugCompileList(Pages)
-	print(Files)
 	for Category in Categories:
-		Categories[Category] = GetHTMLPagesList(Pages, SiteRoot, 0, '../../', 'Post', Category)
+		Categories[Category] = GetHTMLPagesList(
+			Pages=Pages,
+			SiteRoot=SiteRoot,
+			PathPrefix='../../', # This hardcodes paths, TODO make it somehow guess the path for every page containing the [HTML:Category] macro
+			Type='Post',
+			Category=Category)
 	for File, Content, Titles, Meta in Pages:
-		CurLevels = GetLevels(File, 0, True)
-		PathPrefix = GetLevels(File)
-		print(PathPrefix)
-		print(File, CurLevels)
-		HTMLPagesList = GetHTMLPagesList(Pages, SiteRoot, CurLevels, PathPrefix, 'Page')
+		HTMLPagesList = GetHTMLPagesList(
+			Pages=Pages,
+			SiteRoot=SiteRoot,
+			PathPrefix=GetLevels(File),
+			Type='Page')
 		PagePath = 'public/{}.html'.format(StripExt(File))
 		if File.endswith('.md'):
 			Content = Markdown().convert(Content)
 		elif File.endswith('.pug'):
 			Content = ReadFile(PagePath)
-		Template = TemplatesText[Meta['Template']]
-		Template = Template.replace(
-			'[HTML:Site:AbsoluteRoot]',
-			SiteRoot)
-		Template = Template.replace(
-			'[HTML:Site:RelativeRoot]',
-			GetLevels(File))
-		WriteFile(
-			PagePath,
-			PatchHTML(
-				Template, PartsText, ContextParts, ContextPartsText, HTMLPagesList,
-				PagePath[len('public/'):], Content, Titles, Meta, SiteRoot, FolderRoots, Categories))
+		HTML = PatchHTML(
+			Template=TemplatesText[Meta['Template']],
+			PartsText=PartsText,
+			ContextParts=ContextParts,
+			ContextPartsText=ContextPartsText,
+			HTMLPagesList=HTMLPagesList,
+			PagePath=PagePath[len('public/'):],
+			Content=Content,
+			Titles=Titles,
+			Meta=Meta,
+			SiteRoot=SiteRoot,
+			FolderRoots=FolderRoots,
+			Categories=Categories,
+			Locale=Locale)
+		if Minify != 'False' and Minify != 'None':
+			HTML = DoMinify(HTML)
+		WriteFile(PagePath, HTML)
 	DelTmp()
 
 def Main(Args):
 	ResetPublic()
 	shutil.copytree('Pages', 'public')
 	MakeSite(
-		LoadFromDir('Templates', '*.html'),
-		LoadFromDir('Parts', '*.html'),
-		literal_eval(Args.ContextParts) if Args.ContextParts else {},
-		LoadFromDir('ContextParts', '*.html'),
-		Args.SiteRoot if Args.SiteRoot else '/',
-		literal_eval(Args.FolderRoots) if Args.FolderRoots else {})
+		TemplatesText=LoadFromDir('Templates', '*.html'),
+		PartsText=LoadFromDir('Parts', '*.html'),
+		ContextParts=literal_eval(Args.ContextParts) if Args.ContextParts else {},
+		ContextPartsText=LoadFromDir('ContextParts', '*.html'),
+		SiteRoot=Args.SiteRoot if Args.SiteRoot else '/',
+		FolderRoots=literal_eval(Args.FolderRoots) if Args.FolderRoots else {},
+		Locale=LoadLocale(Args.SiteLang if Args.SiteLang else 'en'),
+		Minify=Args.Minify if Args.Minify else 'None')
 	os.system("cp -R Assets/* public/")
 
 if __name__ == '__main__':
 	Parser = argparse.ArgumentParser()
+	Parser.add_argument('--SiteLang', type=str)
 	Parser.add_argument('--SiteRoot', type=str)
 	Parser.add_argument('--FolderRoots', type=str)
 	Parser.add_argument('--ContextParts', type=str)
-	Args = Parser.parse_args()
-
-	Main(Args)
+	Parser.add_argument('--Minify', type=str)
+	Main(
+		Args=Parser.parse_args())

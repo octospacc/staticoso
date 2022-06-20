@@ -12,9 +12,11 @@ Feel free to experiment with all of this stuff!
 ## Dependencies
 - [Python >= 3.10.4](https://python.org)
 - [Python Markdown >= 3.3.7](https://pypi.org/project/Markdown)
+- (Included) [htmlmin >= 0.1.12](https://pypi.org/project/htmlmin)
 - [pug-cli >= 1.0.0-alpha6](https://npmjs.com/package/pug-cli)
 
 ## Features roadmap
+- [x] HTML minification
 - [ ] Open Graph support
 - [x] Custom categories for posts
 - [x] Custom static page parts programmable by context
@@ -32,6 +34,5 @@ Feel free to experiment with all of this stuff!
 - [x] Generation of titles in right sidebar with clickable links
 - [x] Detections of titles in a page
 - [x] Custom static page parts by template
-- [x] Pug support for pages
-- [x] Markdown support for pages
+- [x] Markdown + Pug support for pages
 - [x] First working version
