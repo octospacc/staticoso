@@ -54,9 +54,19 @@ def ResetPublic():
 	except FileNotFoundError:
 		pass
 
-def GetLevels(Path, Sub=0, AsNum=False):
-	n = Path.count('/')
+def GetLevels(Path, AsNum=False, Add=0, Sub=0):
+	n = Path.count('/') + Add - Sub
 	return n if AsNum else '../' * n
+
+def UndupeStr(Str, Known, Split):
+	while Str in Known:
+		Sections = Title.split(Split)
+		try:
+			Sections[-1] = str(int(Sections[-1]) + 1)
+		except ValueError:
+			Sections[-1] = Sections[-1] + str(Split) + '2'
+		Str = Split.join(Sections)
+	return Str
 
 def DashifyStr(s, Limit=32):
 	Str, lc = '', Limit
@@ -66,15 +76,7 @@ def DashifyStr(s, Limit=32):
 	return '-' + Str
 
 def DashifyTitle(Title, Done=[]):
-	Title = DashifyStr(Title)
-	while Title in Done:
-		Sections = Title.split('-')
-		try:
-			Sections[-1] = str(int(Sections[-1]) + 1)
-		except ValueError:
-			Sections[-1] = Sections[-1] + '-1'
-		Title = '-'.join(Sections)
-	return Title
+	return UndupeStr(DashifyStr(Title), Done, '-')
 
 def GetTitle(Meta, Titles, Prefer='MetaTitle'):
 	if Prefer == 'Title':
@@ -209,20 +211,28 @@ def PugCompileList(Pages):
 			Paths += '"{}" '.format(Path)
 	os.system('pug -P {} > /dev/null'.format(Paths))
 
-def MakeContentHeader(Meta, Locale):
+def MakeContentHeader(Meta, Locale, Categories=''):
 	Header = ''
 	if Meta['Type'] == 'Post':
 		for i in ['CreatedOn', 'EditedOn']:
 			if Meta[i]:
-				Header += "{} {}  \n".format(Locale[i], Meta[i])
-		if Meta['Categories']:
-			Categories = ''
-			for i in Meta['Categories']:
-				Categories += i + ' '
-			Header += "{}: {}  \n".format(Locale['Categories'], Categories)
+				Header += '{} {}  \n'.format(Locale[i], Meta[i])
+		if Categories:
+			Header += '{}: {}  \n'.format(Locale['Categories'], Categories)
 	return Markdown().convert(Header)
 
-def PatchHTML(Template, PartsText, ContextParts, ContextPartsText, HTMLPagesList, PagePath, Content, Titles, Meta, SiteRoot, FolderRoots, Categories, Locale):
+def MakeCategoryLine(Meta, Reserved):
+	Categories = ''
+	if Meta['Categories']:
+		for i in Meta['Categories']:
+			Categories += '[{}]({}{}.html)  '.format(i, GetLevels(Reserved['Categories']) + Reserved['Categories'], i)
+		#Categories = ''
+		#for i in Meta['Categories']:
+		#	Categories += i + ' '
+		#Header += "{}: {}  \n".format(Locale['Categories'], Categories)
+	return Categories
+
+def PatchHTML(Template, PartsText, ContextParts, ContextPartsText, HTMLPagesList, PagePath, Content, Titles, Meta, SiteRoot, FolderRoots, Categories, Locale, Reserved):
 	HTMLTitles = FormatTitles(Titles)
 	for Line in Template.splitlines():
 		Line = Line.lstrip().rstrip()
@@ -249,7 +259,7 @@ def PatchHTML(Template, PartsText, ContextParts, ContextPartsText, HTMLPagesList
 	Template = Template.replace('[HTML:Page:Path]', PagePath)
 	Template = Template.replace('[HTML:Page:Style]', Meta['Style'])
 	Template = Template.replace('[HTML:Page:Content]', Content)
-	Template = Template.replace('[HTML:Page:ContentHeader]', MakeContentHeader(Meta, Locale))
+	Template = Template.replace('[HTML:Page:ContentHeader]', MakeContentHeader(Meta, Locale, MakeCategoryLine(Meta, Reserved)))
 	Template = Template.replace('[HTML:Site:AbsoluteRoot]', SiteRoot)
 	Template = Template.replace('[HTML:Site:RelativeRoot]', GetLevels(PagePath))
 	for i in FolderRoots:
@@ -332,7 +342,7 @@ def DoMinify(HTML):
 		convert_charrefs=True,
 		keep_pre=True)
 
-def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteRoot, FolderRoots, Locale, Minify):
+def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteRoot, FolderRoots, Reserved, Locale, Minify):
 	Files, Pages, Categories = [], [], {}
 	for Ext in Extensions['Pages']:
 		for File in Path('Pages').rglob('*.{}'.format(Ext)):
@@ -348,7 +358,7 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteRoot,
 		Categories[Category] = GetHTMLPagesList(
 			Pages=Pages,
 			SiteRoot=SiteRoot,
-			PathPrefix='../../', # This hardcodes paths, TODO make it somehow guess the path for every page containing the [HTML:Category] macro
+			PathPrefix=GetLevels(Reserved['Categories']), # This hardcodes paths, TODO make it somehow guess the path for every page containing the [HTML:Category] macro
 			Type='Post',
 			Category=Category)
 	for File, Content, Titles, Meta in Pages:
@@ -375,11 +385,21 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteRoot,
 			SiteRoot=SiteRoot,
 			FolderRoots=FolderRoots,
 			Categories=Categories,
-			Locale=Locale)
+			Locale=Locale,
+			Reserved=Reserved)
 		if Minify != 'False' and Minify != 'None':
 			HTML = DoMinify(HTML)
 		WriteFile(PagePath, HTML)
 	DelTmp()
+
+def SetReserved(Reserved):
+	for i in ['Categories']:
+		if i not in Reserved:
+			Reserved.update({i:i})
+	for i in Reserved:
+		if not Reserved[i].endswith('/'):
+			Reserved[i] = '{}/'.format(Reserved[i])
+	return Reserved
 
 def Main(Args):
 	ResetPublic()
@@ -391,16 +411,18 @@ def Main(Args):
 		ContextPartsText=LoadFromDir('ContextParts', '*.html'),
 		SiteRoot=Args.SiteRoot if Args.SiteRoot else '/',
 		FolderRoots=literal_eval(Args.FolderRoots) if Args.FolderRoots else {},
+		Reserved=SetReserved(literal_eval(Args.ReservedPaths) if Args.ReservedPaths else {}),
 		Locale=LoadLocale(Args.SiteLang if Args.SiteLang else 'en'),
 		Minify=Args.Minify if Args.Minify else 'None')
 	os.system("cp -R Assets/* public/")
 
 if __name__ == '__main__':
 	Parser = argparse.ArgumentParser()
+	Parser.add_argument('--Minify', type=str)
 	Parser.add_argument('--SiteLang', type=str)
 	Parser.add_argument('--SiteRoot', type=str)
 	Parser.add_argument('--FolderRoots', type=str)
 	Parser.add_argument('--ContextParts', type=str)
-	Parser.add_argument('--Minify', type=str)
+	Parser.add_argument('--ReservedPaths', type=str)
 	Main(
 		Args=Parser.parse_args())

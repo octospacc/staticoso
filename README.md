@@ -16,6 +16,7 @@ Feel free to experiment with all of this stuff!
 - [pug-cli >= 1.0.0-alpha6](https://npmjs.com/package/pug-cli)
 
 ## Features roadmap
+- [x] Info for posts shown on their page
 - [x] HTML minification
 - [ ] Open Graph support
 - [x] Custom categories for posts
