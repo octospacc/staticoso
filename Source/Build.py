@@ -40,6 +40,24 @@ def ResetPublic():
 	except FileNotFoundError:
 		pass
 
+def GetLevels(Path, Sub=0, AsNum=False):
+	n = Path.count('/')
+	return n if AsNum else '../' * n
+
+def GetDeepest(Paths):
+	Deepest = 0
+	for p in Paths:
+		l = GetLevels(p, True)
+		if l > Deepest:
+			Deepest = l
+	print(Deepest)
+	return Deepest
+
+def GetRelative(Path, Levels):
+	print(Path, Levels)
+	#return GetLevels(Path, Levels)
+	return '../' * Levels
+
 def DashifyStr(s, Limit=32):
 	Str, lc = '', Limit
 	for c in s[:Limit].replace(' ','-').replace('	','-'):
@@ -79,13 +97,14 @@ def GetTitleIdLine(Line, Title, Type):
 		NewLine += Line[Index+2:]
 		return NewLine
 
-def MakeListTitle(File, Meta, Titles, Prefer, SiteRoot):
+def MakeListTitle(File, Meta, Titles, Prefer, SiteRoot, CurLevels, PathPrefix=''):
+	print(PathPrefix)
 	Title = GetTitle(Meta, Titles, Prefer)
 	Link = False if Meta['Index'] == 'Unlinked' else True
 	if Link:
 		Title = '[{}]({})'.format(
 			Title,
-			'{}{}.html'.format(SiteRoot, StripExt(File)))
+			'{}{}.html'.format(PathPrefix, StripExt(File))) #(GetRelative(File, CurLevels), StripExt(File)))
 	if Meta['Type'] == 'Post' and Meta['CreatedOn']:
 		Title = '[{}] {}'.format(
 			Meta['CreatedOn'],
@@ -239,7 +258,7 @@ def OrderPages(Old):
 		New.remove([])
 	return New
 
-def GetHTMLPagesList(Pages, SiteRoot, Type='Page', Category=None):
+def GetHTMLPagesList(Pages, SiteRoot, CurLevels, PathPrefix, Type='Page', Category=None):
 	List = ''
 	ToPop = []
 	LastParent = []
@@ -266,13 +285,13 @@ def GetHTMLPagesList(Pages, SiteRoot, Type='Page', Category=None):
 						LastParent = CurParent
 						Levels = '- ' * (n-1+i)
 						if File[:-3].endswith('index.'):
-							Title = MakeListTitle(File, Meta, Titles, 'HTMLTitle', SiteRoot)
+							Title = MakeListTitle(File, Meta, Titles, 'HTMLTitle', SiteRoot, CurLevels, PathPrefix)
 						else:
 							Title = CurParent[n-2+i]
 						List += Levels + Title + '\n'
 			if not (n > 1 and File[:-3].endswith('index.')):
 				Levels = '- ' * n
-				Title = MakeListTitle(File, Meta, Titles, 'HTMLTitle', SiteRoot)
+				Title = MakeListTitle(File, Meta, Titles, 'HTMLTitle', SiteRoot, CurLevels, PathPrefix)
 				List += Levels + Title + '\n'
 	return Markdown().convert(List)
 
@@ -298,10 +317,15 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteRoot,
 		for Category in Meta['Categories']:
 			Categories.update({Category:''})
 	PugCompileList(Pages)
-	HTMLPagesList = GetHTMLPagesList(Pages, SiteRoot, 'Page')
+	print(Files)
 	for Category in Categories:
-		Categories[Category] = GetHTMLPagesList(Pages, SiteRoot, 'Post', Category)
+		Categories[Category] = GetHTMLPagesList(Pages, SiteRoot, 0, '../../', 'Post', Category)
 	for File, Content, Titles, Meta in Pages:
+		CurLevels = GetLevels(File, 0, True)
+		PathPrefix = GetLevels(File)
+		print(PathPrefix)
+		print(File, CurLevels)
+		HTMLPagesList = GetHTMLPagesList(Pages, SiteRoot, CurLevels, PathPrefix, 'Page')
 		PagePath = 'public/{}.html'.format(StripExt(File))
 		if File.endswith('.md'):
 			Content = Markdown().convert(Content)
@@ -313,7 +337,7 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteRoot,
 			SiteRoot)
 		Template = Template.replace(
 			'[HTML:Site:RelativeRoot]',
-			'../'*File.count('/'))
+			GetLevels(File))
 		WriteFile(
 			PagePath,
 			PatchHTML(
