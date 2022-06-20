@@ -65,6 +65,17 @@ def DashifyStr(s, Limit=32):
 			Str += c
 	return '-' + Str
 
+def DashifyTitle(Title, Done=[]):
+	Title = DashifyStr(Title)
+	while Title in Done:
+		Sections = Title.split('-')
+		try:
+			Sections[-1] = str(int(Sections[-1]) + 1)
+		except ValueError:
+			Sections[-1] = Sections[-1] + '-1'
+		Title = '-'.join(Sections)
+	return Title
+
 def GetTitle(Meta, Titles, Prefer='MetaTitle'):
 	if Prefer == 'Title':
 		Title = Titles[0].lstrip('#') if Titles else Meta['Title'] if Meta['Title'] else 'Untitled'
@@ -84,8 +95,7 @@ def GetDescription(Meta, Prefer='MetaDescription'):
 		Description = Meta['Description']
 	return Description
 
-def GetTitleIdLine(Line, Title, Type):
-	DashTitle = DashifyStr(Title.lstrip('#'))
+def MakeLinkableTitle(Line, Title, DashTitle, Type):
 	if Type == 'md':
 		Index = Title.split(' ')[0].count('#')
 		return '<h{} id="{}">{}</h{}>'.format(Index, DashTitle, Title[Index+1:], Index)
@@ -111,12 +121,15 @@ def MakeListTitle(File, Meta, Titles, Prefer, SiteRoot, PathPrefix=''):
 	return Title
 
 def FormatTitles(Titles):
-	MDTitles = ''
+	# TODO: Somehow titles written in Pug can end up here and don't work, they should be handled
+	MDTitles, DashyTitles = '', []
 	for t in Titles:
 		n = t.split(' ')[0].count('#')
 		Heading = '- ' * n
 		Title = t.lstrip('#')
-		Title = '[{}](#{})'.format(Title, DashifyStr(Title))
+		DashyTitle = DashifyTitle(Title, DashyTitles)
+		DashyTitles += [DashyTitle]
+		Title = '[{}](#{})'.format(Title, DashyTitle)
 		MDTitles += Heading + Title + '\n'
 	return Markdown().convert(MDTitles)
 
@@ -129,7 +142,7 @@ def LoadFromDir(Dir, Rglob):
 
 def PreProcessor(Path, SiteRoot):
 	File = ReadFile(Path)
-	Content, Titles, Meta = '', [], {
+	Content, Titles, DashyTitles, Meta = '', [], [], {
 		'Template': 'Standard.html',
 		'Style': '',
 		'Type': 'Page',
@@ -162,8 +175,10 @@ def PreProcessor(Path, SiteRoot):
 		else:
 			if Path.endswith('.md'):
 				if ls.startswith('#'):
+					DashTitle = DashifyTitle(l.lstrip('#'), DashyTitles)
+					DashyTitles += [DashTitle]
 					Titles += [l]
-					Content += GetTitleIdLine(l, ls, 'md') + '\n'
+					Content += MakeLinkableTitle(l, ls, DashTitle, 'md') + '\n'
 				else:
 					Content += l + '\n'
 			elif Path.endswith('.pug'):
@@ -172,12 +187,14 @@ def PreProcessor(Path, SiteRoot):
 						Content += l + '\n'
 					else:
 						Title = '#'*int(ls[1]) + str(ls[3:])
+						DashTitle = DashifyTitle(Title.lstrip('#'), DashyTitles)
+						DashyTitles += [DashTitle]
 						Titles += [Title]
-						# We should handle headers that for any reason already have parenthesis
+						# TODO: We should handle headers that for any reason already have parenthesis
 						if ls[2:] == '(':
 							Content += l + '\n'
 						else:
-							Content += GetTitleIdLine(l, Title, 'pug') + '\n'
+							Content += MakeLinkableTitle(l, Title, DashTitle, 'pug') + '\n'
 				else:
 					Content += l + '\n'
 	return Content, Titles, Meta
@@ -195,10 +212,14 @@ def PugCompileList(Pages):
 def MakeContentHeader(Meta, Locale):
 	Header = ''
 	if Meta['Type'] == 'Post':
-		if Meta['CreatedOn']:
-			Header += "{} {}  \n".format(Locale['CreatedOn'], Meta['CreatedOn'])
-		if Meta['EditedOn']:
-			Header += "{} {}  \n".format(Locale['EditedOn'], Meta['EditedOn'])
+		for i in ['CreatedOn', 'EditedOn']:
+			if Meta[i]:
+				Header += "{} {}  \n".format(Locale[i], Meta[i])
+		if Meta['Categories']:
+			Categories = ''
+			for i in Meta['Categories']:
+				Categories += i + ' '
+			Header += "{}: {}  \n".format(Locale['Categories'], Categories)
 	return Markdown().convert(Header)
 
 def PatchHTML(Template, PartsText, ContextParts, ContextPartsText, HTMLPagesList, PagePath, Content, Titles, Meta, SiteRoot, FolderRoots, Categories, Locale):
