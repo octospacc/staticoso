@@ -206,6 +206,7 @@ def MakeContentHeader(Meta):
 	return Markdown().convert(Header)
 
 def PatchHTML(Template, PartsText, ContextParts, ContextPartsText, HTMLPagesList, PagePath, Content, Titles, Meta, SiteRoot, FolderRoots, Categories):
+	print(PagePath)
 	HTMLTitles = FormatTitles(Titles)
 	for Line in Template.splitlines():
 		Line = Line.lstrip().rstrip()
@@ -234,6 +235,7 @@ def PatchHTML(Template, PartsText, ContextParts, ContextPartsText, HTMLPagesList
 	Template = Template.replace('[HTML:Page:Content]', Content)
 	Template = Template.replace('[HTML:Page:ContentHeader]', MakeContentHeader(Meta))
 	Template = Template.replace('[HTML:Site:AbsoluteRoot]', SiteRoot)
+	Template = Template.replace('[HTML:Site:RelativeRoot]', GetLevels(PagePath))
 	for i in FolderRoots:
 		Template = Template.replace('[HTML:Folder:{}:AbsoluteRoot]'.format(i), FolderRoots[i])
 	for i in Categories:
