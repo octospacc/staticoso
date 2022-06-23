@@ -204,9 +204,7 @@ def PreProcessor(Path, SiteRoot):
 def PugCompileList(Pages):
 	# Pug-cli seems to shit itself with folder paths as input, so we pass ALL the files as arguments
 	Paths = ''
-	for File, Parent, Content, Titles, Meta in Pages:
-		if Parent != 'Pages':
-			File = Parent + '/' + File
+	for File, Content, Titles, Meta in Pages:
 		if File.endswith('.pug'):
 			Path = 'public/{}'.format(File)
 			WriteFile(Path, Content)
@@ -271,34 +269,40 @@ def FileToStr(File, Truncate=''):
 
 def OrderPages(Old):
 	New = []
+	NoOrder = []
 	Max = 0
 	for i,e in enumerate(Old):
-		Curr = e[4]['Order']
-		if Curr > Max:
-			Max = Curr
+		Curr = e[3]['Order']
+		if Curr:
+			if Curr > Max:
+				Max = Curr
+		else:
+			NoOrder += [e]
 	for i in range(Max+1):
 		New += [[]]
 	for i,e in enumerate(Old):
-		New[e[4]['Order']] = e
+		Curr = e[3]['Order']
+		if Curr:
+			New[Curr] = e
 	while [] in New:
 		New.remove([])
-	return New
+	return New + NoOrder
 
 def GetHTMLPagesList(Pages, SiteRoot, PathPrefix, Type='Page', Category=None):
 	List, ToPop, LastParent = '', [], []
 	IndexPages = Pages.copy()
 	for e in IndexPages:
-		if e[4]['Index'] == 'False' or e[4]['Index'] == 'None':
+		if e[3]['Index'] == 'False' or e[3]['Index'] == 'None':
 			IndexPages.remove(e)
 	for i,e in enumerate(IndexPages):
-		if e[4]['Type'] != Type:
+		if e[3]['Type'] != Type:
 			ToPop += [i]
 	ToPop = RevSort(ToPop)
 	for i in ToPop:
 		IndexPages.pop(i)
 	if Type == 'Page':
 		IndexPages = OrderPages(IndexPages)
-	for File, Parent, Content, Titles, Meta in IndexPages:
+	for File, Content, Titles, Meta in IndexPages:
 		if Meta['Type'] == Type and (Meta['Index'] != 'False' or Meta['Index'] != 'None') and GetTitle(Meta, Titles, Prefer='HTMLTitle') != 'Untitled' and (not Category or Category in Meta['Categories']):
 			n = File.count('/') + 1
 			if n > 1:
@@ -340,15 +344,24 @@ def DoMinify(HTML):
 		convert_charrefs=True,
 		keep_pre=True)
 
-def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteRoot, FolderRoots, Reserved, Locale, Minify):
+def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteRoot, FolderRoots, Reserved, Locale, Minify, Sorting):
 	PagesPaths, PostsPaths, Pages, Categories = [], [], [], {}
 	for Ext in Extensions['Pages']:
 		for File in Path('Pages').rglob('*.{}'.format(Ext)):
 			PagesPaths += [FileToStr(File, 'Pages/')]
 		for File in Path('Posts').rglob('*.{}'.format(Ext)):
 			PostsPaths += [FileToStr(File, 'Posts/')]
-	PagesPaths = RevSort(PagesPaths)
-	PostsPaths = RevSort(PostsPaths)
+
+	# TODO: Slim this down?
+	if Sorting['Pages'] == 'Standard':
+		PagesPaths.sort()
+	elif Sorting['Pages'] == 'Inverse':
+		PagesPaths = RevSort(PagesPaths)
+	if Sorting['Posts'] == 'Standard':
+		PostsPaths.sort()
+	elif Sorting['Posts'] == 'Inverse':
+		PostsPaths = RevSort(PostsPaths)
+
 	for Type in ['Page', 'Post']:
 		if Type == 'Page':
 			Files = PagesPaths
@@ -356,37 +369,33 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteRoot,
 			Files = PostsPaths
 		for File in Files:
 			Content, Titles, Meta = PreProcessor('{}s/{}'.format(Type, File), SiteRoot)
+			if Type != 'Page':
+				File = Type + 's/' + File
 			if not Meta['Type']:
 				Meta['Type'] = Type
-			Pages += [[File, Type+'s', Content, Titles, Meta]]
+			Pages += [[File, Content, Titles, Meta]]
 			for Category in Meta['Categories']:
 				Categories.update({Category:''})
 	PugCompileList(Pages)
-	#exit()
+
 	for Category in Categories:
 		Categories[Category] = GetHTMLPagesList(
 			Pages=Pages,
 			SiteRoot=SiteRoot,
-			PathPrefix=GetLevels(Reserved['Categories'])+'Posts/', # This hardcodes paths, TODO make it somehow guess the path for every page containing the [HTML:Category] macro
+			PathPrefix=GetLevels(Reserved['Categories']), # This hardcodes paths, TODO make it somehow guess the path for every page containing the [HTML:Category] macro
 			Type='Post',
 			Category=Category)
-	for File, Parent, Content, Titles, Meta in Pages:
-		if Parent != 'Pages':
-			File = Parent + '/' + File
+
+	for File, Content, Titles, Meta in Pages:
 		HTMLPagesList = GetHTMLPagesList(
 			Pages=Pages,
 			SiteRoot=SiteRoot,
 			PathPrefix=GetLevels(File),
 			Type='Page')
-			#Parent = ''
-		#else:
-		#	#Parent += '/'
 		PagePath = 'public/{}.html'.format(StripExt(File))
-		#PagePath = 'public/{}{}.html'.format(Parent, StripExt(File))
 		if File.endswith('.md'):
 			Content = Markdown().convert(Content)
 		elif File.endswith('.pug'):
-			#print(File, PagePath)
 			Content = ReadFile(PagePath)
 		HTML = PatchHTML(
 			Template=TemplatesText[Meta['Template']],
@@ -406,7 +415,6 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteRoot,
 		if Minify != 'False' and Minify != 'None':
 			HTML = DoMinify(HTML)
 		WriteFile(PagePath, HTML)
-	DelTmp()
 
 def SetReserved(Reserved):
 	for i in ['Categories']:
@@ -416,6 +424,15 @@ def SetReserved(Reserved):
 		if not Reserved[i].endswith('/'):
 			Reserved[i] = '{}/'.format(Reserved[i])
 	return Reserved
+
+def SetSorting(Sorting):
+	Default = {
+		'Pages':'Standard',
+		'Posts':'Inverse'}
+	for i in Default:
+		if i not in Sorting:
+			Sorting.update({i:Default[i]})
+	return Sorting
 
 def Main(Args):
 	ResetPublic()
@@ -432,12 +449,15 @@ def Main(Args):
 		FolderRoots=literal_eval(Args.FolderRoots) if Args.FolderRoots else {},
 		Reserved=SetReserved(literal_eval(Args.ReservedPaths) if Args.ReservedPaths else {}),
 		Locale=LoadLocale(Args.SiteLang if Args.SiteLang else 'en'),
-		Minify=Args.Minify if Args.Minify else 'None')
+		Minify=Args.Minify if Args.Minify else 'None',
+		Sorting=SetSorting(literal_eval(Args.ContextParts) if Args.ContextParts else {}))
+	DelTmp()
 	os.system("cp -R Assets/* public/")
 
 if __name__ == '__main__':
 	Parser = argparse.ArgumentParser()
 	Parser.add_argument('--Minify', type=str)
+	Parser.add_argument('--Sorting', type=str)
 	Parser.add_argument('--SiteLang', type=str)
 	Parser.add_argument('--SiteRoot', type=str)
 	Parser.add_argument('--FolderRoots', type=str)
