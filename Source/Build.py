@@ -9,35 +9,17 @@
 
 import argparse
 import json
-from Libs import htmlmin
 import os
 import shutil
 from ast import literal_eval
+from Libs import htmlmin
 from Libs.bs4 import BeautifulSoup
-#from html.parser import HTMLParser
-from markdown import Markdown
+from Libs.markdown import Markdown
+from Libs.markdown import markdown
 from pathlib import Path
 
 Extensions = {
 	'Pages': ('md', 'pug')}
-
-"""
-class HTMLParser(HTMLParser):
-	Tags = []
-	def handle_starttag(self, tag, attrs):
-		#print(tag, attrs)
-		#self.Tags += [tag, attrs]
-		self.Tags += [[tag,attrs]]
-	def handle_data(self, data):
-		#print(data)
-		if self.Tags:
-			#self.Tags += [data]
-			self.Tags[-1] += [data]
-	def Clean(self):
-		self.Tags = []
-		self.reset()
-		self.close()
-"""
 
 def ReadFile(p):
 	try:
@@ -256,27 +238,8 @@ def MakeCategoryLine(Meta, Reserved):
 	return Categories
 
 def PatchHTML(Template, PartsText, ContextParts, ContextPartsText, HTMLPagesList, PagePath, Content, Titles, Meta, SiteRoot, FolderRoots, Categories, Locale, Reserved):
-	BodyDescription, BodyImage = '', ''
 	HTMLTitles = FormatTitles(Titles)
-	""" # This is broken and somehow always returns the same wrong values? Disabled for now
-	#print(Content)
-	Parser = HTMLParser()
-	Parser.feed(Content)
-	for e in Parser.Tags:
-		if not BodyDescription and e[0] == 'p':
-			BodyDescription = e[2][:150] + '...'
-		elif not BodyImage and e[0] == 'img':
-			for j,f in enumerate(e[1]):
-				if f == 'src':
-					BodyImage = e[1][j]
-	print(BodyDescription)
-	print(BodyImage)
-	print(len(Parser.Tags))
-	#print(Parser.Tags)
-	#exit()
-	Parser.Clean()
-	"""
-	#Content.find("<p ")
+	BodyDescription, BodyImage = '', ''
 	Parse = BeautifulSoup(Content, 'html.parser')
 	if not BodyDescription and Parse.p:
 		BodyDescription = Parse.p.get_text()[:150].replace('\n', ' ').replace('"', "'") + '...'
@@ -448,7 +411,7 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteRoot,
 			Type='Page')
 		PagePath = 'public/{}.html'.format(StripExt(File))
 		if File.endswith('.md'):
-			Content = Markdown().convert(Content)
+			Content = markdown(Content, extensions=['attr_list'])
 		elif File.endswith('.pug'):
 			Content = ReadFile(PagePath)
 		HTML = PatchHTML(

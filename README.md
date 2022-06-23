@@ -10,10 +10,12 @@ Also, this software is needed for someone to edit and compile my personal sub-we
 Feel free to experiment with all of this stuff!
 
 ## Dependencies
-- [Python >= 3.10.4](https://python.org)
-- [Python Markdown >= 3.3.7](https://pypi.org/project/Markdown)
-- (Included) [htmlmin >= 0.1.12](https://pypi.org/project/htmlmin)
-- [pug-cli >= 1.0.0-alpha6](https://npmjs.com/package/pug-cli)
+- [Python == 3.10.4](https://python.org)
+- (Included) [Python Markdown == 3.3.7](https://pypi.org/project/Markdown)
+- (Included) [Beautiful Soup == 4.11.1](https://pypi.org/project/beautifulsoup4)
+- (Included) [htmlmin == 0.1.12](https://pypi.org/project/htmlmin)
+- [node == 12.22.5](https://nodejs.org) | [npm == 7.5.2](https://www.npmjs.com)
+- (Included) [pug-cli == 1.0.0-alpha6](https://npmjs.com/package/pug-cli)
 
 ## Features roadmap
 - [x] Autodetection of pages and posts
@@ -35,5 +37,5 @@ Feel free to experiment with all of this stuff!
 - [x] Generation of titles in right sidebar with clickable links
 - [x] Detections of titles in a page
 - [x] Custom static page parts by template
-- [x] Markdown + Pug support for pages
-- [x] First working version
+- [x] Extended Markdown + Pug support for pages
+- [x] Ready for use
