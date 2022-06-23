@@ -13,22 +13,31 @@ from Libs import htmlmin
 import os
 import shutil
 from ast import literal_eval
-from html.parser import HTMLParser
+from Libs.bs4 import BeautifulSoup
+#from html.parser import HTMLParser
 from markdown import Markdown
 from pathlib import Path
 
 Extensions = {
 	'Pages': ('md', 'pug')}
 
-class MyHTMLParser(HTMLParser):
-	Tags, Attrs, Data = [], [], []
+"""
+class HTMLParser(HTMLParser):
+	Tags = []
 	def handle_starttag(self, tag, attrs):
-		self.Tags += [tag]
-		self.Attrs += [attrs]
+		#print(tag, attrs)
+		#self.Tags += [tag, attrs]
+		self.Tags += [[tag,attrs]]
 	def handle_data(self, data):
-		self.Data += [data]
+		#print(data)
+		if self.Tags:
+			#self.Tags += [data]
+			self.Tags[-1] += [data]
 	def Clean(self):
-		self.Tags, self.Attrs, self.Data = [], [], []
+		self.Tags = []
+		self.reset()
+		self.close()
+"""
 
 def ReadFile(p):
 	try:
@@ -250,18 +259,30 @@ def PatchHTML(Template, PartsText, ContextParts, ContextPartsText, HTMLPagesList
 	BodyDescription, BodyImage = '', ''
 	HTMLTitles = FormatTitles(Titles)
 	""" # This is broken and somehow always returns the same wrong values? Disabled for now
-	parser = MyHTMLParser()
-	parser.feed(Content)
-	for i,e in enumerate(parser.Tags):
-		if e == 'p' and not BodyDescription:
-			BodyDescription = parser.Data[i]
-		elif e == 'img' and not BodyImage:
-			BodyImage = parser.Data[i]
-	print(Content)
+	#print(Content)
+	Parser = HTMLParser()
+	Parser.feed(Content)
+	for e in Parser.Tags:
+		if not BodyDescription and e[0] == 'p':
+			BodyDescription = e[2][:150] + '...'
+		elif not BodyImage and e[0] == 'img':
+			for j,f in enumerate(e[1]):
+				if f == 'src':
+					BodyImage = e[1][j]
 	print(BodyDescription)
 	print(BodyImage)
-	parser.Clean()
+	print(len(Parser.Tags))
+	#print(Parser.Tags)
+	#exit()
+	Parser.Clean()
 	"""
+	#Content.find("<p ")
+	Parse = BeautifulSoup(Content, 'html.parser')
+	if not BodyDescription and Parse.p:
+		BodyDescription = Parse.p.get_text()[:150].replace('\n', ' ').replace('"', "'") + '...'
+	if not BodyImage and Parse.img and Parse.img['src']:
+		BodyImage = Parse.img['src']
+
 	for Line in Template.splitlines():
 		Line = Line.lstrip().rstrip()
 		if Line.startswith('[HTML:ContextPart:') and Line.endswith(']'):

@@ -19,7 +19,7 @@ Feel free to experiment with all of this stuff!
 - [x] Autodetection of pages and posts
 - [x] Info for posts shown on their page
 - [x] HTML minification
-- [ ] Full Open Graph support
+- [x] Full Open Graph support
 - [x] Custom categories for posts
 - [x] Custom static page parts programmable by context
 - [x] Showing creation and modified date for posts
