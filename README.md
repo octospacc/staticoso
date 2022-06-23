@@ -16,15 +16,15 @@ Feel free to experiment with all of this stuff!
 - [pug-cli >= 1.0.0-alpha6](https://npmjs.com/package/pug-cli)
 
 ## Features roadmap
+- [x] Autodetection of pages and posts
 - [x] Info for posts shown on their page
 - [x] HTML minification
-- [ ] Open Graph support
+- [ ] Full Open Graph support
 - [x] Custom categories for posts
 - [x] Custom static page parts programmable by context
-- [x] Handle showing creation and modified date for posts
+- [x] Showing creation and modified date for posts
 - [x] Generation of category pages (ex. page with list of blog posts)
-- [x] Custom title choosing type (HTML/Plaintext)
-- [x] Custom page ordering
+- [x] Custom and automatic page sorting
 - [ ] SCSS compilation support for CSS templates
 - [ ] Pug support for base templates and page side parts
 - [ ] Differential recompile (to optimize resource waste on non-ephemeral servers)

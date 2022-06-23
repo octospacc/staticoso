@@ -13,11 +13,22 @@ from Libs import htmlmin
 import os
 import shutil
 from ast import literal_eval
+from html.parser import HTMLParser
 from markdown import Markdown
 from pathlib import Path
 
 Extensions = {
 	'Pages': ('md', 'pug')}
+
+class MyHTMLParser(HTMLParser):
+	Tags, Attrs, Data = [], [], []
+	def handle_starttag(self, tag, attrs):
+		self.Tags += [tag]
+		self.Attrs += [attrs]
+	def handle_data(self, data):
+		self.Data += [data]
+	def Clean(self):
+		self.Tags, self.Attrs, self.Data = [], [], []
 
 def ReadFile(p):
 	try:
@@ -79,7 +90,7 @@ def DashifyTitle(Title, Done=[]):
 	return UndupeStr(DashifyStr(Title), Done, '-')
 
 def GetTitle(Meta, Titles, Prefer='MetaTitle'):
-	if Prefer == 'Title':
+	if Prefer == 'BodyTitle':
 		Title = Titles[0].lstrip('#') if Titles else Meta['Title'] if Meta['Title'] else 'Untitled'
 	elif Prefer == 'MetaTitle':
 		Title = Meta['Title'] if Meta['Title'] else Titles[0].lstrip('#') if Titles else 'Untitled'
@@ -90,12 +101,19 @@ def GetTitle(Meta, Titles, Prefer='MetaTitle'):
 		Title += ' - blogoctt'
 	return Title
 
-def GetDescription(Meta, Prefer='MetaDescription'):
-	if Prefer == 'Description':
-		Description = Meta['Description']
+def GetDescription(Meta, BodyDescription, Prefer='MetaDescription'):
+	if Prefer == 'BodyDescription':
+		Description = BodyDescription if BodyDescription else Meta['Description'] if Meta['Description'] else ''
 	elif Prefer == 'MetaDescription':
-		Description = Meta['Description']
+		Description = Meta['Description'] if Meta['Description'] else BodyDescription if BodyDescription else ''
 	return Description
+
+def GetImage(Meta, BodyImage, Prefer='MetaImage'):
+	if Prefer == 'BodyImage':
+		Image = BodyImage if BodyImage else Meta['Image'] if Meta['Image'] else ''
+	elif Prefer == 'MetaImage':
+		Image = Meta['Image'] if Meta['Image'] else BodyImage if BodyImage else ''
+	return Image
 
 def MakeLinkableTitle(Line, Title, DashTitle, Type):
 	if Type == 'md':
@@ -229,7 +247,21 @@ def MakeCategoryLine(Meta, Reserved):
 	return Categories
 
 def PatchHTML(Template, PartsText, ContextParts, ContextPartsText, HTMLPagesList, PagePath, Content, Titles, Meta, SiteRoot, FolderRoots, Categories, Locale, Reserved):
+	BodyDescription, BodyImage = '', ''
 	HTMLTitles = FormatTitles(Titles)
+	""" # This is broken and somehow always returns the same wrong values? Disabled for now
+	parser = MyHTMLParser()
+	parser.feed(Content)
+	for i,e in enumerate(parser.Tags):
+		if e == 'p' and not BodyDescription:
+			BodyDescription = parser.Data[i]
+		elif e == 'img' and not BodyImage:
+			BodyImage = parser.Data[i]
+	print(Content)
+	print(BodyDescription)
+	print(BodyImage)
+	parser.Clean()
+	"""
 	for Line in Template.splitlines():
 		Line = Line.lstrip().rstrip()
 		if Line.startswith('[HTML:ContextPart:') and Line.endswith(']'):
@@ -251,7 +283,8 @@ def PatchHTML(Template, PartsText, ContextParts, ContextPartsText, HTMLPagesList
 	Template = Template.replace('[HTML:Page:LeftBox]', HTMLPagesList)
 	Template = Template.replace('[HTML:Page:RightBox]', HTMLTitles)
 	Template = Template.replace('[HTML:Page:Title]', GetTitle(Meta, Titles, 'MetaTitle'))
-	Template = Template.replace('[HTML:Page:Description]', GetDescription(Meta, 'MetaDescription'))
+	Template = Template.replace('[HTML:Page:Description]', GetDescription(Meta, BodyDescription, 'MetaDescription'))
+	Template = Template.replace('[HTML:Page:Image]', GetImage(Meta, BodyImage, 'MetaImage'))
 	Template = Template.replace('[HTML:Page:Path]', PagePath)
 	Template = Template.replace('[HTML:Page:Style]', Meta['Style'])
 	Template = Template.replace('[HTML:Page:Content]', Content)
