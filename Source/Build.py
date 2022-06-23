@@ -147,7 +147,7 @@ def PreProcessor(Path, SiteRoot):
 	Content, Titles, DashyTitles, Meta = '', [], [], {
 		'Template': 'Standard.html',
 		'Style': '',
-		'Type': 'Page',
+		'Type': '',
 		'Index': 'True',
 		'Title': '',
 		'HTMLTitle': '',
@@ -204,7 +204,9 @@ def PreProcessor(Path, SiteRoot):
 def PugCompileList(Pages):
 	# Pug-cli seems to shit itself with folder paths as input, so we pass ALL the files as arguments
 	Paths = ''
-	for File, Content, Titles, Meta in Pages:
+	for File, Parent, Content, Titles, Meta in Pages:
+		if Parent != 'Pages':
+			File = Parent + '/' + File
 		if File.endswith('.pug'):
 			Path = 'public/{}'.format(File)
 			WriteFile(Path, Content)
@@ -226,10 +228,6 @@ def MakeCategoryLine(Meta, Reserved):
 	if Meta['Categories']:
 		for i in Meta['Categories']:
 			Categories += '[{}]({}{}.html)  '.format(i, GetLevels(Reserved['Categories']) + Reserved['Categories'], i)
-		#Categories = ''
-		#for i in Meta['Categories']:
-		#	Categories += i + ' '
-		#Header += "{}: {}  \n".format(Locale['Categories'], Categories)
 	return Categories
 
 def PatchHTML(Template, PartsText, ContextParts, ContextPartsText, HTMLPagesList, PagePath, Content, Titles, Meta, SiteRoot, FolderRoots, Categories, Locale, Reserved):
@@ -275,13 +273,13 @@ def OrderPages(Old):
 	New = []
 	Max = 0
 	for i,e in enumerate(Old):
-		Curr = e[3]['Order']
+		Curr = e[4]['Order']
 		if Curr > Max:
 			Max = Curr
 	for i in range(Max+1):
 		New += [[]]
 	for i,e in enumerate(Old):
-		New[e[3]['Order']] = e
+		New[e[4]['Order']] = e
 	while [] in New:
 		New.remove([])
 	return New
@@ -290,17 +288,17 @@ def GetHTMLPagesList(Pages, SiteRoot, PathPrefix, Type='Page', Category=None):
 	List, ToPop, LastParent = '', [], []
 	IndexPages = Pages.copy()
 	for e in IndexPages:
-		if e[3]['Index'] == 'False' or e[3]['Index'] == 'None':
+		if e[4]['Index'] == 'False' or e[4]['Index'] == 'None':
 			IndexPages.remove(e)
 	for i,e in enumerate(IndexPages):
-		if e[3]['Type'] != Type:
+		if e[4]['Type'] != Type:
 			ToPop += [i]
 	ToPop = RevSort(ToPop)
 	for i in ToPop:
 		IndexPages.pop(i)
 	if Type == 'Page':
 		IndexPages = OrderPages(IndexPages)
-	for File, Content, Titles, Meta in IndexPages:
+	for File, Parent, Content, Titles, Meta in IndexPages:
 		if Meta['Type'] == Type and (Meta['Index'] != 'False' or Meta['Index'] != 'None') and GetTitle(Meta, Titles, Prefer='HTMLTitle') != 'Untitled' and (not Category or Category in Meta['Categories']):
 			n = File.count('/') + 1
 			if n > 1:
@@ -343,34 +341,52 @@ def DoMinify(HTML):
 		keep_pre=True)
 
 def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteRoot, FolderRoots, Reserved, Locale, Minify):
-	Files, Pages, Categories = [], [], {}
+	PagesPaths, PostsPaths, Pages, Categories = [], [], [], {}
 	for Ext in Extensions['Pages']:
 		for File in Path('Pages').rglob('*.{}'.format(Ext)):
-			Files += [FileToStr(File, 'Pages/')]
-	Files = RevSort(Files)
-	for File in Files:
-		Content, Titles, Meta = PreProcessor('Pages/{}'.format(File), SiteRoot)
-		Pages += [[File, Content, Titles, Meta]]
-		for Category in Meta['Categories']:
-			Categories.update({Category:''})
+			PagesPaths += [FileToStr(File, 'Pages/')]
+		for File in Path('Posts').rglob('*.{}'.format(Ext)):
+			PostsPaths += [FileToStr(File, 'Posts/')]
+	PagesPaths = RevSort(PagesPaths)
+	PostsPaths = RevSort(PostsPaths)
+	for Type in ['Page', 'Post']:
+		if Type == 'Page':
+			Files = PagesPaths
+		elif Type == 'Post':
+			Files = PostsPaths
+		for File in Files:
+			Content, Titles, Meta = PreProcessor('{}s/{}'.format(Type, File), SiteRoot)
+			if not Meta['Type']:
+				Meta['Type'] = Type
+			Pages += [[File, Type+'s', Content, Titles, Meta]]
+			for Category in Meta['Categories']:
+				Categories.update({Category:''})
 	PugCompileList(Pages)
+	#exit()
 	for Category in Categories:
 		Categories[Category] = GetHTMLPagesList(
 			Pages=Pages,
 			SiteRoot=SiteRoot,
-			PathPrefix=GetLevels(Reserved['Categories']), # This hardcodes paths, TODO make it somehow guess the path for every page containing the [HTML:Category] macro
+			PathPrefix=GetLevels(Reserved['Categories'])+'Posts/', # This hardcodes paths, TODO make it somehow guess the path for every page containing the [HTML:Category] macro
 			Type='Post',
 			Category=Category)
-	for File, Content, Titles, Meta in Pages:
+	for File, Parent, Content, Titles, Meta in Pages:
+		if Parent != 'Pages':
+			File = Parent + '/' + File
 		HTMLPagesList = GetHTMLPagesList(
 			Pages=Pages,
 			SiteRoot=SiteRoot,
 			PathPrefix=GetLevels(File),
 			Type='Page')
+			#Parent = ''
+		#else:
+		#	#Parent += '/'
 		PagePath = 'public/{}.html'.format(StripExt(File))
+		#PagePath = 'public/{}{}.html'.format(Parent, StripExt(File))
 		if File.endswith('.md'):
 			Content = Markdown().convert(Content)
 		elif File.endswith('.pug'):
+			#print(File, PagePath)
 			Content = ReadFile(PagePath)
 		HTML = PatchHTML(
 			Template=TemplatesText[Meta['Template']],
@@ -403,7 +419,10 @@ def SetReserved(Reserved):
 
 def Main(Args):
 	ResetPublic()
-	shutil.copytree('Pages', 'public')
+	if os.path.isdir('Pages'):
+		shutil.copytree('Pages', 'public')
+	if os.path.isdir('Posts'):
+		shutil.copytree('Posts', 'public/Posts')
 	MakeSite(
 		TemplatesText=LoadFromDir('Templates', '*.html'),
 		PartsText=LoadFromDir('Parts', '*.html'),
