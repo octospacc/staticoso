@@ -239,7 +239,7 @@ def MakeCategoryLine(Meta, Reserved):
 			Categories += '[{}]({}{}.html)  '.format(i, GetLevels(Reserved['Categories']) + Reserved['Categories'], i)
 	return Categories
 
-def PatchHTML(Template, PartsText, ContextParts, ContextPartsText, HTMLPagesList, PagePath, Content, Titles, Meta, SiteRoot, FolderRoots, Categories, Locale, Reserved):
+def PatchHTML(Base, PartsText, ContextParts, ContextPartsText, HTMLPagesList, PagePath, Content, Titles, Meta, SiteRoot, FolderRoots, Categories, Locale, Reserved):
 	HTMLTitles = FormatTitles(Titles)
 	BodyDescription, BodyImage = '', ''
 	Parse = BeautifulSoup(Content, 'html.parser')
@@ -248,7 +248,11 @@ def PatchHTML(Template, PartsText, ContextParts, ContextPartsText, HTMLPagesList
 	if not BodyImage and Parse.img and Parse.img['src']:
 		BodyImage = Parse.img['src']
 
-	for Line in Template.splitlines():
+	Title = GetTitle(Meta, Titles, 'MetaTitle')
+	Description = GetDescription(Meta, BodyDescription, 'MetaDescription')
+	Image = GetImage(Meta, BodyImage, 'MetaImage')
+
+	for Line in Base.splitlines():
 		Line = Line.lstrip().rstrip()
 		if Line.startswith('[HTML:ContextPart:') and Line.endswith(']'):
 			Path =  Line[len('[HTML:ContextPart:'):-1]
@@ -263,25 +267,31 @@ def PatchHTML(Template, PartsText, ContextParts, ContextPartsText, HTMLPagesList
 					Text = ContextPartsText['{}/{}'.format(Path, Part)]
 			else:
 				Text = ''
-			Template = Template.replace('[HTML:ContextPart:{}]'.format(Path), Text)
+			Base = Base.replace('[HTML:ContextPart:{}]'.format(Path), Text)
 	for i in PartsText:
-		Template = Template.replace('[HTML:Part:{}]'.format(i), PartsText[i])
-	Template = Template.replace('[HTML:Page:LeftBox]', HTMLPagesList)
-	Template = Template.replace('[HTML:Page:RightBox]', HTMLTitles)
-	Template = Template.replace('[HTML:Page:Title]', GetTitle(Meta, Titles, 'MetaTitle'))
-	Template = Template.replace('[HTML:Page:Description]', GetDescription(Meta, BodyDescription, 'MetaDescription'))
-	Template = Template.replace('[HTML:Page:Image]', GetImage(Meta, BodyImage, 'MetaImage'))
-	Template = Template.replace('[HTML:Page:Path]', PagePath)
-	Template = Template.replace('[HTML:Page:Style]', Meta['Style'])
-	Template = Template.replace('[HTML:Page:Content]', Content)
-	Template = Template.replace('[HTML:Page:ContentHeader]', MakeContentHeader(Meta, Locale, MakeCategoryLine(Meta, Reserved)))
-	Template = Template.replace('[HTML:Site:AbsoluteRoot]', SiteRoot)
-	Template = Template.replace('[HTML:Site:RelativeRoot]', GetLevels(PagePath))
+		Base = Base.replace('[HTML:Part:{}]'.format(i), PartsText[i])
+	Base = Base.replace('[HTML:Page:LeftBox]', HTMLPagesList)
+	Base = Base.replace('[HTML:Page:RightBox]', HTMLTitles)
+	Base = Base.replace('[HTML:Page:Title]', Title)
+	Base = Base.replace('[HTML:Page:Description]', Description)
+	Base = Base.replace('[HTML:Page:Image]', Image)
+	Base = Base.replace('[HTML:Page:Path]', PagePath)
+	Base = Base.replace('[HTML:Page:Style]', Meta['Style'])
+	Base = Base.replace('[HTML:Page:Content]', Content)
+	Base = Base.replace('[HTML:Page:ContentHeader]', MakeContentHeader(Meta, Locale, MakeCategoryLine(Meta, Reserved)))
+	Base = Base.replace('[HTML:Site:AbsoluteRoot]', SiteRoot)
+	Base = Base.replace('[HTML:Site:RelativeRoot]', GetLevels(PagePath))
 	for i in FolderRoots:
-		Template = Template.replace('[HTML:Folder:{}:AbsoluteRoot]'.format(i), FolderRoots[i])
+		Base = Base.replace('[HTML:Folder:{}:AbsoluteRoot]'.format(i), FolderRoots[i])
 	for i in Categories:
-		Template = Template.replace('<span>[HTML:Category:{}]</span>'.format(i), Categories[i])
-	return Template
+		Base = Base.replace('<span>[HTML:Category:{}]</span>'.format(i), Categories[i])
+
+	Content = Content.replace('[HTML:Site:AbsoluteRoot]', SiteRoot)
+	Content = Content.replace('[HTML:Site:RelativeRoot]', GetLevels(PagePath))
+	for i in FolderRoots:
+		Content = Content.replace('[HTML:Folder:{}:AbsoluteRoot]'.format(i), FolderRoots[i])
+
+	return Base, Content, Description, Image
 
 def FileToStr(File, Truncate=''):
 	return str(File)[len(Truncate):]
@@ -364,7 +374,7 @@ def DoMinify(HTML):
 		keep_pre=True)
 
 def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteName, SiteTagline, SiteDomain, SiteRoot, FolderRoots, Reserved, Locale, Minify, Sorting):
-	PagesPaths, PostsPaths, Pages, Categories = [], [], [], {}
+	PagesPaths, PostsPaths, Pages, MadePages, Categories = [], [], [], [], {}
 	for Ext in Extensions['Pages']:
 		for File in Path('Pages').rglob('*.{}'.format(Ext)):
 			PagesPaths += [FileToStr(File, 'Pages/')]
@@ -416,8 +426,8 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteName,
 			Content = markdown(Content, extensions=['attr_list'])
 		elif File.endswith('.pug'):
 			Content = ReadFile(PagePath)
-		HTML = PatchHTML(
-			Template=TemplatesText[Meta['Template']],
+		HTML, HTMLContent, Description, Image = PatchHTML(
+			Base=TemplatesText[Meta['Template']],
 			PartsText=PartsText,
 			ContextParts=ContextParts,
 			ContextPartsText=ContextPartsText,
@@ -434,8 +444,9 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteName,
 		if Minify not in ('False', 'None'):
 			HTML = DoMinify(HTML)
 		WriteFile(PagePath, HTML)
+		MadePages += [[File, Content, Titles, Meta, HTMLContent, Description, Image]]
 
-	return Pages
+	return MadePages
 
 def GetFullDate(Date):
 	if not Date:
@@ -466,23 +477,32 @@ def MakeFeed(Pages, SiteName, SiteTagline, SiteDomain, MaxEntries, Lang, Minify=
 	Feed.id(Link)
 	Feed.title(SiteName if SiteName else ' ')
 	Feed.link(href=Link, rel='alternate')
-	Feed.subtitle(SiteTagline if SiteTagline else ' ')
+	Feed.description(SiteTagline if SiteTagline else ' ')
 	if SiteDomain:
 		Feed.logo(SiteDomain.rstrip('/') + '/favicon.png')
 	Feed.language(Lang)
 
-	for File, Content, Titles, Meta in Pages:
-		#print(Meta['Image'])
-		#print(Meta['Title'])
-		#print(Meta['Description'])
+	DoPages = []
+	for e in Pages:
+		if MaxEntries != 0 and e[3]['Type'] == 'Post':
+			DoPages += [e]
+			MaxEntries -= 1
+	DoPages.reverse()
+
+	for File, Content, Titles, Meta, HTMLContent, Description, Image in DoPages:
 		if Meta['Type'] == 'Post':
 			Entry = Feed.add_entry()
-			Link = '{}/{}.html'.format(SiteDomain, StripExt(File)) if SiteDomain else ' '
+			File = '{}.html'.format(StripExt(File))
+			Content = ReadFile('public/'+File)
+			Link = SiteDomain+'/'+File if SiteDomain else ' '
 			CreatedOn = GetFullDate(Meta['CreatedOn'])
 			EditedOn = GetFullDate(Meta['EditedOn'])
+
 			Entry.id(Link)
 			Entry.title(Meta['Title'] if Meta['Title'] else ' ')
+			Entry.description(Description)
 			Entry.link(href=Link, rel='alternate')
+			Entry.content(HTMLContent, type='html')
 			if CreatedOn:
 				Entry.pubDate(CreatedOn)
 			EditedOn = EditedOn if EditedOn else CreatedOn if CreatedOn and not EditedOn else '1970-01-01T00:00+00:00'
