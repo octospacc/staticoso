@@ -14,6 +14,7 @@ import shutil
 from ast import literal_eval
 from Libs import htmlmin
 from Libs.bs4 import BeautifulSoup
+from Libs.feedgen.feed import FeedGenerator
 from Libs.markdown import Markdown
 from Libs.markdown import markdown
 from pathlib import Path
@@ -361,7 +362,7 @@ def DoMinify(HTML):
 		convert_charrefs=True,
 		keep_pre=True)
 
-def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteRoot, FolderRoots, Reserved, Locale, Minify, Sorting):
+def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteName, SiteTagline, SiteDomain, SiteRoot, FolderRoots, Reserved, Locale, Minify, Sorting):
 	PagesPaths, PostsPaths, Pages, Categories = [], [], [], {}
 	for Ext in Extensions['Pages']:
 		for File in Path('Pages').rglob('*.{}'.format(Ext)):
@@ -451,23 +452,67 @@ def SetSorting(Sorting):
 			Sorting.update({i:Default[i]})
 	return Sorting
 
+def MakeFeed(SiteName, SiteTagline, SiteDomain, MaxEntries, Lang, Minify=False):
+	Feed = FeedGenerator()
+	Feed.id(SiteDomain if SiteDomain else ' ')
+	Feed.title(SiteName if SiteName else ' ')
+	Feed.link(href=SiteDomain if SiteDomain else ' ', rel='alternate')
+	Feed.subtitle(SiteTagline if SiteTagline else ' ')
+	if SiteDomain:
+		Feed.logo('SiteDomain/favicon.png')
+	Feed.language(Lang)
+	#Feed.updated('2022-01-01T00:00+00:00')
+	#Feed.lastBuildDate('2022-01-01T00:00+00:00')
+	#Feed.pubDate('2022-01-01T00:00+00:00')
+
+	Entry = Feed.add_entry()
+	Entry.id('PageURL')
+	Entry.title('PageTitle')
+	Entry.link(href='PageURL', rel='alternate')
+	Entry.updated('2022-01-01T00:00+00:00')
+	Entry.pubDate('2022-01-01T00:00+00:00')
+
+	os.mkdir('public/feed')
+	Feed.atom_file('public/feed/atom.xml', pretty=(not Minify))
+	Feed.rss_file('public/feed/rss.xml', pretty=(not Minify))
+
 def Main(Args):
+	SiteName = Args.SiteName if Args.SiteName else ''
+	SiteTagline = Args.SiteTagline if Args.SiteTagline else ''
+	SiteDomain = Args.SiteDomain if Args.SiteDomain else ''
+	SiteLang = Args.SiteLang if Args.SiteLang else 'en'
+	FeedEntries = Args.FeedEntries if Args.FeedEntries else 10
+
 	ResetPublic()
 	if os.path.isdir('Pages'):
 		shutil.copytree('Pages', 'public')
 	if os.path.isdir('Posts'):
 		shutil.copytree('Posts', 'public/Posts')
+
 	MakeSite(
 		TemplatesText=LoadFromDir('Templates', '*.html'),
 		PartsText=LoadFromDir('Parts', '*.html'),
 		ContextParts=literal_eval(Args.ContextParts) if Args.ContextParts else {},
 		ContextPartsText=LoadFromDir('ContextParts', '*.html'),
+		SiteName=SiteName,
+		SiteTagline=SiteTagline,
+		SiteDomain=SiteDomain,
 		SiteRoot=Args.SiteRoot if Args.SiteRoot else '/',
 		FolderRoots=literal_eval(Args.FolderRoots) if Args.FolderRoots else {},
 		Reserved=SetReserved(literal_eval(Args.ReservedPaths) if Args.ReservedPaths else {}),
-		Locale=LoadLocale(Args.SiteLang if Args.SiteLang else 'en'),
+		Locale=LoadLocale(SiteLang),
 		Minify=Args.Minify if Args.Minify else 'None',
 		Sorting=SetSorting(literal_eval(Args.ContextParts) if Args.ContextParts else {}))
+
+	if FeedEntries != 0:
+		MakeFeed(
+			SiteName=SiteName,
+			SiteTagline=SiteTagline,
+			SiteDomain=SiteDomain,
+			MaxEntries=FeedEntries,
+			Lang=SiteLang,
+			Minify=True if Args.Minify and Args.Minify != 'False' and Args.Minify != 'None' else False)
+
 	DelTmp()
 	os.system("cp -R Assets/* public/")
 
@@ -477,6 +522,10 @@ if __name__ == '__main__':
 	Parser.add_argument('--Sorting', type=str)
 	Parser.add_argument('--SiteLang', type=str)
 	Parser.add_argument('--SiteRoot', type=str)
+	Parser.add_argument('--SiteName', type=str)
+	Parser.add_argument('--SiteDomain', type=str)
+	Parser.add_argument('--SiteTagline', type=str)
+	Parser.add_argument('--FeedEntries', type=int)
 	Parser.add_argument('--FolderRoots', type=str)
 	Parser.add_argument('--ContextParts', type=str)
 	Parser.add_argument('--ReservedPaths', type=str)

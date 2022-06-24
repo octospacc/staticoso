@@ -13,8 +13,9 @@ Feel free to experiment with all of this stuff!
 - [Python == 3.10.4](https://python.org)
 - (Included) [Python Markdown == 3.3.7](https://pypi.org/project/Markdown)
 - (Included) [Beautiful Soup == 4.11.1](https://pypi.org/project/beautifulsoup4)
+- (Included) [feedgen == 0.9.0](https://pypi.org/project/feedgen)
 - (Included) [htmlmin == 0.1.12](https://pypi.org/project/htmlmin)
-- [node == 12.22.5](https://nodejs.org) | [npm == 7.5.2](https://www.npmjs.com)
+- [node == 12.22.5](https://nodejs.org) - [npm == 7.5.2](https://www.npmjs.com)
 - (Included) [pug-cli == 1.0.0-alpha6](https://npmjs.com/package/pug-cli)
 
 ## Features roadmap
@@ -32,7 +33,7 @@ Feel free to experiment with all of this stuff!
 - [ ] Differential recompile (to optimize resource waste on non-ephemeral servers)
 - [ ] Hot-recompile (for website development)
 - [ ] XML sitemap generation
-- [ ] RSS feed generation
+- [ ] Atom + RSS feed generation for posts
 - [x] Generation of website page tree in left sidebar
 - [x] Generation of titles in right sidebar with clickable links
 - [x] Detections of titles in a page
