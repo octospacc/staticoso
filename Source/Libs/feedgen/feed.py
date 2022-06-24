@@ -12,8 +12,8 @@
 import sys
 from datetime import datetime
 
-import dateutil.parser
-import dateutil.tz
+from ..dateutil import parser as dateutil_parser
+from ..dateutil import tz as dateutil_tz
 from lxml import etree  # nosec - not using this for parsing
 
 from . import version as version
@@ -36,7 +36,7 @@ class FeedGenerator(object):
         # required
         self.__atom_id = None
         self.__atom_title = None
-        self.__atom_updated = datetime.now(dateutil.tz.tzutc())
+        self.__atom_updated = datetime.now(dateutil_tz.tzutc())
 
         # recommended
         self.__atom_author = None  # {name*, uri, email}
@@ -70,7 +70,7 @@ class FeedGenerator(object):
         self.__rss_generator = 'python-feedgen'
         self.__rss_image = None
         self.__rss_language = None
-        self.__rss_lastBuildDate = datetime.now(dateutil.tz.tzutc())
+        self.__rss_lastBuildDate = datetime.now(dateutil_tz.tzutc())
         self.__rss_managingEditor = None
         self.__rss_pubDate = None
         self.__rss_rating = None
@@ -462,7 +462,7 @@ class FeedGenerator(object):
         '''
         if updated is not None:
             if isinstance(updated, string_types):
-                updated = dateutil.parser.parse(updated)
+                updated = dateutil_parser.parse(updated)
             if not isinstance(updated, datetime):
                 raise ValueError('Invalid datetime format')
             if updated.tzinfo is None:
@@ -887,7 +887,7 @@ class FeedGenerator(object):
         '''
         if pubDate is not None:
             if isinstance(pubDate, string_types):
-                pubDate = dateutil.parser.parse(pubDate)
+                pubDate = dateutil_parser.parse(pubDate)
             if not isinstance(pubDate, datetime):
                 raise ValueError('Invalid datetime format')
             if pubDate.tzinfo is None:

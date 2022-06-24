@@ -10,8 +10,8 @@
 
 from datetime import datetime
 
-import dateutil.parser
-import dateutil.tz
+from ..dateutil import parser as dateutil_parser
+from ..dateutil import tz as dateutil_tz
 import warnings
 
 from lxml.etree import CDATA  # nosec - adding CDATA entry is safe
@@ -67,7 +67,7 @@ class FeedEntry(object):
         # required
         self.__atom_id = None
         self.__atom_title = None
-        self.__atom_updated = datetime.now(dateutil.tz.tzutc())
+        self.__atom_updated = datetime.now(dateutil_tz.tzutc())
 
         # recommended
         self.__atom_author = None
@@ -314,7 +314,7 @@ class FeedEntry(object):
         '''
         if updated is not None:
             if isinstance(updated, string_types):
-                updated = dateutil.parser.parse(updated)
+                updated = dateutil_parser.parse(updated)
             if not isinstance(updated, datetime):
                 raise ValueError('Invalid datetime format')
             if updated.tzinfo is None:
@@ -586,7 +586,7 @@ class FeedEntry(object):
         '''
         if published is not None:
             if isinstance(published, string_types):
-                published = dateutil.parser.parse(published)
+                published = dateutil_parser.parse(published)
             if not isinstance(published, datetime):
                 raise ValueError('Invalid datetime format')
             if published.tzinfo is None:
