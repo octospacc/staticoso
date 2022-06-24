@@ -33,7 +33,7 @@ Feel free to experiment with all of this stuff!
 - [ ] Differential recompile (to optimize resource waste on non-ephemeral servers)
 - [ ] Hot-recompile (for website development)
 - [ ] XML sitemap generation
-- [ ] Atom + RSS feed generation for posts
+- [x] Atom + RSS feed generation for posts
 - [x] Generation of website page tree in left sidebar
 - [x] Generation of titles in right sidebar with clickable links
 - [x] Detections of titles in a page

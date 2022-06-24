@@ -12,6 +12,7 @@ import json
 import os
 import shutil
 from ast import literal_eval
+from datetime import datetime
 from Libs import htmlmin
 from Libs.bs4 import BeautifulSoup
 from Libs.feedgen.feed import FeedGenerator
@@ -430,9 +431,16 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteName,
 			Categories=Categories,
 			Locale=Locale,
 			Reserved=Reserved)
-		if Minify != 'False' and Minify != 'None':
+		if Minify not in ('False', 'None'):
 			HTML = DoMinify(HTML)
 		WriteFile(PagePath, HTML)
+
+	return Pages
+
+def GetFullDate(Date):
+	if not Date:
+		return None
+	return datetime.strftime(datetime.strptime(Date, '%Y-%m-%d'), '%Y-%m-%dT%H:%M+00:00')
 
 def SetReserved(Reserved):
 	for i in ['Categories']:
@@ -452,25 +460,33 @@ def SetSorting(Sorting):
 			Sorting.update({i:Default[i]})
 	return Sorting
 
-def MakeFeed(SiteName, SiteTagline, SiteDomain, MaxEntries, Lang, Minify=False):
+def MakeFeed(Pages, SiteName, SiteTagline, SiteDomain, MaxEntries, Lang, Minify=False):
 	Feed = FeedGenerator()
-	Feed.id(SiteDomain if SiteDomain else ' ')
+	Link = SiteDomain if SiteDomain else ' '
+	Feed.id(Link)
 	Feed.title(SiteName if SiteName else ' ')
-	Feed.link(href=SiteDomain if SiteDomain else ' ', rel='alternate')
+	Feed.link(href=Link, rel='alternate')
 	Feed.subtitle(SiteTagline if SiteTagline else ' ')
 	if SiteDomain:
-		Feed.logo('SiteDomain/favicon.png')
+		Feed.logo(SiteDomain.rstrip('/') + '/favicon.png')
 	Feed.language(Lang)
-	#Feed.updated('2022-01-01T00:00+00:00')
-	#Feed.lastBuildDate('2022-01-01T00:00+00:00')
-	#Feed.pubDate('2022-01-01T00:00+00:00')
 
-	Entry = Feed.add_entry()
-	Entry.id('PageURL')
-	Entry.title('PageTitle')
-	Entry.link(href='PageURL', rel='alternate')
-	Entry.updated('2022-01-01T00:00+00:00')
-	Entry.pubDate('2022-01-01T00:00+00:00')
+	for File, Content, Titles, Meta in Pages:
+		#print(Meta['Image'])
+		#print(Meta['Title'])
+		#print(Meta['Description'])
+		if Meta['Type'] == 'Post':
+			Entry = Feed.add_entry()
+			Link = '{}/{}.html'.format(SiteDomain, StripExt(File)) if SiteDomain else ' '
+			CreatedOn = GetFullDate(Meta['CreatedOn'])
+			EditedOn = GetFullDate(Meta['EditedOn'])
+			Entry.id(Link)
+			Entry.title(Meta['Title'] if Meta['Title'] else ' ')
+			Entry.link(href=Link, rel='alternate')
+			if CreatedOn:
+				Entry.pubDate(CreatedOn)
+			EditedOn = EditedOn if EditedOn else CreatedOn if CreatedOn and not EditedOn else '1970-01-01T00:00+00:00'
+			Entry.updated(EditedOn)
 
 	os.mkdir('public/feed')
 	Feed.atom_file('public/feed/atom.xml', pretty=(not Minify))
@@ -489,7 +505,7 @@ def Main(Args):
 	if os.path.isdir('Posts'):
 		shutil.copytree('Posts', 'public/Posts')
 
-	MakeSite(
+	Pages = MakeSite(
 		TemplatesText=LoadFromDir('Templates', '*.html'),
 		PartsText=LoadFromDir('Parts', '*.html'),
 		ContextParts=literal_eval(Args.ContextParts) if Args.ContextParts else {},
@@ -506,12 +522,13 @@ def Main(Args):
 
 	if FeedEntries != 0:
 		MakeFeed(
+			Pages=Pages,
 			SiteName=SiteName,
 			SiteTagline=SiteTagline,
 			SiteDomain=SiteDomain,
 			MaxEntries=FeedEntries,
 			Lang=SiteLang,
-			Minify=True if Args.Minify and Args.Minify != 'False' and Args.Minify != 'None' else False)
+			Minify=True if Args.Minify and Args.Minify not in ('False', 'None') else False)
 
 	DelTmp()
 	os.system("cp -R Assets/* public/")
