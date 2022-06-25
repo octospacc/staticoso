@@ -1,56 +1,28 @@
 #!/usr/bin/env python3
 """ ================================= |
-| staticoso                           |
+| This file is part of                |
+|   staticoso                         |
 | Just a simple Static Site Generator |
 |                                     |
 | Licensed under the AGPLv3 license   |
-| Copyright (C) 2022, OctoSpacc       |
+|   Copyright (C) 2022, OctoSpacc     |
 | ================================= """
 
 import argparse
-import json
 import os
 import shutil
 from ast import literal_eval
 from datetime import datetime
 from Libs import htmlmin
 from Libs.bs4 import BeautifulSoup
-from Libs.feedgen.feed import FeedGenerator
 from Libs.markdown import Markdown
 from Libs.markdown import markdown
 from pathlib import Path
+from Modules.Feed import *
+from Modules.Utils import *
 
 Extensions = {
 	'Pages': ('md', 'pug')}
-
-def ReadFile(p):
-	try:
-		with open(p, 'r') as f:
-			return f.read()
-	except Exception:
-		print("Error reading file {}".format(p))
-		return None
-
-def WriteFile(p, c):
-	try:
-		with open(p, 'w') as f:
-			f.write(c)
-		return True
-	except Exception:
-		print("Error writing file {}".format(p))
-		return False
-
-def LoadLocale(Lang):
-	Lang = Lang + '.json'
-	Folder = os.path.dirname(os.path.abspath(__file__)) + '/../Locale/'
-	File = ReadFile(Folder + Lang)
-	if File:
-		return json.loads(File)
-	else:
-		return json.loads(ReadFile(Folder + 'en.json'))
-
-def StripExt(Path):
-	return ".".join(Path.split('.')[:-1])
 
 def ResetPublic():
 	try:
@@ -61,23 +33,6 @@ def ResetPublic():
 def GetLevels(Path, AsNum=False, Add=0, Sub=0):
 	n = Path.count('/') + Add - Sub
 	return n if AsNum else '../' * n
-
-def UndupeStr(Str, Known, Split):
-	while Str in Known:
-		Sections = Title.split(Split)
-		try:
-			Sections[-1] = str(int(Sections[-1]) + 1)
-		except ValueError:
-			Sections[-1] = Sections[-1] + str(Split) + '2'
-		Str = Split.join(Sections)
-	return Str
-
-def DashifyStr(s, Limit=32):
-	Str, lc = '', Limit
-	for c in s[:Limit].replace(' ','-').replace('	','-'):
-		if c.lower() in '0123456789qwfpbjluyarstgmneiozxcdvkh-':
-			Str += c
-	return '-' + Str
 
 def DashifyTitle(Title, Done=[]):
 	return UndupeStr(DashifyStr(Title), Done, '-')
@@ -293,9 +248,6 @@ def PatchHTML(Base, PartsText, ContextParts, ContextPartsText, HTMLPagesList, Pa
 
 	return Base, Content, Description, Image
 
-def FileToStr(File, Truncate=''):
-	return str(File)[len(Truncate):]
-
 def OrderPages(Old):
 	New = []
 	NoOrder = []
@@ -317,7 +269,15 @@ def OrderPages(Old):
 		New.remove([])
 	return New + NoOrder
 
-def GetHTMLPagesList(Pages, SiteRoot, PathPrefix, Type='Page', Category=None):
+def CanIndex(Index, For):
+	if Index in ('False', 'None'):
+		return False
+	elif Index in ('True', 'All', 'Unlinked'):
+		return True
+	else:
+		return True if Index == For else False
+
+def GetHTMLPagesList(Pages, SiteRoot, PathPrefix, Type='Page', Category=None, For='Menu'):
 	List, ToPop, LastParent = '', [], []
 	IndexPages = Pages.copy()
 	for e in IndexPages:
@@ -332,7 +292,7 @@ def GetHTMLPagesList(Pages, SiteRoot, PathPrefix, Type='Page', Category=None):
 	if Type == 'Page':
 		IndexPages = OrderPages(IndexPages)
 	for File, Content, Titles, Meta in IndexPages:
-		if Meta['Type'] == Type and (Meta['Index'] != 'False' or Meta['Index'] != 'None') and GetTitle(Meta, Titles, Prefer='HTMLTitle') != 'Untitled' and (not Category or Category in Meta['Categories']):
+		if Meta['Type'] == Type and CanIndex(Meta['Index'], For) and GetTitle(Meta, Titles, Prefer='HTMLTitle') != 'Untitled' and (not Category or Category in Meta['Categories']):
 			n = File.count('/') + 1
 			if n > 1:
 				CurParent = File.split('/')[:-1]
@@ -412,15 +372,24 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteName,
 			Pages=Pages,
 			SiteRoot=SiteRoot,
 			PathPrefix=GetLevels(Reserved['Categories']), # This hardcodes paths, TODO make it somehow guess the path for every page containing the [HTML:Category] macro
+			Type='Page',
+			Category=Category,
+			For='Categories')
+		Categories[Category] += GetHTMLPagesList(
+			Pages=Pages,
+			SiteRoot=SiteRoot,
+			PathPrefix=GetLevels(Reserved['Categories']), # This hardcodes paths, TODO make it somehow guess the path for every page containing the [HTML:Category] macro
 			Type='Post',
-			Category=Category)
+			Category=Category,
+			For='Categories')
 
 	for File, Content, Titles, Meta in Pages:
 		HTMLPagesList = GetHTMLPagesList(
 			Pages=Pages,
 			SiteRoot=SiteRoot,
 			PathPrefix=GetLevels(File),
-			Type='Page')
+			Type='Page',
+			For='Menu')
 		PagePath = 'public/{}.html'.format(StripExt(File))
 		if File.endswith('.md'):
 			Content = markdown(Content, extensions=['attr_list'])
@@ -448,11 +417,6 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteName,
 
 	return MadePages
 
-def GetFullDate(Date):
-	if not Date:
-		return None
-	return datetime.strftime(datetime.strptime(Date, '%Y-%m-%d'), '%Y-%m-%dT%H:%M+00:00')
-
 def SetReserved(Reserved):
 	for i in ['Categories']:
 		if i not in Reserved:
@@ -470,47 +434,6 @@ def SetSorting(Sorting):
 		if i not in Sorting:
 			Sorting.update({i:Default[i]})
 	return Sorting
-
-def MakeFeed(Pages, SiteName, SiteTagline, SiteDomain, MaxEntries, Lang, Minify=False):
-	Feed = FeedGenerator()
-	Link = SiteDomain if SiteDomain else ' '
-	Feed.id(Link)
-	Feed.title(SiteName if SiteName else ' ')
-	Feed.link(href=Link, rel='alternate')
-	Feed.description(SiteTagline if SiteTagline else ' ')
-	if SiteDomain:
-		Feed.logo(SiteDomain.rstrip('/') + '/favicon.png')
-	Feed.language(Lang)
-
-	DoPages = []
-	for e in Pages:
-		if MaxEntries != 0 and e[3]['Type'] == 'Post':
-			DoPages += [e]
-			MaxEntries -= 1
-	DoPages.reverse()
-
-	for File, Content, Titles, Meta, HTMLContent, Description, Image in DoPages:
-		if Meta['Type'] == 'Post':
-			Entry = Feed.add_entry()
-			File = '{}.html'.format(StripExt(File))
-			Content = ReadFile('public/'+File)
-			Link = SiteDomain+'/'+File if SiteDomain else ' '
-			CreatedOn = GetFullDate(Meta['CreatedOn'])
-			EditedOn = GetFullDate(Meta['EditedOn'])
-
-			Entry.id(Link)
-			Entry.title(Meta['Title'] if Meta['Title'] else ' ')
-			Entry.description(Description)
-			Entry.link(href=Link, rel='alternate')
-			Entry.content(HTMLContent, type='html')
-			if CreatedOn:
-				Entry.pubDate(CreatedOn)
-			EditedOn = EditedOn if EditedOn else CreatedOn if CreatedOn and not EditedOn else '1970-01-01T00:00+00:00'
-			Entry.updated(EditedOn)
-
-	os.mkdir('public/feed')
-	Feed.atom_file('public/feed/atom.xml', pretty=(not Minify))
-	Feed.rss_file('public/feed/rss.xml', pretty=(not Minify))
 
 def Main(Args):
 	SiteName = Args.SiteName if Args.SiteName else ''
