@@ -19,16 +19,18 @@ from Libs.markdown import Markdown
 from Libs.markdown import markdown
 from pathlib import Path
 from Modules.Feed import *
+from Modules.Gemini import *
 from Modules.Utils import *
 
 Extensions = {
 	'Pages': ('md', 'pug')}
 
 def ResetPublic():
-	try:
-		shutil.rmtree('public')
-	except FileNotFoundError:
-		pass
+	for i in ('public', 'public.gmi'):
+		try:
+			shutil.rmtree(i)
+		except FileNotFoundError:
+			pass
 
 def GetLevels(Path, AsNum=False, Add=0, Sub=0):
 	n = Path.count('/') + Add - Sub
@@ -472,6 +474,11 @@ def Main(Args):
 			MaxEntries=FeedEntries,
 			Lang=SiteLang,
 			Minify=True if Args.Minify and Args.Minify not in ('False', 'None') else False)
+
+	#HTML2Gemtext(
+	#	Pages=Pages,
+	#	SiteName=SiteName,
+	#	SiteTagline=SiteTagline)
 
 	DelTmp()
 	os.system("cp -R Assets/* public/")
