@@ -7,15 +7,75 @@
 |   Copyright (C) 2022, OctoSpacc     |
 | ================================= """
 
+# TODO: Write the Python HTML2Gemtext converter
+
 from Libs.bs4 import BeautifulSoup
 from Modules.Utils import *
 
-def HTML2Gemtext(Pages, SiteName, SiteTagline):
-	os.mkdir('public.gmi')
+ClosedTags = (
+	'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+	'p', 'span', 'pre', 'code',
+	'a', 'b', 'i', 'del', 'strong',
+	'div', 'details', 'summary',
+	'ol', 'ul', 'li', 'dl', 'dt', 'dd')
+OpenTags = (
+	'img')
+
+def GemtextCompileList(Pages):
 	for File, Content, Titles, Meta, HTMLContent, Description, Image in Pages:
-		Parse = BeautifulSoup(HTMLContent, 'html.parser')
-		# We should first get the most basic HTML elements, convert them to Gemtext, then replace the Gemtext in the original full HTML, and then removing <p> tags?
-		#print(File, Parse.find_all('p'), Parse.find_all('li'))
+		Src = 'public/{}.html.tmp'.format(StripExt(File))
+		WriteFile(Src, HTMLContent)
+		Dst = 'public.gmi/{}.gmi'.format(StripExt(File))
+		os.system('cat {} | html2gmi > {}'.format(Src, Dst))
+
+def FindEarliest(Str, Items):
+	Pos, Item = 0, ''
+	for Item in Items:
+		Str.find(Item)
+	return Pos, Item
+
+def ParseTag(Content):
+	print(Content)
+	Parse = BeautifulSoup(str(Content), 'html.parser')
+	Tag = Parse.find()
+
+def HTML2Gemtext(Pages, SiteName, SiteTagline):
+	#os.mkdir('public.gmi')
+	for File, Content, Titles, Meta, HTMLContent, Description, Image in Pages:
+		Gemtext = ''
+		Content = HTMLContent
+		print(File)
+		while len(Content) != 0:
+			BlockStart = Content.find('<')
+			TagEnd = Content.find('>')
+			Parse = BeautifulSoup(Content, 'html.parser')
+			Tag = Parse.find()
+			#if Tag.name in ('a'):
+			#	if 'href' in Tag.attrs:
+			#		pass
+			for i in Tag.contents:
+				ParseTag(i)
+			if Tag.name in ('h1', 'h2', 'h3'):
+				Gemtext += '#' * int(Tag.name[1]) + ' '
+			elif Tag.name in ('h4', 'h5', 'h6'):
+				Gemtext += '### '
+			elif Tag.name in ('li'):
+				Gemtext += '* '
+			Gemtext += str(Tag.get_text()) + '\n\n'
+			#print(File, Tag.name, len(Tag.contents))
+			if Tag.name in ClosedTags:
+				Str = '</{}>'.format(Tag.name)
+			elif Tag.name in OpenTags:
+				Str = '>'
+			BlockEnd = Content.find(Str) + len(Str)
+			Content = Content.replace(Content[BlockStart:TagEnd], '').replace(Content[BlockEnd-len(Str):BlockEnd], '')
+			#print(BlockStart, TagEnd, BlockEnd, Tag.contents)
+			#print(Content[BlockStart:BlockEnd])
+			#Gemtext += Content[BlockStart:BlockEnd]
+			Content = Content[BlockEnd:]
+		PagePath = 'public.gmi/{}.gmi'.format(StripExt(File))
+		WriteFile(PagePath, Gemtext)
+		#exit()
 
 """ Gemtext:
 # h1

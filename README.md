@@ -17,8 +17,11 @@ Feel free to experiment with all of this stuff!
 - (Included) [htmlmin == 0.1.12](https://pypi.org/project/htmlmin)
 - [node == 12.22.5](https://nodejs.org) - [npm == 7.5.2](https://www.npmjs.com)
 - (Included) [pug-cli == 1.0.0-alpha6](https://npmjs.com/package/pug-cli)
+- [Go](https://go.dev)
+- [html2gmi](https://github.com/LukeEmmet/html2gmi)
 
 ## Features roadmap
+- [ ] Polished Gemtext generation
 - [x] Autodetection of pages and posts
 - [x] Info for posts shown on their page
 - [x] HTML minification

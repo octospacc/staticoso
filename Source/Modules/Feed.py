@@ -7,6 +7,8 @@
 |   Copyright (C) 2022, OctoSpacc     |
 | ================================= """
 
+# TODO: Either switch feed generation lib, or rewrite the 'lxml' module, so that no modules have to be compiled and the program is 100% portable
+
 from Libs.feedgen.feed import FeedGenerator
 from Modules.Utils import *
 

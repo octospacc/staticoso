@@ -13,13 +13,19 @@ import os
 import shutil
 from ast import literal_eval
 from datetime import datetime
+from pathlib import Path
+
+# Our local Markdown patches conflict if the module is installed on the system, so first try to import from system
+try:
+	from markdown import markdown
+except ModuleNotFoundError:
+	from Libs.markdown import markdown
+
 from Libs import htmlmin
 from Libs.bs4 import BeautifulSoup
-from Libs.markdown import Markdown
-from Libs.markdown import markdown
-from pathlib import Path
 from Modules.Feed import *
 from Modules.Gemini import *
+from Modules.Pug import *
 from Modules.Utils import *
 
 Extensions = {
@@ -101,7 +107,11 @@ def FormatTitles(Titles):
 		DashyTitles += [DashyTitle]
 		Title = '[{}](#{})'.format(Title, DashyTitle)
 		MDTitles += Heading + Title + '\n'
-	return Markdown().convert(MDTitles)
+	return markdown(MDTitles)
+
+# https://stackoverflow.com/a/15664273
+def IgnoreFiles(Dir, Files):
+    return [f for f in Files if os.path.isfile(os.path.join(Dir, f))]
 
 def LoadFromDir(Dir, Rglob):
 	Contents = {}
@@ -169,16 +179,6 @@ def PreProcessor(Path, SiteRoot):
 					Content += l + '\n'
 	return Content, Titles, Meta
 
-def PugCompileList(Pages):
-	# Pug-cli seems to shit itself with folder paths as input, so we pass ALL the files as arguments
-	Paths = ''
-	for File, Content, Titles, Meta in Pages:
-		if File.endswith('.pug'):
-			Path = 'public/{}'.format(File)
-			WriteFile(Path, Content)
-			Paths += '"{}" '.format(Path)
-	os.system('pug -P {} > /dev/null'.format(Paths))
-
 def MakeContentHeader(Meta, Locale, Categories=''):
 	Header = ''
 	if Meta['Type'] == 'Post':
@@ -187,7 +187,7 @@ def MakeContentHeader(Meta, Locale, Categories=''):
 				Header += '{} {}  \n'.format(Locale[i], Meta[i])
 		if Categories:
 			Header += '{}: {}  \n'.format(Locale['Categories'], Categories)
-	return Markdown().convert(Header)
+	return markdown(Header)
 
 def MakeCategoryLine(Meta, Reserved):
 	Categories = ''
@@ -243,10 +243,13 @@ def PatchHTML(Base, PartsText, ContextParts, ContextPartsText, HTMLPagesList, Pa
 	for i in Categories:
 		Base = Base.replace('<span>[HTML:Category:{}]</span>'.format(i), Categories[i])
 
+	# TODO: Clean this doubling?
 	Content = Content.replace('[HTML:Site:AbsoluteRoot]', SiteRoot)
 	Content = Content.replace('[HTML:Site:RelativeRoot]', GetLevels(PagePath))
 	for i in FolderRoots:
 		Content = Content.replace('[HTML:Folder:{}:AbsoluteRoot]'.format(i), FolderRoots[i])
+	for i in Categories:
+		Content = Content.replace('<span>[HTML:Category:{}]</span>'.format(i), Categories[i])
 
 	return Base, Content, Description, Image
 
@@ -311,12 +314,14 @@ def GetHTMLPagesList(Pages, SiteRoot, PathPrefix, Type='Page', Category=None, Fo
 				Levels = '- ' * n
 				Title = MakeListTitle(File, Meta, Titles, 'HTMLTitle', SiteRoot, PathPrefix)
 				List += Levels + Title + '\n'
-	return Markdown().convert(List)
+	return markdown(List)
 
 def DelTmp():
 	for Ext in Extensions['Pages']:
 		for File in Path('public').rglob('*.{}'.format(Ext)):
 			os.remove(File)
+	for File in Path('public').rglob('*.tmp'):
+		os.remove(File)
 
 def RevSort(List):
 	List.sort()
@@ -394,7 +399,7 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteName,
 			For='Menu')
 		PagePath = 'public/{}.html'.format(StripExt(File))
 		if File.endswith('.md'):
-			Content = markdown(Content, extensions=['attr_list'])
+			Content = markdown(Content, extensions=['attr_list']) # TODO: Configurable extensions?
 		elif File.endswith('.pug'):
 			Content = ReadFile(PagePath)
 		HTML, HTMLContent, Description, Image = PatchHTML(
@@ -447,8 +452,12 @@ def Main(Args):
 	ResetPublic()
 	if os.path.isdir('Pages'):
 		shutil.copytree('Pages', 'public')
+		if Args.GemtextOut:
+			shutil.copytree('Pages', 'public.gmi', ignore=IgnoreFiles)
 	if os.path.isdir('Posts'):
 		shutil.copytree('Posts', 'public/Posts')
+		if Args.GemtextOut:
+			shutil.copytree('Posts', 'public.gmi/Posts', ignore=IgnoreFiles)
 
 	Pages = MakeSite(
 		TemplatesText=LoadFromDir('Templates', '*.html'),
@@ -475,10 +484,12 @@ def Main(Args):
 			Lang=SiteLang,
 			Minify=True if Args.Minify and Args.Minify not in ('False', 'None') else False)
 
-	#HTML2Gemtext(
-	#	Pages=Pages,
-	#	SiteName=SiteName,
-	#	SiteTagline=SiteTagline)
+	if Args.GemtextOut:
+		GemtextCompileList(Pages)
+		#HTML2Gemtext(
+		#	Pages=Pages,
+		#	SiteName=SiteName,
+		#	SiteTagline=SiteTagline)
 
 	DelTmp()
 	os.system("cp -R Assets/* public/")
@@ -493,6 +504,7 @@ if __name__ == '__main__':
 	Parser.add_argument('--SiteDomain', type=str)
 	Parser.add_argument('--SiteTagline', type=str)
 	Parser.add_argument('--FeedEntries', type=int)
+	Parser.add_argument('--GemtextOut', type=bool)
 	Parser.add_argument('--FolderRoots', type=str)
 	Parser.add_argument('--ContextParts', type=str)
 	Parser.add_argument('--ReservedPaths', type=str)
