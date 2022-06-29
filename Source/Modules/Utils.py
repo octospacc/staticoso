@@ -16,7 +16,7 @@ def ReadFile(p):
 		with open(p, 'r') as f:
 			return f.read()
 	except Exception:
-		print("Error reading file {}".format(p))
+		print("[E] Error reading file {}".format(p))
 		return None
 
 def WriteFile(p, c):
@@ -25,11 +25,15 @@ def WriteFile(p, c):
 			f.write(c)
 		return True
 	except Exception:
-		print("Error writing file {}".format(p))
+		print("[E] Error writing file {}".format(p))
 		return False
 
 def FileToStr(File, Truncate=''):
 	return str(File)[len(Truncate):]
+
+# https://stackoverflow.com/a/15664273
+def IgnoreFiles(Dir, Files):
+    return [f for f in Files if os.path.isfile(os.path.join(Dir, f))]
 
 def StripExt(Path):
 	return ".".join(Path.split('.')[:-1])

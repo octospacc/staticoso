@@ -23,7 +23,6 @@ except ModuleNotFoundError:
 
 from Libs import htmlmin
 from Libs.bs4 import BeautifulSoup
-from Modules.Feed import *
 from Modules.Gemini import *
 from Modules.Pug import *
 from Modules.Utils import *
@@ -108,10 +107,6 @@ def FormatTitles(Titles):
 		Title = '[{}](#{})'.format(Title, DashyTitle)
 		MDTitles += Heading + Title + '\n'
 	return markdown(MDTitles)
-
-# https://stackoverflow.com/a/15664273
-def IgnoreFiles(Dir, Files):
-    return [f for f in Files if os.path.isfile(os.path.join(Dir, f))]
 
 def LoadFromDir(Dir, Rglob):
 	Contents = {}
@@ -340,7 +335,7 @@ def DoMinify(HTML):
 		convert_charrefs=True,
 		keep_pre=True)
 
-def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteName, SiteTagline, SiteDomain, SiteRoot, FolderRoots, Reserved, Locale, Minify, Sorting):
+def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteName, SiteTagline, SiteDomain, SiteRoot, FolderRoots, Reserved, Locale, Minify, Sorting, MarkdownExts):
 	PagesPaths, PostsPaths, Pages, MadePages, Categories = [], [], [], [], {}
 	for Ext in Extensions['Pages']:
 		for File in Path('Pages').rglob('*.{}'.format(Ext)):
@@ -348,7 +343,6 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteName,
 		for File in Path('Posts').rglob('*.{}'.format(Ext)):
 			PostsPaths += [FileToStr(File, 'Posts/')]
 
-	# TODO: Slim this down?
 	if Sorting['Pages'] == 'Standard':
 		PagesPaths.sort()
 	elif Sorting['Pages'] == 'Inverse':
@@ -399,7 +393,7 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteName,
 			For='Menu')
 		PagePath = 'public/{}.html'.format(StripExt(File))
 		if File.endswith('.md'):
-			Content = markdown(Content, extensions=['attr_list']) # TODO: Configurable extensions?
+			Content = markdown(Content, extensions=MarkdownExts)
 		elif File.endswith('.pug'):
 			Content = ReadFile(PagePath)
 		HTML, HTMLContent, Description, Image = PatchHTML(
@@ -442,12 +436,11 @@ def SetSorting(Sorting):
 			Sorting.update({i:Default[i]})
 	return Sorting
 
-def Main(Args):
+def Main(Args, FeedEntries):
 	SiteName = Args.SiteName if Args.SiteName else ''
 	SiteTagline = Args.SiteTagline if Args.SiteTagline else ''
 	SiteDomain = Args.SiteDomain if Args.SiteDomain else ''
 	SiteLang = Args.SiteLang if Args.SiteLang else 'en'
-	FeedEntries = Args.FeedEntries if Args.FeedEntries else 10
 
 	ResetPublic()
 	if os.path.isdir('Pages'):
@@ -472,7 +465,8 @@ def Main(Args):
 		Reserved=SetReserved(literal_eval(Args.ReservedPaths) if Args.ReservedPaths else {}),
 		Locale=LoadLocale(SiteLang),
 		Minify=Args.Minify if Args.Minify else 'None',
-		Sorting=SetSorting(literal_eval(Args.ContextParts) if Args.ContextParts else {}))
+		Sorting=SetSorting(literal_eval(Args.ContextParts) if Args.ContextParts else {}),
+		MarkdownExts=literal_eval(Args.MarkdownExts) if Args.MarkdownExts else ['attr_list'])
 
 	if FeedEntries != 0:
 		MakeFeed(
@@ -502,11 +496,23 @@ if __name__ == '__main__':
 	Parser.add_argument('--SiteRoot', type=str)
 	Parser.add_argument('--SiteName', type=str)
 	Parser.add_argument('--SiteDomain', type=str)
+	Parser.add_argument('--GemtextOut', type=bool)
 	Parser.add_argument('--SiteTagline', type=str)
 	Parser.add_argument('--FeedEntries', type=int)
-	Parser.add_argument('--GemtextOut', type=bool)
 	Parser.add_argument('--FolderRoots', type=str)
 	Parser.add_argument('--ContextParts', type=str)
+	Parser.add_argument('--MarkdownExts', type=str)
 	Parser.add_argument('--ReservedPaths', type=str)
+	Args = Parser.parse_args()
+
+	try:
+		import lxml
+		from Modules.Feed import *
+		FeedEntries = Args.FeedEntries if Args.FeedEntries else 10
+	except:
+		FeedEntries = 0
+		print("[W] Warning: Can't load the Atom/RSS feed libraries. Their generation is disabled.")
+
 	Main(
-		Args=Parser.parse_args())
+		Args=Args,
+		FeedEntries=FeedEntries)
