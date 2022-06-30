@@ -8,7 +8,7 @@
 | ================================= """
 
 from Libs.bs4 import BeautifulSoup
-from Libs.mastodon import Mastodon
+#from Libs.mastodon import Mastodon
 from Modules.Utils import *
 
 def MastodonGetSession(MastodonURL, MastodonToken):
