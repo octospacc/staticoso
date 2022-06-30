@@ -441,8 +441,11 @@ def SetSorting(Sorting):
 def Main(Args, FeedEntries):
 	SiteName = Args.SiteName if Args.SiteName else ''
 	SiteTagline = Args.SiteTagline if Args.SiteTagline else ''
-	SiteDomain = Args.SiteDomain if Args.SiteDomain else ''
+	SiteDomain = Args.SiteDomain.rstrip('/') if Args.SiteDomain else ''
 	SiteLang = Args.SiteLang if Args.SiteLang else 'en'
+	Locale = LoadLocale(SiteLang)
+	MastodonURL = Args.MastodonURL if Args.MastodonURL else ''
+	MastodonToken = Args.MastodonToken if Args.MastodonToken else ''
 
 	ResetPublic()
 	if os.path.isdir('Pages'):
@@ -465,7 +468,7 @@ def Main(Args, FeedEntries):
 		SiteRoot=Args.SiteRoot if Args.SiteRoot else '/',
 		FolderRoots=literal_eval(Args.FolderRoots) if Args.FolderRoots else {},
 		Reserved=SetReserved(literal_eval(Args.ReservedPaths) if Args.ReservedPaths else {}),
-		Locale=LoadLocale(SiteLang),
+		Locale=Locale,
 		Minify=Args.Minify if Args.Minify else 'None',
 		Sorting=SetSorting(literal_eval(Args.ContextParts) if Args.ContextParts else {}),
 		MarkdownExts=literal_eval(Args.MarkdownExts) if Args.MarkdownExts else ['attr_list'])
@@ -483,16 +486,14 @@ def Main(Args, FeedEntries):
 	if Args.GemtextOut:
 		GemtextCompileList(Pages)
 
-	"""
-	MastodonSession = MastodonGetSession(
-		Args.MastodonURL if Args.MastodonURL else '',
-		Args.MastodonToken if Args.MastodonToken else '')
-	MastodonPosts = MastodonGetPostsFromUserID(
-		MastodonSession,
-		MastodonGetMyID(MastodonSession))
-	for i in MastodonPosts:
-		print(i['uri'], i['content'])
-	"""
+	if MastodonURL and MastodonToken and SiteDomain:
+		MastodonShare(
+			MastodonURL,
+			MastodonToken,
+			Pages,
+			SiteDomain,
+			SiteLang,
+			Locale)
 
 	DelTmp()
 	os.system("cp -R Assets/* public/")

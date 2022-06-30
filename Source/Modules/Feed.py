@@ -20,7 +20,7 @@ def MakeFeed(Pages, SiteName, SiteTagline, SiteDomain, MaxEntries, Lang, Minify=
 	Feed.link(href=Link, rel='alternate')
 	Feed.description(SiteTagline if SiteTagline else ' ')
 	if SiteDomain:
-		Feed.logo(SiteDomain.rstrip('/') + '/favicon.png')
+		Feed.logo(SiteDomain + '/favicon.png')
 	Feed.language(Lang)
 
 	DoPages = []
@@ -35,7 +35,7 @@ def MakeFeed(Pages, SiteName, SiteTagline, SiteDomain, MaxEntries, Lang, Minify=
 			Entry = Feed.add_entry()
 			File = '{}.html'.format(StripExt(File))
 			Content = ReadFile('public/'+File)
-			Link = SiteDomain+'/'+File if SiteDomain else ' '
+			Link = SiteDomain + '/' + File if SiteDomain else ' '
 			CreatedOn = GetFullDate(Meta['CreatedOn'])
 			EditedOn = GetFullDate(Meta['EditedOn'])
 
