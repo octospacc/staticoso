@@ -9,7 +9,13 @@ import string
 import datetime
 import collections
 from contextlib import closing
-import pytz
+
+try:
+    import pytz
+    have_pytz = True
+except ModuleNotFoundError:
+    have_pytz = False
+
 import requests
 from requests.models import urlencode
 import dateutil
@@ -3176,11 +3182,11 @@ class Mastodon:
         """
         date_time_utc = None
         if date_time.tzinfo is None:
-            date_time_utc = date_time.replace(tzinfo=pytz.utc)
+           	    date_time_utc = date_time.replace(tzinfo=pytz.utc) if have_pytz else date_time
         else:
-            date_time_utc = date_time.astimezone(pytz.utc)
+                date_time_utc = date_time.astimezone(pytz.utc) if have_pytz else date_time
 
-        epoch_utc = datetime.datetime.utcfromtimestamp(0).replace(tzinfo=pytz.utc)
+        epoch_utc = datetime.datetime.utcfromtimestamp(0).replace(tzinfo=pytz.utc) if have_pytz else datetime.datetime.utcfromtimestamp(0)
 
         return (date_time_utc - epoch_utc).total_seconds()
 
@@ -3214,7 +3220,7 @@ class Mastodon:
                 if v != None:
                     try:
                         if isinstance(v, int):
-                            json_object[k] = datetime.datetime.fromtimestamp(v, pytz.utc)
+                            json_object[k] = datetime.datetime.fromtimestamp(v, pytz.utc) if have_pytz else datetime.datetime
                         else:
                             json_object[k] = dateutil.parser.parse(v)
                     except:
@@ -3266,7 +3272,7 @@ class Mastodon:
         every time instead of randomly doing different things on some systems
         and also it represents that time as the equivalent UTC time.
         """
-        isotime = datetime_val.astimezone(pytz.utc).strftime("%Y-%m-%dT%H:%M:%S%z")
+        isotime = datetime_val.astimezone(pytz.utc).strftime("%Y-%m-%dT%H:%M:%S%z") if have_pytz else datetime_val.strftime("%Y-%m-%dT%H:%M:%S%z")
         if isotime[-2] != ":":
             isotime = isotime[:-2] + ":" + isotime[-2:]
         return isotime
@@ -3366,7 +3372,7 @@ class Mastodon:
                         self.ratelimit_reset += server_time_diff
                         self.ratelimit_lastcall = time.time()
                 except Exception as e:
-                    raise MastodonRatelimitError("Rate limit time calculations failed: %s" % e)
+                    pass #raise MastodonRatelimitError("Rate limit time calculations failed: %s" % e)
 
             # Handle response
             if self.debug_requests:
