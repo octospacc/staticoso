@@ -22,11 +22,13 @@ OpenTags = (
 	'img')
 
 def GemtextCompileList(Pages):
+	Cmd = ''
 	for File, Content, Titles, Meta, HTMLContent, Description, Image in Pages:
-		Src = 'public/{}.html.tmp'.format(StripExt(File))
-		WriteFile(Src, HTMLContent)
+		Src = 'public.gmi/{}.html.tmp'.format(StripExt(File))
+		WriteFile(Src, HTMLContent.replace('.html', '.gmi')) # TODO: Adjust links properly..
 		Dst = 'public.gmi/{}.gmi'.format(StripExt(File))
-		os.system('cat {} | html2gmi > {}'.format(Src, Dst))
+		Cmd += 'cat "{}" | html2gmi > "{}"; '.format(Src, Dst)
+	os.system(Cmd)
 
 def FindEarliest(Str, Items):
 	Pos, Item = 0, ''

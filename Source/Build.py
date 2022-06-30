@@ -23,6 +23,7 @@ except ModuleNotFoundError:
 
 from Libs import htmlmin
 from Libs.bs4 import BeautifulSoup
+from Modules.ActivityPub import *
 from Modules.Gemini import *
 from Modules.Pug import *
 from Modules.Utils import *
@@ -315,8 +316,9 @@ def DelTmp():
 	for Ext in Extensions['Pages']:
 		for File in Path('public').rglob('*.{}'.format(Ext)):
 			os.remove(File)
-	for File in Path('public').rglob('*.tmp'):
-		os.remove(File)
+	for Dir in ('public', 'public.gmi'):
+		for File in Path(Dir).rglob('*.tmp'):
+			os.remove(File)
 
 def RevSort(List):
 	List.sort()
@@ -480,10 +482,17 @@ def Main(Args, FeedEntries):
 
 	if Args.GemtextOut:
 		GemtextCompileList(Pages)
-		#HTML2Gemtext(
-		#	Pages=Pages,
-		#	SiteName=SiteName,
-		#	SiteTagline=SiteTagline)
+
+	"""
+	MastodonSession = MastodonGetSession(
+		Args.MastodonURL if Args.MastodonURL else '',
+		Args.MastodonToken if Args.MastodonToken else '')
+	MastodonPosts = MastodonGetPostsFromUserID(
+		MastodonSession,
+		MastodonGetMyID(MastodonSession))
+	for i in MastodonPosts:
+		print(i['uri'], i['content'])
+	"""
 
 	DelTmp()
 	os.system("cp -R Assets/* public/")
@@ -503,6 +512,8 @@ if __name__ == '__main__':
 	Parser.add_argument('--ContextParts', type=str)
 	Parser.add_argument('--MarkdownExts', type=str)
 	Parser.add_argument('--ReservedPaths', type=str)
+	Parser.add_argument('--MastodonURL', type=str)
+	Parser.add_argument('--MastodonToken', type=str)
 	Args = Parser.parse_args()
 
 	try:
