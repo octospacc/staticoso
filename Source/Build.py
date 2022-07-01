@@ -192,7 +192,7 @@ def MakeCategoryLine(Meta, Reserved):
 			Categories += '[{}]({}{}.html)  '.format(i, GetLevels(Reserved['Categories']) + Reserved['Categories'], i)
 	return Categories
 
-def PatchHTML(Base, PartsText, ContextParts, ContextPartsText, HTMLPagesList, PagePath, Content, Titles, Meta, SiteRoot, FolderRoots, Categories, Locale, Reserved):
+def PatchHTML(HTML, PartsText, ContextParts, ContextPartsText, HTMLPagesList, PagePath, Content, Titles, Meta, SiteRoot, FolderRoots, Categories, Locale, Reserved):
 	HTMLTitles = FormatTitles(Titles)
 	BodyDescription, BodyImage = '', ''
 	Parse = BeautifulSoup(Content, 'html.parser')
@@ -205,7 +205,7 @@ def PatchHTML(Base, PartsText, ContextParts, ContextPartsText, HTMLPagesList, Pa
 	Description = GetDescription(Meta, BodyDescription, 'MetaDescription')
 	Image = GetImage(Meta, BodyImage, 'MetaImage')
 
-	for Line in Base.splitlines():
+	for Line in HTML.splitlines():
 		Line = Line.lstrip().rstrip()
 		if Line.startswith('[HTML:ContextPart:') and Line.endswith(']'):
 			Path =  Line[len('[HTML:ContextPart:'):-1]
@@ -220,34 +220,36 @@ def PatchHTML(Base, PartsText, ContextParts, ContextPartsText, HTMLPagesList, Pa
 					Text = ContextPartsText['{}/{}'.format(Path, Part)]
 			else:
 				Text = ''
-			Base = Base.replace('[HTML:ContextPart:{}]'.format(Path), Text)
+			HTML = HTML.replace('[HTML:ContextPart:{}]'.format(Path), Text)
 	for i in PartsText:
-		Base = Base.replace('[HTML:Part:{}]'.format(i), PartsText[i])
-	Base = Base.replace('[HTML:Page:LeftBox]', HTMLPagesList)
-	Base = Base.replace('[HTML:Page:RightBox]', HTMLTitles)
-	Base = Base.replace('[HTML:Page:Title]', Title)
-	Base = Base.replace('[HTML:Page:Description]', Description)
-	Base = Base.replace('[HTML:Page:Image]', Image)
-	Base = Base.replace('[HTML:Page:Path]', PagePath)
-	Base = Base.replace('[HTML:Page:Style]', Meta['Style'])
-	Base = Base.replace('[HTML:Page:Content]', Content)
-	Base = Base.replace('[HTML:Page:ContentHeader]', MakeContentHeader(Meta, Locale, MakeCategoryLine(Meta, Reserved)))
-	Base = Base.replace('[HTML:Site:AbsoluteRoot]', SiteRoot)
-	Base = Base.replace('[HTML:Site:RelativeRoot]', GetLevels(PagePath))
+		HTML = HTML.replace('[HTML:Part:{}]'.format(i), PartsText[i])
+	HTML = HTML.replace('[HTML:Page:LeftBox]', HTMLPagesList)
+	HTML = HTML.replace('[HTML:Page:RightBox]', HTMLTitles)
+	HTML = HTML.replace('[HTML:Page:Title]', Title)
+	HTML = HTML.replace('[HTML:Page:Description]', Description)
+	HTML = HTML.replace('[HTML:Page:Image]', Image)
+	HTML = HTML.replace('[HTML:Page:Path]', PagePath)
+	HTML = HTML.replace('[HTML:Page:Style]', Meta['Style'])
+	HTML = HTML.replace('[HTML:Page:Content]', Content)
+	HTML = HTML.replace('[HTML:Page:ContentHeader]', MakeContentHeader(Meta, Locale, MakeCategoryLine(Meta, Reserved)))
+	HTML = HTML.replace('[HTML:Site:AbsoluteRoot]', SiteRoot)
+	HTML = HTML.replace('[HTML:Site:RelativeRoot]', GetLevels(PagePath))
 	for i in FolderRoots:
-		Base = Base.replace('[HTML:Folder:{}:AbsoluteRoot]'.format(i), FolderRoots[i])
+		HTML = HTML.replace('[HTML:Folder:{}:AbsoluteRoot]'.format(i), FolderRoots[i])
 	for i in Categories:
-		Base = Base.replace('<span>[HTML:Category:{}]</span>'.format(i), Categories[i])
+		HTML = HTML.replace('<span>[HTML:Category:{}]</span>'.format(i), Categories[i])
 
 	# TODO: Clean this doubling?
-	Content = Content.replace('[HTML:Site:AbsoluteRoot]', SiteRoot)
-	Content = Content.replace('[HTML:Site:RelativeRoot]', GetLevels(PagePath))
+	ContentHTML = Content
+	ContentHTML = ContentHTML.replace('[HTML:Site:AbsoluteRoot]', SiteRoot)
+	ContentHTML = ContentHTML.replace('[HTML:Site:RelativeRoot]', GetLevels(PagePath))
 	for i in FolderRoots:
-		Content = Content.replace('[HTML:Folder:{}:AbsoluteRoot]'.format(i), FolderRoots[i])
+		ContentHTML = ContentHTML.replace('[HTML:Folder:{}:AbsoluteRoot]'.format(i), FolderRoots[i])
 	for i in Categories:
-		Content = Content.replace('<span>[HTML:Category:{}]</span>'.format(i), Categories[i])
+		ContentHTML = ContentHTML.replace('<span>[HTML:Category:{}]</span>'.format(i), Categories[i])
+	SlimHTML = HTMLPagesList + ContentHTML
 
-	return Base, Content, Description, Image
+	return HTML, ContentHTML, SlimHTML, Description, Image
 
 def OrderPages(Old):
 	New = []
@@ -398,8 +400,8 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteName,
 			Content = markdown(Content, extensions=MarkdownExts)
 		elif File.endswith('.pug'):
 			Content = ReadFile(PagePath)
-		HTML, HTMLContent, Description, Image = PatchHTML(
-			Base=TemplatesText[Meta['Template']],
+		HTML, ContentHTML, SlimHTML, Description, Image = PatchHTML(
+			HTML=TemplatesText[Meta['Template']],
 			PartsText=PartsText,
 			ContextParts=ContextParts,
 			ContextPartsText=ContextPartsText,
@@ -416,7 +418,7 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteName,
 		if Minify not in ('False', 'None'):
 			HTML = DoMinify(HTML)
 		WriteFile(PagePath, HTML)
-		MadePages += [[File, Content, Titles, Meta, HTMLContent, Description, Image]]
+		MadePages += [[File, Content, Titles, Meta, ContentHTML, SlimHTML, Description, Image]]
 
 	return MadePages
 
@@ -497,7 +499,7 @@ def Main(Args, FeedEntries):
 	else:
 		MastodonPosts = []
 
-	for File, Content, Titles, Meta, HTMLContent, Description, Image in Pages:
+	for File, Content, Titles, Meta, ContentHTML, SlimHTML, Description, Image in Pages:
 		File = 'public/{}.html'.format(StripExt(File))
 		Content = ReadFile(File)
 		Post = ''
@@ -513,7 +515,7 @@ def Main(Args, FeedEntries):
 
 	if Args.GemtextOut:
 		print("[I] Generating Gemtext")
-		GemtextCompileList(Pages)
+		GemtextCompileList(Pages, SiteName)
 
 	DelTmp()
 	os.system("cp -R Assets/* public/")

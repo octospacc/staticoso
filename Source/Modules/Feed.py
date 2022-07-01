@@ -30,7 +30,7 @@ def MakeFeed(Pages, SiteName, SiteTagline, SiteDomain, MaxEntries, Lang, Minify=
 			MaxEntries -= 1
 	DoPages.reverse()
 
-	for File, Content, Titles, Meta, HTMLContent, Description, Image in DoPages:
+	for File, Content, Titles, Meta, ContentHTML, SlimHTML, Description, Image in DoPages:
 		if Meta['Type'] == 'Post':
 			Entry = Feed.add_entry()
 			File = '{}.html'.format(StripExt(File))
@@ -43,7 +43,7 @@ def MakeFeed(Pages, SiteName, SiteTagline, SiteDomain, MaxEntries, Lang, Minify=
 			Entry.title(Meta['Title'] if Meta['Title'] else ' ')
 			Entry.description(Description)
 			Entry.link(href=Link, rel='alternate')
-			Entry.content(HTMLContent, type='html')
+			Entry.content(ContentHTML, type='html')
 			if CreatedOn:
 				Entry.pubDate(CreatedOn)
 			EditedOn = EditedOn if EditedOn else CreatedOn if CreatedOn and not EditedOn else '1970-01-01T00:00+00:00'

@@ -54,10 +54,10 @@ def MastodonShare(MastodonURL, MastodonToken, Pages, SiteDomain, SiteLang, Local
 	Session = MastodonGetSession(MastodonURL, MastodonToken)
 	Posts = MastodonGetAllLinkPosts(Session, SiteDomain)
 	Pages.sort()
-	for File, Content, Titles, Meta, HTMLContent, Description, Image in Pages:
+	for File, Content, Titles, Meta, ContentHTML, SlimHTML, Description, Image in Pages:
 		if Meta['Type'] == 'Post':
 			Desc = ''
-			Parse = BeautifulSoup(HTMLContent, 'html.parser')
+			Parse = BeautifulSoup(ContentHTML, 'html.parser')
 			Paragraphs = Parse.p.get_text().split('\n')
 			Read = '...' + Locale['ReadFullPost'] + ':\n'
 			URL = '{}/{}.html'.format(SiteDomain, StripExt(File))

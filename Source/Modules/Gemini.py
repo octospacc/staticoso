@@ -23,11 +23,16 @@ OpenTags = (
 	'img')
 """
 
-def GemtextCompileList(Pages):
+def GemtextCompileList(Pages, SiteName):
 	Cmd = ''
-	for File, Content, Titles, Meta, HTMLContent, Description, Image in Pages:
+	for File, Content, Titles, Meta, ContentHTML, SlimHTML, Description, Image in Pages:
 		Src = 'public.gmi/{}.html.tmp'.format(StripExt(File))
-		WriteFile(Src, HTMLContent.replace('.html', '.gmi')) # TODO: Adjust links properly..
+		if SiteName:
+			SlimHTML = '<h1>' + SiteName + '</h1>' + SlimHTML
+		for i in ('ol', 'ul', 'li'):
+			for j in ('<'+i+'>', '</'+i+'>'):
+				SlimHTML = SlimHTML.replace(j, '')
+		WriteFile(Src, SlimHTML.replace('</a>', '</a><br>').replace('.html', '.gmi')) # TODO: Adjust links properly..
 		Dst = 'public.gmi/{}.gmi'.format(StripExt(File))
 		Cmd += 'cat "{}" | html2gmi > "{}"; '.format(Src, Dst)
 	os.system(Cmd)
