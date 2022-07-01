@@ -18,13 +18,13 @@ except ModuleNotFoundError:
 
 import requests
 from requests.models import urlencode
-import dateutil
-import dateutil.parser
+from .. import dateutil
+from ..dateutil import parser as dateutil_parser #import dateutil.parser
 import re
 import copy
 import threading
 import sys
-import six
+from .. import six
 from decorator import decorate
 import hashlib
 
@@ -3222,7 +3222,7 @@ class Mastodon:
                         if isinstance(v, int):
                             json_object[k] = datetime.datetime.fromtimestamp(v, pytz.utc) if have_pytz else datetime.datetime
                         else:
-                            json_object[k] = dateutil.parser.parse(v)
+                            json_object[k] = dateutil_parser.parse(v)
                     except:
                         raise MastodonAPIError('Encountered invalid date.')
         return json_object
@@ -3361,12 +3361,12 @@ class Mastodon:
                 self.ratelimit_limit = int(response_object.headers['X-RateLimit-Limit'])
 
                 try:
-                    ratelimit_reset_datetime = dateutil.parser.parse(response_object.headers['X-RateLimit-Reset'])
+                    ratelimit_reset_datetime = dateutil_parser.parse(response_object.headers['X-RateLimit-Reset'])
                     self.ratelimit_reset = self.__datetime_to_epoch(ratelimit_reset_datetime)
 
                     # Adjust server time to local clock
                     if 'Date' in response_object.headers:
-                        server_time_datetime = dateutil.parser.parse(response_object.headers['Date'])
+                        server_time_datetime = dateutil_parser.parse(response_object.headers['Date'])
                         server_time = self.__datetime_to_epoch(server_time_datetime)
                         server_time_diff = time.time() - server_time
                         self.ratelimit_reset += server_time_diff

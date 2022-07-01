@@ -491,24 +491,20 @@ def Main(Args, FeedEntries):
 			SiteDomain,
 			SiteLang,
 			Locale)
-		#print(MastodonPosts)
 	else:
 		MastodonPosts = []
 
 	for File, Content, Titles, Meta, HTMLContent, Description, Image in Pages:
-		#if Meta['Type'] == 'Post':
 		File = 'public/{}.html'.format(StripExt(File))
 		Content = ReadFile(File)
 		Post = ''
 		for p in MastodonPosts:
-			#print(SiteDomain + File[len('public/'):])
 			if p['Link'] == SiteDomain + '/' + File[len('public/'):]:
 				Post = '<br><h3>{StrComments}</h3><a href="{URL}" rel="noopener" target="_blank">{StrOpen} ↗️</a>'.format(
 					StrComments=Locale['Comments'],
 					StrOpen=Locale['OpenInNewTab'],
 					URL=p['Post'])
 				break
-		#print(Post)
 		Content = Content.replace('[HTML:Comments]', Post)
 		WriteFile(File, Content)
 
