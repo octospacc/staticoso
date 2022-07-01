@@ -19,7 +19,7 @@ except ModuleNotFoundError:
 import requests
 from requests.models import urlencode
 from .. import dateutil
-from ..dateutil import parser as dateutil_parser #import dateutil.parser
+from ..dateutil import parser as dateutil_parser
 import re
 import copy
 import threading

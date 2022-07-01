@@ -12,6 +12,7 @@
 from Libs.bs4 import BeautifulSoup
 from Modules.Utils import *
 
+"""
 ClosedTags = (
 	'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
 	'p', 'span', 'pre', 'code',
@@ -20,6 +21,7 @@ ClosedTags = (
 	'ol', 'ul', 'li', 'dl', 'dt', 'dd')
 OpenTags = (
 	'img')
+"""
 
 def GemtextCompileList(Pages):
 	Cmd = ''
@@ -41,6 +43,7 @@ def ParseTag(Content):
 	Parse = BeautifulSoup(str(Content), 'html.parser')
 	Tag = Parse.find()
 
+"""
 def HTML2Gemtext(Pages, SiteName, SiteTagline):
 	#os.mkdir('public.gmi')
 	for File, Content, Titles, Meta, HTMLContent, Description, Image in Pages:
@@ -78,20 +81,4 @@ def HTML2Gemtext(Pages, SiteName, SiteTagline):
 		PagePath = 'public.gmi/{}.gmi'.format(StripExt(File))
 		WriteFile(PagePath, Gemtext)
 		#exit()
-
-""" Gemtext:
-# h1
-## h2
-### h3
-
-* li
-* li
-
-=> [protocol://]URL Link Description
-
-> Quote
-
-```
-Preformatted
-```
 """

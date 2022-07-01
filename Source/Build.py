@@ -457,6 +457,7 @@ def Main(Args, FeedEntries):
 		if Args.GemtextOut:
 			shutil.copytree('Posts', 'public.gmi/Posts', ignore=IgnoreFiles)
 
+	print("[I] Generating HTML")
 	Pages = MakeSite(
 		TemplatesText=LoadFromDir('Templates', '*.html'),
 		PartsText=LoadFromDir('Parts', '*.html'),
@@ -474,6 +475,7 @@ def Main(Args, FeedEntries):
 		MarkdownExts=literal_eval(Args.MarkdownExts) if Args.MarkdownExts else ['attr_list'])
 
 	if FeedEntries != 0:
+		print("[I] Generating Feeds")
 		MakeFeed(
 			Pages=Pages,
 			SiteName=SiteName,
@@ -484,6 +486,7 @@ def Main(Args, FeedEntries):
 			Minify=True if Args.Minify and Args.Minify not in ('False', 'None') else False)
 
 	if MastodonURL and MastodonToken and SiteDomain:
+		print("[I] Mastodon Stuff")
 		MastodonPosts = MastodonShare(
 			MastodonURL,
 			MastodonToken,
@@ -509,10 +512,12 @@ def Main(Args, FeedEntries):
 		WriteFile(File, Content)
 
 	if Args.GemtextOut:
+		print("[I] Generating Gemtext")
 		GemtextCompileList(Pages)
 
 	DelTmp()
 	os.system("cp -R Assets/* public/")
+	print("[I] Done!")
 
 if __name__ == '__main__':
 	Parser = argparse.ArgumentParser()
@@ -538,8 +543,8 @@ if __name__ == '__main__':
 		from Modules.Feed import *
 		FeedEntries = Args.FeedEntries if Args.FeedEntries else 10
 	except:
+		print("[E] Can't load the Atom/RSS feed libraries. Their generation is disabled.")
 		FeedEntries = 0
-		print("[W] Warning: Can't load the Atom/RSS feed libraries. Their generation is disabled.")
 
 	Main(
 		Args=Args,
