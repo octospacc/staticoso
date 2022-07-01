@@ -25,7 +25,7 @@ import copy
 import threading
 import sys
 from .. import six
-from decorator import decorate
+from ..decorator import decorate
 import hashlib
 
 IMPL_HAS_CRYPTO = True
