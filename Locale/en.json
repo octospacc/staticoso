@@ -2,5 +2,7 @@
 	"CreatedOn": "Created on",
 	"EditedOn": "Edited on",
 	"Categories": "Categories",
-	"ReadFullPost": "Read the full post"
+	"ReadFullPost": "Read the full post",
+	"Comments": "Comments",
+	"OpenInNewTab": "Open in a new tab"
 }

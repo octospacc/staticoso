@@ -2,5 +2,7 @@
 	"CreatedOn": "Creato in data",
 	"EditedOn": "Modificato in data",
 	"Categories": "Categorie",
-	"ReadFullPost": "Leggi il post intero"
+	"ReadFullPost": "Leggi il post intero",
+	"Comments": "Commenti",
+	"OpenInNewTab": "Apri in una nuova scheda"
 }

@@ -31,17 +31,22 @@ def MastodonDoPost(Session, Text, Lang=None, Visibility='public'):
 			language=Lang,
 			visibility=Visibility)
 
+def MastodonGetLinkPosts(Session, Domain=None):
+	Posts = []
+	for i,e in enumerate(MastodonGetPostsFromUserID(Session, MastodonGetMyID(Session))):
+		Parse = BeautifulSoup(e['content'], 'html.parser')
+		if Parse.a:
+			Link = Parse.find_all('a')[-1]['href']
+			if not Domain or (Domain and Link.startswith(Domain)):
+				Posts += [{
+					'Post': e['uri'],
+					'Link': Link}]
+	return Posts
+
 # TODO: Set a limit/cooldown on how many new posts at a time can be posted, or ignore posts older than date X.. otherwise if someone starts using this after having written 100 blog posts, bad things will happen
 def MastodonShare(MastodonURL, MastodonToken, Pages, SiteDomain, SiteLang, Locale):
 	Session = MastodonGetSession(MastodonURL, MastodonToken)
-	Posts = MastodonGetPostsFromUserID(
-		Session,
-		MastodonGetMyID(Session))
-	for i,e in enumerate(Posts):
-		Parse = BeautifulSoup(e['content'], 'html.parser')
-		Posts[i] = {
-			'URL': e['uri'],
-			'LastLink': Parse.find_all('a')[-1]['href'] if Parse.a else None}
+	Posts = MastodonGetLinkPosts(Session, SiteDomain)
 	Pages.sort()
 	for File, Content, Titles, Meta, HTMLContent, Description, Image in Pages:
 		if Meta['Type'] == 'Post':
@@ -60,7 +65,7 @@ def MastodonShare(MastodonURL, MastodonToken, Pages, SiteDomain, SiteLang, Local
 						Desc = p[:500-25-5-len(Read)] + '...'
 			DoPost = True
 			for p in Posts:
-				if p['LastLink'] == URL:
+				if p['Link'] == URL:
 					DoPost = False
 					break
 			if DoPost:
@@ -68,3 +73,4 @@ def MastodonShare(MastodonURL, MastodonToken, Pages, SiteDomain, SiteLang, Local
 					Session,
 					Desc + Read + URL,
 					SiteLang)
+	return Posts

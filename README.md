@@ -21,7 +21,7 @@ Feel free to experiment with all of this stuff!
 - [html2gmi](https://github.com/LukeEmmet/html2gmi)
 
 ## Features roadmap
-- [ ] ActivityPub support (Feed + embedded comments)
+- [x] ActivityPub (Mastodon) support (Feed + embedded comments)
 - [ ] Polished Gemtext generation
 - [x] Autodetection of pages and posts
 - [x] Info for posts shown on their page
