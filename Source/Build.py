@@ -23,7 +23,13 @@ except ModuleNotFoundError:
 
 from Libs import htmlmin
 from Libs.bs4 import BeautifulSoup
-from Modules.ActivityPub import *
+
+try:
+	from Modules.ActivityPub import *
+	ActivityPub = True
+except:
+	ActivityPub = False
+
 from Modules.Gemini import *
 from Modules.Pug import *
 from Modules.Utils import *
@@ -487,7 +493,7 @@ def Main(Args, FeedEntries):
 			Lang=SiteLang,
 			Minify=True if Args.Minify and Args.Minify not in ('False', 'None') else False)
 
-	if MastodonURL and MastodonToken and SiteDomain:
+	if ActivityPub and MastodonURL and MastodonToken and SiteDomain:
 		print("[I] Mastodon Stuff")
 		MastodonPosts = MastodonShare(
 			MastodonURL,
