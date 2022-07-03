@@ -122,7 +122,7 @@ def LoadFromDir(Dir, Rglob):
 		Contents.update({File: ReadFile('{}/{}'.format(Dir, File))})
 	return Contents
 
-def PreProcessor(Path, SiteRoot):
+def Preprocessor(Path, SiteRoot):
 	File = ReadFile(Path)
 	Content, Titles, DashyTitles, Meta = '', [], [], {
 		'Template': 'Standard.html',
@@ -309,12 +309,12 @@ def GetHTMLPagesList(Pages, SiteRoot, PathPrefix, Type='Page', Category=None, Fo
 					if LastParent != CurParent:
 						LastParent = CurParent
 						Levels = '- ' * (n-1+i)
-						if File[:-3].endswith('index.'):
+						if StripExt(File).endswith('index'):
 							Title = MakeListTitle(File, Meta, Titles, 'HTMLTitle', SiteRoot, PathPrefix)
 						else:
 							Title = CurParent[n-2+i]
 						List += Levels + Title + '\n'
-			if not (n > 1 and File[:-3].endswith('index.')):
+			if not (n > 1 and StripExt(File).endswith('index')):
 				Levels = '- ' * n
 				Title = MakeListTitle(File, Meta, Titles, 'HTMLTitle', SiteRoot, PathPrefix)
 				List += Levels + Title + '\n'
@@ -362,13 +362,14 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteName,
 	elif Sorting['Posts'] == 'Inverse':
 		PostsPaths = RevSort(PostsPaths)
 
+	print("[I] Preprocessing Source Pages")
 	for Type in ['Page', 'Post']:
 		if Type == 'Page':
 			Files = PagesPaths
 		elif Type == 'Post':
 			Files = PostsPaths
 		for File in Files:
-			Content, Titles, Meta = PreProcessor('{}s/{}'.format(Type, File), SiteRoot)
+			Content, Titles, Meta = Preprocessor('{}s/{}'.format(Type, File), SiteRoot)
 			if Type != 'Page':
 				File = Type + 's/' + File
 			if not Meta['Type']:
@@ -378,22 +379,25 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteName,
 				Categories.update({Category:''})
 	PugCompileList(Pages)
 
-	for Category in Categories:
-		Categories[Category] = GetHTMLPagesList(
-			Pages=Pages,
-			SiteRoot=SiteRoot,
-			PathPrefix=GetLevels(Reserved['Categories']), # This hardcodes paths, TODO make it somehow guess the path for every page containing the [HTML:Category] macro
-			Type='Page',
-			Category=Category,
-			For='Categories')
-		Categories[Category] += GetHTMLPagesList(
-			Pages=Pages,
-			SiteRoot=SiteRoot,
-			PathPrefix=GetLevels(Reserved['Categories']), # This hardcodes paths, TODO make it somehow guess the path for every page containing the [HTML:Category] macro
-			Type='Post',
-			Category=Category,
-			For='Categories')
+	if Categories:
+		print("[I] Generating Category Lists")
+		for Category in Categories:
+			Categories[Category] = GetHTMLPagesList(
+				Pages=Pages,
+				SiteRoot=SiteRoot,
+				PathPrefix=GetLevels(Reserved['Categories']), # This hardcodes paths, TODO make it somehow guess the path for every page containing the [HTML:Category] macro
+				Type='Page',
+				Category=Category,
+				For='Categories')
+			Categories[Category] += GetHTMLPagesList(
+				Pages=Pages,
+				SiteRoot=SiteRoot,
+				PathPrefix=GetLevels(Reserved['Categories']), # This hardcodes paths, TODO make it somehow guess the path for every page containing the [HTML:Category] macro
+				Type='Post',
+				Category=Category,
+				For='Categories')
 
+	print("[I] Writing Pages")
 	for File, Content, Titles, Meta in Pages:
 		HTMLPagesList = GetHTMLPagesList(
 			Pages=Pages,
@@ -480,7 +484,7 @@ def Main(Args, FeedEntries):
 		Locale=Locale,
 		Minify=Args.Minify if Args.Minify else 'None',
 		Sorting=SetSorting(literal_eval(Args.ContextParts) if Args.ContextParts else {}),
-		MarkdownExts=literal_eval(Args.MarkdownExts) if Args.MarkdownExts else ['attr_list'])
+		MarkdownExts=literal_eval(Args.MarkdownExts) if Args.MarkdownExts else ['attr_list', 'def_list', 'markdown_del_ins', 'mdx_subscript', 'mdx_superscript'])
 
 	if FeedEntries != 0:
 		print("[I] Generating Feeds")
