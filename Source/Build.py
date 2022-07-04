@@ -183,22 +183,21 @@ def Preprocessor(Path, SiteRoot):
 
 def MakeContentHeader(Meta, Locale, Categories=''):
 	Header = ''
-	if Meta['Type'] == 'Post':
-		for i in ['CreatedOn', 'EditedOn']:
-			if Meta[i]:
-				Header += '{} {}  \n'.format(Locale[i], Meta[i])
-		if Categories:
-			Header += '{}: {}  \n'.format(Locale['Categories'], Categories)
+	for i in ['CreatedOn', 'EditedOn']:
+		if Meta[i]:
+			Header += '{} {}  \n'.format(Locale[i], Meta[i])
+	if Categories:
+		Header += '{}: {}  \n'.format(Locale['Categories'], Categories)
 	return markdown(Header)
 
-def MakeCategoryLine(Meta, Reserved):
+def MakeCategoryLine(File, Meta):
 	Categories = ''
 	if Meta['Categories']:
 		for i in Meta['Categories']:
-			Categories += '[{}]({}{}.html)  '.format(i, GetLevels(Reserved['Categories']) + Reserved['Categories'], i)
+			Categories += '[{}]({}{}.html)  '.format(i, GetLevels(File) + 'Categories/', i)
 	return Categories
 
-def PatchHTML(HTML, PartsText, ContextParts, ContextPartsText, HTMLPagesList, PagePath, Content, Titles, Meta, SiteRoot, FolderRoots, Categories, Locale, Reserved):
+def PatchHTML(File, HTML, PartsText, ContextParts, ContextPartsText, HTMLPagesList, PagePath, Content, Titles, Meta, SiteRoot, FolderRoots, Categories, Locale):
 	HTMLTitles = FormatTitles(Titles)
 	BodyDescription, BodyImage = '', ''
 	Parse = BeautifulSoup(Content, 'html.parser')
@@ -237,7 +236,7 @@ def PatchHTML(HTML, PartsText, ContextParts, ContextPartsText, HTMLPagesList, Pa
 	HTML = HTML.replace('[HTML:Page:Path]', PagePath)
 	HTML = HTML.replace('[HTML:Page:Style]', Meta['Style'])
 	HTML = HTML.replace('[HTML:Page:Content]', Content)
-	HTML = HTML.replace('[HTML:Page:ContentHeader]', MakeContentHeader(Meta, Locale, MakeCategoryLine(Meta, Reserved)))
+	HTML = HTML.replace('[HTML:Page:ContentHeader]', MakeContentHeader(Meta, Locale, MakeCategoryLine(File, Meta)))
 	HTML = HTML.replace('[HTML:Site:AbsoluteRoot]', SiteRoot)
 	HTML = HTML.replace('[HTML:Site:RelativeRoot]', GetLevels(PagePath))
 	for i in FolderRoots:
@@ -345,7 +344,7 @@ def DoMinify(HTML):
 		convert_charrefs=True,
 		keep_pre=True)
 
-def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteName, SiteTagline, SiteDomain, SiteRoot, FolderRoots, Reserved, Locale, Minify, Sorting, MarkdownExts):
+def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteName, SiteTagline, SiteDomain, SiteRoot, FolderRoots, Locale, Minify, Sorting, MarkdownExts):
 	PagesPaths, PostsPaths, Pages, MadePages, Categories = [], [], [], [], {}
 	for Ext in Extensions['Pages']:
 		for File in Path('Pages').rglob('*.{}'.format(Ext)):
@@ -385,14 +384,14 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteName,
 			Categories[Category] = GetHTMLPagesList(
 				Pages=Pages,
 				SiteRoot=SiteRoot,
-				PathPrefix=GetLevels(Reserved['Categories']), # This hardcodes paths, TODO make it somehow guess the path for every page containing the [HTML:Category] macro
+				PathPrefix=GetLevels('Categories/'),
 				Type='Page',
 				Category=Category,
 				For='Categories')
 			Categories[Category] += GetHTMLPagesList(
 				Pages=Pages,
 				SiteRoot=SiteRoot,
-				PathPrefix=GetLevels(Reserved['Categories']), # This hardcodes paths, TODO make it somehow guess the path for every page containing the [HTML:Category] macro
+				PathPrefix=GetLevels('Categories/'),
 				Type='Post',
 				Category=Category,
 				For='Categories')
@@ -411,6 +410,7 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteName,
 		elif File.endswith('.pug'):
 			Content = ReadFile(PagePath)
 		HTML, ContentHTML, SlimHTML, Description, Image = PatchHTML(
+			File=File,
 			HTML=TemplatesText[Meta['Template']],
 			PartsText=PartsText,
 			ContextParts=ContextParts,
@@ -423,23 +423,13 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteName,
 			SiteRoot=SiteRoot,
 			FolderRoots=FolderRoots,
 			Categories=Categories,
-			Locale=Locale,
-			Reserved=Reserved)
+			Locale=Locale)
 		if Minify not in ('False', 'None'):
 			HTML = DoMinify(HTML)
 		WriteFile(PagePath, HTML)
 		MadePages += [[File, Content, Titles, Meta, ContentHTML, SlimHTML, Description, Image]]
 
 	return MadePages
-
-def SetReserved(Reserved):
-	for i in ['Categories']:
-		if i not in Reserved:
-			Reserved.update({i:i})
-	for i in Reserved:
-		if not Reserved[i].endswith('/'):
-			Reserved[i] = '{}/'.format(Reserved[i])
-	return Reserved
 
 def SetSorting(Sorting):
 	Default = {
@@ -480,7 +470,6 @@ def Main(Args, FeedEntries):
 		SiteDomain=SiteDomain,
 		SiteRoot=Args.SiteRoot if Args.SiteRoot else '/',
 		FolderRoots=literal_eval(Args.FolderRoots) if Args.FolderRoots else {},
-		Reserved=SetReserved(literal_eval(Args.ReservedPaths) if Args.ReservedPaths else {}),
 		Locale=Locale,
 		Minify=Args.Minify if Args.Minify else 'None',
 		Sorting=SetSorting(literal_eval(Args.ContextParts) if Args.ContextParts else {}),
@@ -545,7 +534,6 @@ if __name__ == '__main__':
 	Parser.add_argument('--FolderRoots', type=str)
 	Parser.add_argument('--ContextParts', type=str)
 	Parser.add_argument('--MarkdownExts', type=str)
-	Parser.add_argument('--ReservedPaths', type=str)
 	Parser.add_argument('--MastodonURL', type=str)
 	Parser.add_argument('--MastodonToken', type=str)
 	Args = Parser.parse_args()
@@ -553,7 +541,7 @@ if __name__ == '__main__':
 	try:
 		import lxml
 		from Modules.Feed import *
-		FeedEntries = Args.FeedEntries if Args.FeedEntries else 10
+		FeedEntries = Args.FeedEntries if Args.FeedEntries or Args.FeedEntries == 0 else 10
 	except:
 		print("[E] Can't load the Atom/RSS feed libraries. Their generation is disabled.")
 		FeedEntries = 0
