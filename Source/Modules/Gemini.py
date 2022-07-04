@@ -31,20 +31,21 @@ def StripAttrs(HTML):
 			t.attrs = {}
 	return str(Soup)
 
-def GemtextCompileList(Pages, Header):
+def GemtextCompileList(Pages, Header=''):
 	Cmd = ''
 	for File, Content, Titles, Meta, ContentHTML, SlimHTML, Description, Image in Pages:
-		if Header:
-			SlimHTML = Header + SlimHTML
 		Src = 'public.gmi/{}.html.tmp'.format(StripExt(File))
+		Dst = 'public.gmi/{}.gmi'.format(StripExt(File))
 		SlimHTML = StripAttrs(SlimHTML)
 		for i in ('ol', 'ul', 'li'):
 			for j in ('<'+i+'>', '</'+i+'>'):
 				SlimHTML = SlimHTML.replace(j, '')
 		WriteFile(Src, SlimHTML.replace('</a>', '</a><br>').replace('.html', '.gmi')) # TODO: Adjust links properly..
-		Dst = 'public.gmi/{}.gmi'.format(StripExt(File))
 		Cmd += 'cat "{}" | html2gmi > "{}"; '.format(Src, Dst)
 	os.system(Cmd)
+	for File, Content, Titles, Meta, ContentHTML, SlimHTML, Description, Image in Pages:
+		Dst = 'public.gmi/{}.gmi'.format(StripExt(File))
+		WriteFile(Dst, Header + ReadFile(Dst))
 
 def FindEarliest(Str, Items):
 	Pos, Item = 0, ''

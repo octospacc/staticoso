@@ -516,7 +516,7 @@ def Main(Args, FeedEntries):
 		print("[I] Generating Gemtext")
 		GemtextCompileList(
 			Pages,
-			Header=Args.GemtextHeader if Args.GemtextHeader else '<h1>{}</h1><br>'.format(SiteName) if SiteName else '')
+			Header=Args.GemtextHeader if Args.GemtextHeader else '# {}\n\n'.format(SiteName) if SiteName else '')
 
 	DelTmp()
 	os.system("cp -R Assets/* public/")
