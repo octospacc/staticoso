@@ -23,12 +23,21 @@ OpenTags = (
 	'img')
 """
 
-def GemtextCompileList(Pages, SiteName):
+def StripAttrs(HTML):
+	Soup = BeautifulSoup(HTML, 'html.parser')
+	Tags = Soup.find_all()
+	for t in Tags:
+		if 'href' not in t.attrs and 'src' not in t.attrs:
+			t.attrs = {}
+	return str(Soup)
+
+def GemtextCompileList(Pages, Header):
 	Cmd = ''
 	for File, Content, Titles, Meta, ContentHTML, SlimHTML, Description, Image in Pages:
+		if Header:
+			SlimHTML = Header + SlimHTML
 		Src = 'public.gmi/{}.html.tmp'.format(StripExt(File))
-		if SiteName:
-			SlimHTML = '<h1>' + SiteName + '</h1>' + SlimHTML
+		SlimHTML = StripAttrs(SlimHTML)
 		for i in ('ol', 'ul', 'li'):
 			for j in ('<'+i+'>', '</'+i+'>'):
 				SlimHTML = SlimHTML.replace(j, '')

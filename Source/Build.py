@@ -514,7 +514,9 @@ def Main(Args, FeedEntries):
 
 	if Args.GemtextOut:
 		print("[I] Generating Gemtext")
-		GemtextCompileList(Pages, SiteName)
+		GemtextCompileList(
+			Pages,
+			Header=Args.GemtextHeader if Args.GemtextHeader else '<h1>{}</h1><br>'.format(SiteName) if SiteName else '')
 
 	DelTmp()
 	os.system("cp -R Assets/* public/")
@@ -529,6 +531,7 @@ if __name__ == '__main__':
 	Parser.add_argument('--SiteName', type=str)
 	Parser.add_argument('--SiteDomain', type=str)
 	Parser.add_argument('--GemtextOut', type=bool)
+	Parser.add_argument('--GemtextHeader', type=str)
 	Parser.add_argument('--SiteTagline', type=str)
 	Parser.add_argument('--FeedEntries', type=int)
 	Parser.add_argument('--FolderRoots', type=str)
