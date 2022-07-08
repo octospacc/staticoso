@@ -10,6 +10,7 @@
 import json
 import os
 from datetime import datetime
+from pathlib import Path
 
 def ReadFile(p):
 	try:
@@ -34,6 +35,13 @@ def FileToStr(File, Truncate=''):
 # https://stackoverflow.com/a/15664273
 def IgnoreFiles(Dir, Files):
     return [f for f in Files if os.path.isfile(os.path.join(Dir, f))]
+
+def LoadFromDir(Dir, Rglob):
+	Contents = {}
+	for File in Path(Dir).rglob(Rglob):
+		File = str(File)[len(Dir)+1:]
+		Contents.update({File: ReadFile('{}/{}'.format(Dir, File))})
+	return Contents
 
 def StripExt(Path):
 	return ".".join(Path.split('.')[:-1])

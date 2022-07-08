@@ -115,13 +115,6 @@ def FormatTitles(Titles):
 		MDTitles += Heading + Title + '\n'
 	return markdown(MDTitles)
 
-def LoadFromDir(Dir, Rglob):
-	Contents = {}
-	for File in Path(Dir).rglob(Rglob):
-		File = str(File)[len(Dir)+1:]
-		Contents.update({File: ReadFile('{}/{}'.format(Dir, File))})
-	return Contents
-
 def Preprocessor(Path, SiteRoot):
 	File = ReadFile(Path)
 	Content, Titles, DashyTitles, Meta = '', [], [], {
@@ -344,7 +337,7 @@ def DoMinify(HTML):
 		convert_charrefs=True,
 		keep_pre=True)
 
-def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteName, SiteTagline, SiteDomain, SiteRoot, FolderRoots, Locale, Minify, Sorting, MarkdownExts):
+def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteName, SiteTagline, SiteDomain, SiteRoot, FolderRoots, Locale, Minify, Sorting, MarkdownExts, AutoCategories):
 	PagesPaths, PostsPaths, Pages, MadePages, Categories = [], [], [], [], {}
 	for Ext in Extensions['Pages']:
 		for File in Path('Pages').rglob('*.{}'.format(Ext)):
@@ -374,21 +367,42 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteName,
 			if not Meta['Type']:
 				Meta['Type'] = Type
 			Pages += [[File, Content, Titles, Meta]]
-			for Category in Meta['Categories']:
-				Categories.update({Category:''})
+			for Cat in Meta['Categories']:
+				Categories.update({Cat:''})
 	PugCompileList(Pages)
 
 	if Categories:
 		print("[I] Generating Category Lists")
-		for Category in Categories:
+		for Cat in Categories:
 			for Type in ('Page', 'Post'):
-				Categories[Category] += GetHTMLPagesList(
+				Categories[Cat] += GetHTMLPagesList(
 					Pages=Pages,
 					SiteRoot=SiteRoot,
 					PathPrefix=GetLevels('Categories/'),
 					Type=Type,
-					Category=Category,
+					Category=Cat,
 					For='Categories')
+
+	if AutoCategories:
+		Dir = 'public/Categories'
+		for Cat in Categories:
+			Exists = False
+			for File in Path(Dir).rglob(str(Cat)+'.*'):
+				Exists = True
+				break
+			if not Exists:
+				File = 'Categories/{}.md'.format(Cat)
+				FilePath = 'public/{}'.format(File)
+				WriteFile(FilePath, """\
+// Title: {Category}
+// Type: Page
+
+# {Category}
+
+<div><span>[HTML:Category:{Category}]</span></div>
+""".format(Category=Cat))
+				Content, Titles, Meta = Preprocessor(FilePath, SiteRoot)
+				Pages += [[File, Content, Titles, Meta]]
 
 	print("[I] Writing Pages")
 	for File, Content, Titles, Meta in Pages:
@@ -467,7 +481,8 @@ def Main(Args, FeedEntries):
 		Locale=Locale,
 		Minify=Args.Minify if Args.Minify else 'None',
 		Sorting=SetSorting(literal_eval(Args.ContextParts) if Args.ContextParts else {}),
-		MarkdownExts=literal_eval(Args.MarkdownExts) if Args.MarkdownExts else ['attr_list', 'def_list', 'markdown_del_ins', 'mdx_subscript', 'mdx_superscript'])
+		MarkdownExts=literal_eval(Args.MarkdownExts) if Args.MarkdownExts else ['attr_list', 'def_list', 'markdown_del_ins', 'mdx_subscript', 'mdx_superscript'],
+		AutoCategories=Args.AutoCategories)
 
 	if FeedEntries != 0:
 		print("[I] Generating Feeds")
