@@ -40,7 +40,7 @@ def StripExt(Path):
 
 def UndupeStr(Str, Known, Split):
 	while Str in Known:
-		Sections = Title.split(Split)
+		Sections = Str.split(Split)
 		try:
 			Sections[-1] = str(int(Sections[-1]) + 1)
 		except ValueError:

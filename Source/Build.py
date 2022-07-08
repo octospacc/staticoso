@@ -28,6 +28,7 @@ try:
 	from Modules.ActivityPub import *
 	ActivityPub = True
 except:
+	print("[E] Can't load the ActivityPub module. Its use is disabled. Make sure the 'requests' library is installed.")
 	ActivityPub = False
 
 from Modules.Gemini import *
@@ -96,10 +97,9 @@ def MakeListTitle(File, Meta, Titles, Prefer, SiteRoot, PathPrefix=''):
 		Title = '[{}]({})'.format(
 			Title,
 			'{}{}.html'.format(PathPrefix, StripExt(File)))
-	if Meta['Type'] == 'Post' and Meta['CreatedOn']:
-		Title = '[{}] {}'.format(
-			Meta['CreatedOn'],
-			Title)
+	if Meta['Type'] == 'Post':
+		CreatedOn = Meta['CreatedOn'] if Meta['CreatedOn'] else '?'
+		Title = '[{}] {}'.format(CreatedOn, Title)
 	return Title
 
 def FormatTitles(Titles):
@@ -381,20 +381,14 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteName,
 	if Categories:
 		print("[I] Generating Category Lists")
 		for Category in Categories:
-			Categories[Category] = GetHTMLPagesList(
-				Pages=Pages,
-				SiteRoot=SiteRoot,
-				PathPrefix=GetLevels('Categories/'),
-				Type='Page',
-				Category=Category,
-				For='Categories')
-			Categories[Category] += GetHTMLPagesList(
-				Pages=Pages,
-				SiteRoot=SiteRoot,
-				PathPrefix=GetLevels('Categories/'),
-				Type='Post',
-				Category=Category,
-				For='Categories')
+			for Type in ('Page', 'Post'):
+				Categories[Category] += GetHTMLPagesList(
+					Pages=Pages,
+					SiteRoot=SiteRoot,
+					PathPrefix=GetLevels('Categories/'),
+					Type=Type,
+					Category=Category,
+					For='Categories')
 
 	print("[I] Writing Pages")
 	for File, Content, Titles, Meta in Pages:
@@ -539,6 +533,7 @@ if __name__ == '__main__':
 	Parser.add_argument('--MarkdownExts', type=str)
 	Parser.add_argument('--MastodonURL', type=str)
 	Parser.add_argument('--MastodonToken', type=str)
+	Parser.add_argument('--AutoCategories', type=bool)
 	Args = Parser.parse_args()
 
 	try:
@@ -546,7 +541,7 @@ if __name__ == '__main__':
 		from Modules.Feed import *
 		FeedEntries = Args.FeedEntries if Args.FeedEntries or Args.FeedEntries == 0 else 10
 	except:
-		print("[E] Can't load the Atom/RSS feed libraries. Their generation is disabled.")
+		print("[E] Can't load the Atom/RSS feed libraries. Their generation is disabled. Make sure the 'lxml' library is installed.")
 		FeedEntries = 0
 
 	Main(
