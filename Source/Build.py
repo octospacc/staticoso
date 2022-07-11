@@ -31,6 +31,7 @@ except:
 	print("[E] Can't load the ActivityPub module. Its use is disabled. Make sure the 'requests' library is installed.")
 	ActivityPub = False
 
+from Modules.Config import *
 from Modules.Gemini import *
 from Modules.Pug import *
 from Modules.Utils import *
@@ -221,8 +222,8 @@ def PatchHTML(File, HTML, PartsText, ContextParts, ContextPartsText, HTMLPagesLi
 			HTML = HTML.replace('[HTML:ContextPart:{}]'.format(Path), Text)
 	for i in PartsText:
 		HTML = HTML.replace('[HTML:Part:{}]'.format(i), PartsText[i])
-	HTML = HTML.replace('[HTML:Page:LeftBox]', HTMLPagesList)
-	HTML = HTML.replace('[HTML:Page:RightBox]', HTMLTitles)
+	HTML = HTML.replace('[HTML:Site:Menu]', HTMLPagesList)
+	HTML = HTML.replace('[HTML:Page:Chapters]', HTMLTitles)
 	HTML = HTML.replace('[HTML:Page:Title]', Title)
 	HTML = HTML.replace('[HTML:Page:Description]', Description)
 	HTML = HTML.replace('[HTML:Page:Image]', Image)
@@ -250,9 +251,7 @@ def PatchHTML(File, HTML, PartsText, ContextParts, ContextPartsText, HTMLPagesLi
 	return HTML, ContentHTML, SlimHTML, Description, Image
 
 def OrderPages(Old):
-	New = []
-	NoOrder = []
-	Max = 0
+	New, NoOrder, Max = [], [], 0
 	for i,e in enumerate(Old):
 		Curr = e[3]['Order']
 		if Curr:
@@ -448,24 +447,64 @@ def SetSorting(Sorting):
 			Sorting.update({i:Default[i]})
 	return Sorting
 
+def GetConfMenu(Conf):
+	Entries = ReadConf(Conf, 'Menu')
+	if Entries:
+		Menu, Max = [], 0
+		for i in Entries:
+			if int(i) > Max:
+				Max = int(i)
+		for i in range(Max+1):
+			Menu += [[]]
+		for i in Entries:
+			e = Entries[i]
+			if (e.startswith('<') and e.endswith('>')) or (e.startswith('[') and e.endswith(')')):
+				Menu[int(i)] = markdown(e, extensions=MarkdownExts)
+			else:
+				if not (e.lower().endswith('.html') or e.lower().endswith('.htm')):
+					Menu[int(i)] = e + '.html'
+	print(Menu)
+	return Menu
+
 def Main(Args, FeedEntries):
-	SiteName = Args.SiteName if Args.SiteName else ''
-	SiteTagline = Args.SiteTagline if Args.SiteTagline else ''
-	SiteDomain = Args.SiteDomain.rstrip('/') if Args.SiteDomain else ''
-	SiteLang = Args.SiteLang if Args.SiteLang else 'en'
+	HavePages, HavePosts = False, False
+	SiteConf = LoadConf('Site.ini')
+	#SiteMenu = GetConfMenu(SiteConf)
+
+	SiteName = Args.SiteName if Args.SiteName else ReadConf(SiteConf, 'Site', 'Name') if ReadConf(SiteConf, 'Site', 'Name') else ''
+	SiteTagline = Args.SiteTagline if Args.SiteTagline else ReadConf(SiteConf, 'Site', 'Tagline') if ReadConf(SiteConf, 'Site', 'Tagline') else ''
+	SiteDomain = Args.SiteDomain.rstrip('/') if Args.SiteDomain else ReadConf(SiteConf, 'Site', 'Domain') if ReadConf(SiteConf, 'Site', 'Domain') else ''
+	SiteLang = Args.SiteLang if Args.SiteLang else ReadConf(SiteConf, 'Site', 'Lang') if ReadConf(SiteConf, 'Site', 'Lang') else 'en'
 	Locale = LoadLocale(SiteLang)
 	MastodonURL = Args.MastodonURL if Args.MastodonURL else ''
 	MastodonToken = Args.MastodonToken if Args.MastodonToken else ''
+	MarkdownExts = literal_eval(Args.MarkdownExts) if Args.MarkdownExts else EvalOpt(ReadConf(SiteConf, 'Site', 'MarkdownExts')) if ReadConf(SiteConf, 'Site', 'MarkdownExts') else ['attr_list', 'def_list', 'markdown_del_ins', 'mdx_subscript', 'mdx_superscript']
+
+	AutoCategories = False
+	if Args.AutoCategories != None:
+		if literal_eval(Args.AutoCategories) == True:
+			AutoCategories = True
+	else:
+		if ReadConf(SiteConf, 'Site', 'AutoCategories') != None:
+			if EvalOpt(ReadConf(SiteConf, 'Site', 'AutoCategories')) == True:
+				AutoCategories = True
 
 	ResetPublic()
+
 	if os.path.isdir('Pages'):
+		HavePages = True
 		shutil.copytree('Pages', 'public')
 		if Args.GemtextOut:
 			shutil.copytree('Pages', 'public.gmi', ignore=IgnoreFiles)
 	if os.path.isdir('Posts'):
+		HavePosts = True
 		shutil.copytree('Posts', 'public/Posts')
 		if Args.GemtextOut:
 			shutil.copytree('Posts', 'public.gmi/Posts', ignore=IgnoreFiles)
+
+	if not HavePages and not HavePosts:
+		print("[E] No Pages or posts found. Nothing to do, exiting!")
+		exit()
 
 	print("[I] Generating HTML")
 	Pages = MakeSite(
@@ -481,8 +520,8 @@ def Main(Args, FeedEntries):
 		Locale=Locale,
 		Minify=Args.Minify if Args.Minify else 'None',
 		Sorting=SetSorting(literal_eval(Args.ContextParts) if Args.ContextParts else {}),
-		MarkdownExts=literal_eval(Args.MarkdownExts) if Args.MarkdownExts else ['attr_list', 'def_list', 'markdown_del_ins', 'mdx_subscript', 'mdx_superscript'],
-		AutoCategories=Args.AutoCategories)
+		MarkdownExts=MarkdownExts,
+		AutoCategories=AutoCategories) # Args.AutoCategories if Args.AutoCategories else EvalOpt(ReadConf(SiteConf, 'Site', 'AutoCategories')) if ReadConf(SiteConf, 'Site', 'AutoCategories') else None)
 
 	if FeedEntries != 0:
 		print("[I] Generating Feeds")
@@ -527,8 +566,10 @@ def Main(Args, FeedEntries):
 			Pages,
 			Header=Args.GemtextHeader if Args.GemtextHeader else '# {}\n\n'.format(SiteName) if SiteName else '')
 
+	print("[I] Last Steps")
 	DelTmp()
 	os.system("cp -R Assets/* public/")
+
 	print("[I] Done!")
 
 if __name__ == '__main__':
@@ -548,7 +589,7 @@ if __name__ == '__main__':
 	Parser.add_argument('--MarkdownExts', type=str)
 	Parser.add_argument('--MastodonURL', type=str)
 	Parser.add_argument('--MastodonToken', type=str)
-	Parser.add_argument('--AutoCategories', type=bool)
+	Parser.add_argument('--AutoCategories', type=str)
 	Args = Parser.parse_args()
 
 	try:
