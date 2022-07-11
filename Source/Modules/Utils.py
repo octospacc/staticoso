@@ -63,6 +63,13 @@ def DashifyStr(s, Limit=32):
 			Str += c
 	return '-' + Str
 
+# https://stackoverflow.com/a/34445090
+def FindAllIndex(Str, Sub):
+	i = Str.find(Sub)
+	while i != -1:
+		yield i
+		i = Str.find(Sub, i+1)
+
 def GetFullDate(Date):
 	if not Date:
 		return None

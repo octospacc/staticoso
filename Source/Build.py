@@ -53,16 +53,15 @@ def GetLevels(Path, AsNum=False, Add=0, Sub=0):
 def DashifyTitle(Title, Done=[]):
 	return UndupeStr(DashifyStr(Title), Done, '-')
 
-def GetTitle(Meta, Titles, Prefer='MetaTitle'):
+def GetTitle(Meta, Titles, Prefer='MetaTitle', BlogName=None):
 	if Prefer == 'BodyTitle':
 		Title = Titles[0].lstrip('#') if Titles else Meta['Title'] if Meta['Title'] else 'Untitled'
 	elif Prefer == 'MetaTitle':
 		Title = Meta['Title'] if Meta['Title'] else Titles[0].lstrip('#') if Titles else 'Untitled'
 	elif Prefer == 'HTMLTitle':
 		Title = Meta['HTMLTitle'] if Meta['HTMLTitle'] else Meta['Title'] if Meta['Title'] else Titles[0].lstrip('#') if Titles else 'Untitled'
-	if Meta['Type'] == 'Post':
-		# TODO: This hardcodes my blog name, bad, will fix asap
-		Title += ' - blogoctt'
+	if Meta['Type'] == 'Post' and BlogName:
+		Title += ' - ' + BlogName
 	return Title
 
 def GetDescription(Meta, BodyDescription, Prefer='MetaDescription'):
@@ -91,8 +90,8 @@ def MakeLinkableTitle(Line, Title, DashTitle, Type):
 		NewLine += Line[Index+2:]
 		return NewLine
 
-def MakeListTitle(File, Meta, Titles, Prefer, SiteRoot, PathPrefix=''):
-	Title = GetTitle(Meta, Titles, Prefer)
+def MakeListTitle(File, Meta, Titles, Prefer, SiteRoot, BlogName, PathPrefix=''):
+	Title = GetTitle(Meta, Titles, Prefer, BlogName)
 	Link = False if Meta['Index'] == 'Unlinked' else True
 	if Link:
 		Title = '[{}]({})'.format(
@@ -191,7 +190,7 @@ def MakeCategoryLine(File, Meta):
 			Categories += '[{}]({}{}.html)  '.format(i, GetLevels(File) + 'Categories/', i)
 	return Categories
 
-def PatchHTML(File, HTML, PartsText, ContextParts, ContextPartsText, HTMLPagesList, PagePath, Content, Titles, Meta, SiteRoot, FolderRoots, Categories, Locale):
+def PatchHTML(File, HTML, PartsText, ContextParts, ContextPartsText, HTMLPagesList, PagePath, Content, Titles, Meta, SiteRoot, SiteName, BlogName, FolderRoots, Categories, Locale):
 	HTMLTitles = FormatTitles(Titles)
 	BodyDescription, BodyImage = '', ''
 	Parse = BeautifulSoup(Content, 'html.parser')
@@ -200,7 +199,7 @@ def PatchHTML(File, HTML, PartsText, ContextParts, ContextPartsText, HTMLPagesLi
 	if not BodyImage and Parse.img and Parse.img['src']:
 		BodyImage = Parse.img['src']
 
-	Title = GetTitle(Meta, Titles, 'MetaTitle')
+	Title = GetTitle(Meta, Titles, 'MetaTitle', BlogName)
 	Description = GetDescription(Meta, BodyDescription, 'MetaDescription')
 	Image = GetImage(Meta, BodyImage, 'MetaImage')
 
@@ -222,17 +221,19 @@ def PatchHTML(File, HTML, PartsText, ContextParts, ContextPartsText, HTMLPagesLi
 			HTML = HTML.replace('[HTML:ContextPart:{}]'.format(Path), Text)
 	for i in PartsText:
 		HTML = HTML.replace('[HTML:Part:{}]'.format(i), PartsText[i])
-	HTML = HTML.replace('[HTML:Site:Menu]', HTMLPagesList)
-	HTML = HTML.replace('[HTML:Page:Chapters]', HTMLTitles)
-	HTML = HTML.replace('[HTML:Page:Title]', Title)
-	HTML = HTML.replace('[HTML:Page:Description]', Description)
-	HTML = HTML.replace('[HTML:Page:Image]', Image)
-	HTML = HTML.replace('[HTML:Page:Path]', PagePath)
-	HTML = HTML.replace('[HTML:Page:Style]', Meta['Style'])
-	HTML = HTML.replace('[HTML:Page:Content]', Content)
-	HTML = HTML.replace('[HTML:Page:ContentHeader]', MakeContentHeader(Meta, Locale, MakeCategoryLine(File, Meta)))
-	HTML = HTML.replace('[HTML:Site:AbsoluteRoot]', SiteRoot)
-	HTML = HTML.replace('[HTML:Site:RelativeRoot]', GetLevels(PagePath))
+	HTML = (HTML
+		).replace('[HTML:Site:Menu]', HTMLPagesList
+		).replace('[HTML:Page:Chapters]', HTMLTitles
+		).replace('[HTML:Page:Title]', Title
+		).replace('[HTML:Page:Description]', Description
+		).replace('[HTML:Page:Image]', Image
+		).replace('[HTML:Page:Path]', PagePath
+		).replace('[HTML:Page:Style]', Meta['Style']
+		).replace('[HTML:Page:Content]', Content
+		).replace('[HTML:Page:ContentHeader]', MakeContentHeader(Meta, Locale, MakeCategoryLine(File, Meta))
+		).replace('[HTML:Site:Name]', SiteName
+		).replace('[HTML:Site:AbsoluteRoot]', SiteRoot
+		).replace('[HTML:Site:RelativeRoot]', GetLevels(PagePath))
 	for i in FolderRoots:
 		HTML = HTML.replace('[HTML:Folder:{}:AbsoluteRoot]'.format(i), FolderRoots[i])
 	for i in Categories:
@@ -277,7 +278,7 @@ def CanIndex(Index, For):
 	else:
 		return True if Index == For else False
 
-def GetHTMLPagesList(Pages, SiteRoot, PathPrefix, Type='Page', Category=None, For='Menu'):
+def GetHTMLPagesList(Pages, BlogName, SiteRoot, PathPrefix, Type='Page', Category=None, For='Menu'):
 	List, ToPop, LastParent = '', [], []
 	IndexPages = Pages.copy()
 	for e in IndexPages:
@@ -292,7 +293,7 @@ def GetHTMLPagesList(Pages, SiteRoot, PathPrefix, Type='Page', Category=None, Fo
 	if Type == 'Page':
 		IndexPages = OrderPages(IndexPages)
 	for File, Content, Titles, Meta in IndexPages:
-		if Meta['Type'] == Type and CanIndex(Meta['Index'], For) and GetTitle(Meta, Titles, Prefer='HTMLTitle') != 'Untitled' and (not Category or Category in Meta['Categories']):
+		if Meta['Type'] == Type and CanIndex(Meta['Index'], For) and GetTitle(Meta, Titles, 'HTMLTitle', BlogName) != 'Untitled' and (not Category or Category in Meta['Categories']):
 			n = File.count('/') + 1
 			if n > 1:
 				CurParent = File.split('/')[:-1]
@@ -301,13 +302,13 @@ def GetHTMLPagesList(Pages, SiteRoot, PathPrefix, Type='Page', Category=None, Fo
 						LastParent = CurParent
 						Levels = '- ' * (n-1+i)
 						if StripExt(File).endswith('index'):
-							Title = MakeListTitle(File, Meta, Titles, 'HTMLTitle', SiteRoot, PathPrefix)
+							Title = MakeListTitle(File, Meta, Titles, 'HTMLTitle', SiteRoot, BlogName, PathPrefix)
 						else:
 							Title = CurParent[n-2+i]
 						List += Levels + Title + '\n'
 			if not (n > 1 and StripExt(File).endswith('index')):
 				Levels = '- ' * n
-				Title = MakeListTitle(File, Meta, Titles, 'HTMLTitle', SiteRoot, PathPrefix)
+				Title = MakeListTitle(File, Meta, Titles, 'HTMLTitle', SiteRoot, BlogName, PathPrefix)
 				List += Levels + Title + '\n'
 	return markdown(List)
 
@@ -336,7 +337,7 @@ def DoMinify(HTML):
 		convert_charrefs=True,
 		keep_pre=True)
 
-def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteName, SiteTagline, SiteDomain, SiteRoot, FolderRoots, Locale, Minify, Sorting, MarkdownExts, AutoCategories):
+def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteName, BlogName, SiteTagline, SiteDomain, SiteRoot, FolderRoots, Locale, Minify, Sorting, MarkdownExts, AutoCategories):
 	PagesPaths, PostsPaths, Pages, MadePages, Categories = [], [], [], [], {}
 	for Ext in Extensions['Pages']:
 		for File in Path('Pages').rglob('*.{}'.format(Ext)):
@@ -376,6 +377,7 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteName,
 			for Type in ('Page', 'Post'):
 				Categories[Cat] += GetHTMLPagesList(
 					Pages=Pages,
+					BlogName=BlogName,
 					SiteRoot=SiteRoot,
 					PathPrefix=GetLevels('Categories/'),
 					Type=Type,
@@ -407,6 +409,7 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteName,
 	for File, Content, Titles, Meta in Pages:
 		HTMLPagesList = GetHTMLPagesList(
 			Pages=Pages,
+			BlogName=BlogName,
 			SiteRoot=SiteRoot,
 			PathPrefix=GetLevels(File),
 			Type='Page',
@@ -428,6 +431,8 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteName,
 			Titles=Titles,
 			Meta=Meta,
 			SiteRoot=SiteRoot,
+			SiteName=SiteName,
+			BlogName=BlogName,
 			FolderRoots=FolderRoots,
 			Categories=Categories,
 			Locale=Locale)
@@ -472,6 +477,7 @@ def Main(Args, FeedEntries):
 	#SiteMenu = GetConfMenu(SiteConf)
 
 	SiteName = Args.SiteName if Args.SiteName else ReadConf(SiteConf, 'Site', 'Name') if ReadConf(SiteConf, 'Site', 'Name') else ''
+	BlogName = Args.BlogName if Args.BlogName else ReadConf(SiteConf, 'Site', 'BlogName') if ReadConf(SiteConf, 'Site', 'BlogName') else ''
 	SiteTagline = Args.SiteTagline if Args.SiteTagline else ReadConf(SiteConf, 'Site', 'Tagline') if ReadConf(SiteConf, 'Site', 'Tagline') else ''
 	SiteDomain = Args.SiteDomain.rstrip('/') if Args.SiteDomain else ReadConf(SiteConf, 'Site', 'Domain') if ReadConf(SiteConf, 'Site', 'Domain') else ''
 	SiteLang = Args.SiteLang if Args.SiteLang else ReadConf(SiteConf, 'Site', 'Lang') if ReadConf(SiteConf, 'Site', 'Lang') else 'en'
@@ -513,6 +519,7 @@ def Main(Args, FeedEntries):
 		ContextParts=literal_eval(Args.ContextParts) if Args.ContextParts else {},
 		ContextPartsText=LoadFromDir('ContextParts', '*.html'),
 		SiteName=SiteName,
+		BlogName=BlogName,
 		SiteTagline=SiteTagline,
 		SiteDomain=SiteDomain,
 		SiteRoot=Args.SiteRoot if Args.SiteRoot else '/',
@@ -579,6 +586,7 @@ if __name__ == '__main__':
 	Parser.add_argument('--SiteLang', type=str)
 	Parser.add_argument('--SiteRoot', type=str)
 	Parser.add_argument('--SiteName', type=str)
+	Parser.add_argument('--BlogName', type=str)
 	Parser.add_argument('--SiteDomain', type=str)
 	Parser.add_argument('--GemtextOut', type=bool)
 	Parser.add_argument('--GemtextHeader', type=str)
