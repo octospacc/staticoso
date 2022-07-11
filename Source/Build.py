@@ -191,6 +191,7 @@ def MakeCategoryLine(File, Meta):
 	return Categories
 
 def PatchHTML(File, HTML, PartsText, ContextParts, ContextPartsText, HTMLPagesList, PagePath, Content, Titles, Meta, SiteRoot, SiteName, BlogName, FolderRoots, Categories, Locale):
+	# print(ReplaceWithEscape(HTML, '[HTML:Site:Name]', SiteName)) # Test
 	HTMLTitles = FormatTitles(Titles)
 	BodyDescription, BodyImage = '', ''
 	Parse = BeautifulSoup(Content, 'html.parser')
@@ -221,19 +222,18 @@ def PatchHTML(File, HTML, PartsText, ContextParts, ContextPartsText, HTMLPagesLi
 			HTML = HTML.replace('[HTML:ContextPart:{}]'.format(Path), Text)
 	for i in PartsText:
 		HTML = HTML.replace('[HTML:Part:{}]'.format(i), PartsText[i])
-	HTML = (HTML
-		).replace('[HTML:Site:Menu]', HTMLPagesList
-		).replace('[HTML:Page:Chapters]', HTMLTitles
-		).replace('[HTML:Page:Title]', Title
-		).replace('[HTML:Page:Description]', Description
-		).replace('[HTML:Page:Image]', Image
-		).replace('[HTML:Page:Path]', PagePath
-		).replace('[HTML:Page:Style]', Meta['Style']
-		).replace('[HTML:Page:Content]', Content
-		).replace('[HTML:Page:ContentHeader]', MakeContentHeader(Meta, Locale, MakeCategoryLine(File, Meta))
-		).replace('[HTML:Site:Name]', SiteName
-		).replace('[HTML:Site:AbsoluteRoot]', SiteRoot
-		).replace('[HTML:Site:RelativeRoot]', GetLevels(PagePath))
+	HTML = ReplWithEsc(HTML, '[HTML:Site:Menu]', HTMLPagesList)
+	HTML = ReplWithEsc(HTML, '[HTML:Page:Chapters]', HTMLTitles)
+	HTML = ReplWithEsc(HTML, '[HTML:Page:Title]', Title)
+	HTML = ReplWithEsc(HTML, '[HTML:Page:Description]', Description)
+	HTML = ReplWithEsc(HTML, '[HTML:Page:Image]', Image)
+	HTML = ReplWithEsc(HTML, '[HTML:Page:Path]', PagePath)
+	HTML = ReplWithEsc(HTML, '[HTML:Page:Style]', Meta['Style'])
+	HTML = ReplWithEsc(HTML, '[HTML:Page:Content]', Content)
+	HTML = ReplWithEsc(HTML, '[HTML:Page:ContentHeader]', MakeContentHeader(Meta, Locale, MakeCategoryLine(File, Meta)))
+	HTML = ReplWithEsc(HTML, '[HTML:Site:Name]', SiteName)
+	HTML = ReplWithEsc(HTML, '[HTML:Site:AbsoluteRoot]', SiteRoot)
+	HTML = ReplWithEsc(HTML, '[HTML:Site:RelativeRoot]', GetLevels(PagePath))
 	for i in FolderRoots:
 		HTML = HTML.replace('[HTML:Folder:{}:AbsoluteRoot]'.format(i), FolderRoots[i])
 	for i in Categories:

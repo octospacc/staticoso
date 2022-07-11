@@ -70,6 +70,22 @@ def FindAllIndex(Str, Sub):
 		yield i
 		i = Str.find(Sub, i+1)
 
+def ReplWithEsc(Str, Find, Repl, Esc='\\'):
+	New = ''
+	Sects = Str.split(Find)
+	for i,e in enumerate(Sects):
+		if i == 0:
+			New += e
+		elif i > 0:
+			if Sects[i-1].endswith(Esc*2):
+				New = New[:-1]
+				New += Repl + e
+			elif Sects[i-1].endswith(Esc):
+				New += Find + e
+			else:
+				New += Repl + e
+	return New
+
 def GetFullDate(Date):
 	if not Date:
 		return None
