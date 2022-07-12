@@ -472,7 +472,7 @@ def GetConfMenu(Conf):
 	print(Menu)
 	return Menu
 
-def Main(Args, FeedEntries):
+def Main(Args, FeedEntries, SitemapOut):
 	HavePages, HavePosts = False, False
 	SiteConf = LoadConf('Site.ini')
 	#SiteMenu = GetConfMenu(SiteConf)
@@ -541,6 +541,19 @@ def Main(Args, FeedEntries):
 			SiteDomain=SiteDomain,
 			MaxEntries=FeedEntries,
 			Lang=SiteLang,
+			FullMap=False,
+			Minify=True if Args.Minify and Args.Minify not in ('False', 'None') else False)
+
+	if SitemapOut:
+		print("[I] Generating Sitemap")
+		MakeFeed(
+			Pages=Pages,
+			SiteName=SiteName,
+			SiteTagline=SiteTagline,
+			SiteDomain=SiteDomain,
+			MaxEntries=FeedEntries,
+			Lang=SiteLang,
+			FullMap=True,
 			Minify=True if Args.Minify and Args.Minify not in ('False', 'None') else False)
 
 	if ActivityPub and MastodonURL and MastodonToken and SiteDomain:
@@ -593,6 +606,7 @@ if __name__ == '__main__':
 	Parser.add_argument('--GemtextOut', type=bool)
 	Parser.add_argument('--GemtextHeader', type=str)
 	Parser.add_argument('--SiteTagline', type=str)
+	Parser.add_argument('--SitemapOut', type=bool)
 	Parser.add_argument('--FeedEntries', type=int)
 	Parser.add_argument('--FolderRoots', type=str)
 	Parser.add_argument('--ContextParts', type=str)
@@ -606,10 +620,13 @@ if __name__ == '__main__':
 		import lxml
 		from Modules.Feed import *
 		FeedEntries = Args.FeedEntries if Args.FeedEntries or Args.FeedEntries == 0 else 10
+		SitemapOut = True if Args.SitemapOut else False
 	except:
-		print("[E] Can't load the Atom/RSS feed libraries. Their generation is disabled. Make sure the 'lxml' library is installed.")
+		print("[E] Can't load the XML libraries. XML Feeds and Sitemaps generation is disabled. Make sure the 'lxml' library is installed.")
 		FeedEntries = 0
+		SitemapOut = False
 
 	Main(
 		Args=Args,
-		FeedEntries=FeedEntries)
+		FeedEntries=FeedEntries,
+		SitemapOut=SitemapOut)

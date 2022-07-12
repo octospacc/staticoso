@@ -31,6 +31,15 @@ def StripAttrs(HTML):
 			t.attrs = {}
 	return str(Soup)
 
+def FixGemlogDateLine(Line):
+	if len(Line) >= 2 and Line[0] == '[' and Line[1].isdigit():
+		Line = Line[1:]
+	else:
+		Words = Line.split(' ')
+		if len(Words) >= 2 and len(Words[1]) >= 2 and Words[1][0] == '[' and Words[1][1].isdigit():
+			Line = Words[0] + '\n' + Words[1][1:] + ' ' + ' '.join(Words[2:])
+	return Line
+
 def GemtextCompileList(Pages, Header=''):
 	Cmd = ''
 	for File, Content, Titles, Meta, ContentHTML, SlimHTML, Description, Image in Pages:
@@ -45,7 +54,11 @@ def GemtextCompileList(Pages, Header=''):
 	os.system(Cmd)
 	for File, Content, Titles, Meta, ContentHTML, SlimHTML, Description, Image in Pages:
 		Dst = 'public.gmi/{}.gmi'.format(StripExt(File))
-		WriteFile(Dst, Header + ReadFile(Dst))
+		Gemtext = ''
+		for Line in ReadFile(Dst).splitlines():
+			Line = FixGemlogDateLine(Line)
+			Gemtext += Line + '\n'
+		WriteFile(Dst, Header + Gemtext)
 
 def FindEarliest(Str, Items):
 	Pos, Item = 0, ''
