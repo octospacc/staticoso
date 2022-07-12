@@ -190,8 +190,7 @@ def MakeCategoryLine(File, Meta):
 			Categories += '[{}]({}{}.html)  '.format(i, GetLevels(File) + 'Categories/', i)
 	return Categories
 
-def PatchHTML(File, HTML, PartsText, ContextParts, ContextPartsText, HTMLPagesList, PagePath, Content, Titles, Meta, SiteRoot, SiteName, BlogName, FolderRoots, Categories, Locale):
-	# print(ReplaceWithEscape(HTML, '[HTML:Site:Name]', SiteName)) # Test
+def PatchHTML(File, HTML, PartsText, ContextParts, ContextPartsText, HTMLPagesList, PagePath, Content, Titles, Meta, SiteRoot, SiteName, BlogName, FolderRoots, Categories, SiteLang, Locale):
 	HTMLTitles = FormatTitles(Titles)
 	BodyDescription, BodyImage = '', ''
 	Parse = BeautifulSoup(Content, 'html.parser')
@@ -223,6 +222,7 @@ def PatchHTML(File, HTML, PartsText, ContextParts, ContextPartsText, HTMLPagesLi
 	for i in PartsText:
 		HTML = HTML.replace('[HTML:Part:{}]'.format(i), PartsText[i])
 	HTML = ReplWithEsc(HTML, '[HTML:Site:Menu]', HTMLPagesList)
+	HTML = ReplWithEsc(HTML, '[HTML:Page:Lang]', SiteLang)
 	HTML = ReplWithEsc(HTML, '[HTML:Page:Chapters]', HTMLTitles)
 	HTML = ReplWithEsc(HTML, '[HTML:Page:Title]', Title)
 	HTML = ReplWithEsc(HTML, '[HTML:Page:Description]', Description)
@@ -337,7 +337,7 @@ def DoMinify(HTML):
 		convert_charrefs=True,
 		keep_pre=True)
 
-def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteName, BlogName, SiteTagline, SiteDomain, SiteRoot, FolderRoots, Locale, Minify, Sorting, MarkdownExts, AutoCategories):
+def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteName, BlogName, SiteTagline, SiteDomain, SiteRoot, FolderRoots, SiteLang, Locale, Minify, Sorting, MarkdownExts, AutoCategories):
 	PagesPaths, PostsPaths, Pages, MadePages, Categories = [], [], [], [], {}
 	for Ext in Extensions['Pages']:
 		for File in Path('Pages').rglob('*.{}'.format(Ext)):
@@ -435,6 +435,7 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteName,
 			BlogName=BlogName,
 			FolderRoots=FolderRoots,
 			Categories=Categories,
+			SiteLang=SiteLang,
 			Locale=Locale)
 		if Minify not in ('False', 'None'):
 			HTML = DoMinify(HTML)
@@ -524,6 +525,7 @@ def Main(Args, FeedEntries):
 		SiteDomain=SiteDomain,
 		SiteRoot=Args.SiteRoot if Args.SiteRoot else '/',
 		FolderRoots=literal_eval(Args.FolderRoots) if Args.FolderRoots else {},
+		SiteLang=SiteLang,
 		Locale=Locale,
 		Minify=Args.Minify if Args.Minify else 'None',
 		Sorting=SetSorting(literal_eval(Args.ContextParts) if Args.ContextParts else {}),
