@@ -51,7 +51,7 @@ def MakeFeed(Pages, SiteName, SiteTagline, SiteDomain, MaxEntries, Lang, FullMap
 			Entry.updated(EditedOn)
 
 	if FullMap:
-		Feed.atom_file('public/sitemap.xml', pretty=(not Minify))
+		Feed.rss_file('public/sitemap.xml', pretty=(not Minify))
 	else:
 		os.mkdir('public/feed')
 		Feed.atom_file('public/feed/atom.xml', pretty=(not Minify))
