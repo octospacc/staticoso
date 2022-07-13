@@ -34,6 +34,7 @@ except:
 from Modules.Config import *
 from Modules.Gemini import *
 from Modules.Pug import *
+from Modules.Sitemap import *
 from Modules.Utils import *
 
 Extensions = {
@@ -487,7 +488,7 @@ def Main(Args, FeedEntries):
 	MastodonToken = Args.MastodonToken if Args.MastodonToken else ''
 	MarkdownExts = literal_eval(Args.MarkdownExts) if Args.MarkdownExts else EvalOpt(ReadConf(SiteConf, 'Site', 'MarkdownExts')) if ReadConf(SiteConf, 'Site', 'MarkdownExts') else ['attr_list', 'def_list', 'markdown_del_ins', 'mdx_subscript', 'mdx_superscript']
 
-	Minify = False # True if Args.Minify and Args.Minify not in ('False', 'None') else False
+	Minify = False
 	if Args.Minify != None:
 		if Args.Minify not in ('False', 'None'):
 			Minify = True
@@ -536,10 +537,10 @@ def Main(Args, FeedEntries):
 		FolderRoots=literal_eval(Args.FolderRoots) if Args.FolderRoots else {},
 		SiteLang=SiteLang,
 		Locale=Locale,
-		Minify=Minify, # Args.Minify if Args.Minify else 'None',
+		Minify=Minify,
 		Sorting=SetSorting(literal_eval(Args.ContextParts) if Args.ContextParts else {}),
 		MarkdownExts=MarkdownExts,
-		AutoCategories=AutoCategories) # Args.AutoCategories if Args.AutoCategories else EvalOpt(ReadConf(SiteConf, 'Site', 'AutoCategories')) if ReadConf(SiteConf, 'Site', 'AutoCategories') else None)
+		AutoCategories=AutoCategories)
 
 	if FeedEntries != 0:
 		print("[I] Generating Feeds")
@@ -552,7 +553,11 @@ def Main(Args, FeedEntries):
 				MaxEntries=FeedEntries,
 				Lang=SiteLang,
 				FullSite=FeedType,
-				Minify=Minify) # True if Args.Minify and Args.Minify not in ('False', 'None') else False)
+				Minify=Minify)
+
+	if Args.SitemapOut:
+		print("[I] Generating Sitemap")
+		MakeSitemap(Pages, SiteDomain)
 
 	if ActivityPub and MastodonURL and MastodonToken and SiteDomain:
 		print("[I] Mastodon Stuff")

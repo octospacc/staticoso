@@ -10,5 +10,10 @@
 import urllib
 from Modules.Utils import *
 
-def MakeSitemap(Pages, SiteName, SiteTagline, SiteDomain, MaxEntries, Lang, Minify=False):
-	return None # urllib.parse.quote(query)
+def MakeSitemap(Pages, SiteDomain=''):
+	Map = ''
+	for File, Content, Titles, Meta, ContentHTML, SlimHTML, Description, Image in Pages:
+		File = '{}.html'.format(StripExt(File))
+		Domain = SiteDomain + '/' if SiteDomain else ' '
+		Map += Domain + urllib.parse.quote(File) + '\n'
+	WriteFile('public/sitemap.txt', Map)

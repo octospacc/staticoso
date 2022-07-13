@@ -36,8 +36,8 @@ Feel free to experiment with all of this stuff!
 - [ ] Pug support for base templates and page side parts
 - [ ] Differential recompile (to optimize resource waste on non-ephemeral servers)
 - [ ] Hot-recompile (for website development)
-- [x] XML sitemap generation
-- [x] Atom + RSS feed generation for posts
+- [x] TXT sitemap generation
+- [x] Atom + RSS feed generation
 - [x] Generation of website page tree in left sidebar
 - [x] Generation of titles in right sidebar with clickable links
 - [x] Detections of titles in a page
