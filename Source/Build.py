@@ -437,7 +437,7 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteName,
 			Categories=Categories,
 			SiteLang=SiteLang,
 			Locale=Locale)
-		if Minify not in ('False', 'None'):
+		if Minify:
 			HTML = DoMinify(HTML)
 		WriteFile(PagePath, HTML)
 		MadePages += [[File, Content, Titles, Meta, ContentHTML, SlimHTML, Description, Image]]
@@ -472,7 +472,7 @@ def GetConfMenu(Conf):
 	print(Menu)
 	return Menu
 
-def Main(Args, FeedEntries, SitemapOut):
+def Main(Args, FeedEntries):
 	HavePages, HavePosts = False, False
 	SiteConf = LoadConf('Site.ini')
 	#SiteMenu = GetConfMenu(SiteConf)
@@ -486,6 +486,15 @@ def Main(Args, FeedEntries, SitemapOut):
 	MastodonURL = Args.MastodonURL if Args.MastodonURL else ''
 	MastodonToken = Args.MastodonToken if Args.MastodonToken else ''
 	MarkdownExts = literal_eval(Args.MarkdownExts) if Args.MarkdownExts else EvalOpt(ReadConf(SiteConf, 'Site', 'MarkdownExts')) if ReadConf(SiteConf, 'Site', 'MarkdownExts') else ['attr_list', 'def_list', 'markdown_del_ins', 'mdx_subscript', 'mdx_superscript']
+
+	Minify = False # True if Args.Minify and Args.Minify not in ('False', 'None') else False
+	if Args.Minify != None:
+		if Args.Minify not in ('False', 'None'):
+			Minify = True
+	else:
+		if ReadConf(SiteConf, 'Site', 'Minify') != None:
+			if ReadConf(SiteConf, 'Site', 'Minify') not in ('False', 'None'):
+				Minify = True
 
 	AutoCategories = False
 	if Args.AutoCategories != None:
@@ -527,34 +536,23 @@ def Main(Args, FeedEntries, SitemapOut):
 		FolderRoots=literal_eval(Args.FolderRoots) if Args.FolderRoots else {},
 		SiteLang=SiteLang,
 		Locale=Locale,
-		Minify=Args.Minify if Args.Minify else 'None',
+		Minify=Minify, # Args.Minify if Args.Minify else 'None',
 		Sorting=SetSorting(literal_eval(Args.ContextParts) if Args.ContextParts else {}),
 		MarkdownExts=MarkdownExts,
 		AutoCategories=AutoCategories) # Args.AutoCategories if Args.AutoCategories else EvalOpt(ReadConf(SiteConf, 'Site', 'AutoCategories')) if ReadConf(SiteConf, 'Site', 'AutoCategories') else None)
 
 	if FeedEntries != 0:
 		print("[I] Generating Feeds")
-		MakeFeed(
-			Pages=Pages,
-			SiteName=SiteName,
-			SiteTagline=SiteTagline,
-			SiteDomain=SiteDomain,
-			MaxEntries=FeedEntries,
-			Lang=SiteLang,
-			FullMap=False,
-			Minify=True if Args.Minify and Args.Minify not in ('False', 'None') else False)
-
-	if SitemapOut:
-		print("[I] Generating Sitemap")
-		MakeFeed(
-			Pages=Pages,
-			SiteName=SiteName,
-			SiteTagline=SiteTagline,
-			SiteDomain=SiteDomain,
-			MaxEntries=FeedEntries,
-			Lang=SiteLang,
-			FullMap=True,
-			Minify=True if Args.Minify and Args.Minify not in ('False', 'None') else False)
+		for FeedType in (True, False):
+			MakeFeed(
+				Pages=Pages,
+				SiteName=SiteName,
+				SiteTagline=SiteTagline,
+				SiteDomain=SiteDomain,
+				MaxEntries=FeedEntries,
+				Lang=SiteLang,
+				FullSite=FeedType,
+				Minify=Minify) # True if Args.Minify and Args.Minify not in ('False', 'None') else False)
 
 	if ActivityPub and MastodonURL and MastodonToken and SiteDomain:
 		print("[I] Mastodon Stuff")
@@ -620,13 +618,10 @@ if __name__ == '__main__':
 		import lxml
 		from Modules.Feed import *
 		FeedEntries = Args.FeedEntries if Args.FeedEntries or Args.FeedEntries == 0 else 10
-		SitemapOut = True if Args.SitemapOut else False
 	except:
-		print("[E] Can't load the XML libraries. XML Feeds and Sitemaps generation is disabled. Make sure the 'lxml' library is installed.")
+		print("[E] Can't load the XML libraries. XML Feeds Generation is Disabled. Make sure the 'lxml' library is installed.")
 		FeedEntries = 0
-		SitemapOut = False
 
 	Main(
 		Args=Args,
-		FeedEntries=FeedEntries,
-		SitemapOut=SitemapOut)
+		FeedEntries=FeedEntries)

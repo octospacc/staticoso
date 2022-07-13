@@ -12,7 +12,7 @@
 from Libs.feedgen.feed import FeedGenerator
 from Modules.Utils import *
 
-def MakeFeed(Pages, SiteName, SiteTagline, SiteDomain, MaxEntries, Lang, FullMap=False, Minify=False):
+def MakeFeed(Pages, SiteName, SiteTagline, SiteDomain, MaxEntries, Lang, FullSite=False, Minify=False):
 	Feed = FeedGenerator()
 	Link = SiteDomain if SiteDomain else ' '
 	Feed.id(Link)
@@ -24,16 +24,14 @@ def MakeFeed(Pages, SiteName, SiteTagline, SiteDomain, MaxEntries, Lang, FullMap
 	Feed.language(Lang)
 
 	DoPages = []
-	if FullMap:
-		MaxEntries = 50000 # Sitemap standard limit
 	for e in Pages:
-		if MaxEntries != 0 and (FullMap or (not FullMap and e[3]['Type'] == 'Post')):
+		if FullSite or (not FullSite and MaxEntries != 0 and e[3]['Type'] == 'Post'): # No entry limit if site feed
 			DoPages += [e]
 			MaxEntries -= 1
 	DoPages.reverse()
 
 	for File, Content, Titles, Meta, ContentHTML, SlimHTML, Description, Image in DoPages:
-		if FullMap or (not FullMap and Meta['Type'] == 'Post'):
+		if FullSite or (not FullSite and Meta['Type'] == 'Post'):
 			Entry = Feed.add_entry()
 			File = '{}.html'.format(StripExt(File))
 			Content = ReadFile('public/'+File)
@@ -44,15 +42,18 @@ def MakeFeed(Pages, SiteName, SiteTagline, SiteDomain, MaxEntries, Lang, FullMap
 			Entry.title(Meta['Title'] if Meta['Title'] else ' ')
 			Entry.description(Description)
 			Entry.link(href=Link, rel='alternate')
-			Entry.content(ContentHTML, type='html')
+			if not FullSite: # Avoid making an enormous site feed file...
+				Entry.content(ContentHTML, type='html')
 			if CreatedOn:
 				Entry.pubDate(CreatedOn)
 			EditedOn = EditedOn if EditedOn else CreatedOn if CreatedOn and not EditedOn else '1970-01-01T00:00+00:00'
 			Entry.updated(EditedOn)
 
-	if FullMap:
-		Feed.rss_file('public/sitemap.xml', pretty=(not Minify))
-	else:
+	if not os.path.exists('public/feed'):
 		os.mkdir('public/feed')
-		Feed.atom_file('public/feed/atom.xml', pretty=(not Minify))
-		Feed.rss_file('public/feed/rss.xml', pretty=(not Minify))
+	if FullSite:
+		FeedType = 'site.'
+	else:
+		FeedType = ''
+	Feed.atom_file('public/feed/' + FeedType + 'atom.xml', pretty=(not Minify))
+	Feed.rss_file('public/feed/' + FeedType + 'rss.xml', pretty=(not Minify))
