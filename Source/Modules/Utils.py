@@ -12,6 +12,9 @@ import os
 from datetime import datetime
 from pathlib import Path
 
+FileExtensions = {
+	'Pages': ('md', 'pug')}
+
 def ReadFile(p):
 	try:
 		with open(p, 'r') as f:
@@ -63,6 +66,10 @@ def DashifyStr(s, Limit=32):
 			Str += c
 	return '-' + Str
 
+def GetPathLevels(Path, AsNum=False, Add=0, Sub=0):
+	n = Path.count('/') + Add - Sub
+	return n if AsNum else '../' * n
+
 # https://stackoverflow.com/a/34445090
 def FindAllIndex(Str, Sub):
 	i = Str.find(Sub)
@@ -85,6 +92,11 @@ def ReplWithEsc(Str, Find, Repl, Esc='\\'):
 			else:
 				New += Repl + e
 	return New
+
+def RevSort(List):
+	List.sort()
+	List.reverse()
+	return List
 
 def GetFullDate(Date):
 	if not Date:
