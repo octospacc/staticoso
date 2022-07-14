@@ -53,7 +53,7 @@ def SetSorting(Sorting):
 			Sorting.update({i:Default[i]})
 	return Sorting
 
-def GetConfMenu(Conf):
+def GetConfMenu(Conf, MarkdownExts):
 	Entries = ReadConf(Conf, 'Menu')
 	if Entries:
 		Menu, Max = [], 0
@@ -67,15 +67,15 @@ def GetConfMenu(Conf):
 			if (e.startswith('<') and e.endswith('>')) or (e.startswith('[') and e.endswith(')')):
 				Menu[int(i)] = markdown(e, extensions=MarkdownExts)
 			else:
-				if not (e.lower().endswith('.html') or e.lower().endswith('.htm')):
-					Menu[int(i)] = e + '.html'
+				if not e.lower().endswith('.html'):
+					e += '.html'
+				Menu[int(i)] = e
 	print(Menu)
 	return Menu
 
 def Main(Args, FeedEntries):
 	HavePages, HavePosts = False, False
 	SiteConf = LoadConf('Site.ini')
-	#SiteMenu = GetConfMenu(SiteConf)
 
 	SiteName = Args.SiteName if Args.SiteName else ReadConf(SiteConf, 'Site', 'Name') if ReadConf(SiteConf, 'Site', 'Name') else ''
 	BlogName = Args.BlogName if Args.BlogName else ReadConf(SiteConf, 'Site', 'BlogName') if ReadConf(SiteConf, 'Site', 'BlogName') else ''
@@ -128,6 +128,7 @@ def Main(Args, FeedEntries):
 		PartsText=LoadFromDir('Parts', '*.html'),
 		ContextParts=literal_eval(Args.ContextParts) if Args.ContextParts else {},
 		ContextPartsText=LoadFromDir('ContextParts', '*.html'),
+		ConfMenu=[],#GetConfMenu(SiteConf, MarkdownExts),
 		SiteName=SiteName,
 		BlogName=BlogName,
 		SiteTagline=SiteTagline,

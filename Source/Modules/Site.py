@@ -69,7 +69,7 @@ def MakeCategoryLine(File, Meta):
 			Categories += '[{}]({}{}.html)  '.format(i, GetPathLevels(File) + 'Categories/', i)
 	return Categories
 
-def GetHTMLPagesList(Pages, BlogName, SiteRoot, PathPrefix, Type='Page', Category=None, For='Menu'):
+def GetHTMLPagesList(Pages, BlogName, SiteRoot, PathPrefix, Unite=[], Type='Page', Category=None, For='Menu'):
 	List, ToPop, LastParent = '', [], []
 	IndexPages = Pages.copy()
 	for e in IndexPages:
@@ -83,8 +83,11 @@ def GetHTMLPagesList(Pages, BlogName, SiteRoot, PathPrefix, Type='Page', Categor
 		IndexPages.pop(i)
 	if Type == 'Page':
 		IndexPages = OrderPages(IndexPages)
+	for i,e in enumerate(Unite):
+		if e:
+			IndexPages.insert(i,[e,None,None,{'Type':Type,'Index':'True','Order':'Unite'}])
 	for File, Content, Titles, Meta in IndexPages:
-		if Meta['Type'] == Type and CanIndex(Meta['Index'], For) and GetTitle(Meta, Titles, 'HTMLTitle', BlogName) != 'Untitled' and (not Category or Category in Meta['Categories']):
+		if Meta['Type'] == Type and CanIndex(Meta['Index'], For) and (not Category or Category in Meta['Categories']):
 			n = File.count('/') + 1
 			if n > 1:
 				CurParent = File.split('/')[:-1]
@@ -99,7 +102,10 @@ def GetHTMLPagesList(Pages, BlogName, SiteRoot, PathPrefix, Type='Page', Categor
 						List += Levels + Title + '\n'
 			if not (n > 1 and StripExt(File).endswith('index')):
 				Levels = '- ' * n
-				Title = MakeListTitle(File, Meta, Titles, 'HTMLTitle', SiteRoot, BlogName, PathPrefix)
+				if Meta['Order'] == 'Unite':
+					Title = File
+				else:
+					Title = MakeListTitle(File, Meta, Titles, 'HTMLTitle', SiteRoot, BlogName, PathPrefix)
 				List += Levels + Title + '\n'
 	return markdown(List)
 
@@ -275,7 +281,7 @@ def PatchHTML(File, HTML, PartsText, ContextParts, ContextPartsText, HTMLPagesLi
 
 	return HTML, ContentHTML, SlimHTML, Description, Image
 
-def DoMinify(HTML):
+def DoMinifyHTML(HTML):
 	return htmlmin.minify(
 		input=HTML,
 		remove_comments=True,
@@ -287,7 +293,7 @@ def DoMinify(HTML):
 		convert_charrefs=True,
 		keep_pre=True)
 
-def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteName, BlogName, SiteTagline, SiteDomain, SiteRoot, FolderRoots, SiteLang, Locale, Minify, Sorting, MarkdownExts, AutoCategories):
+def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, ConfMenu, SiteName, BlogName, SiteTagline, SiteDomain, SiteRoot, FolderRoots, SiteLang, Locale, Minify, Sorting, MarkdownExts, AutoCategories):
 	PagesPaths, PostsPaths, Pages, MadePages, Categories = [], [], [], [], {}
 	for Ext in FileExtensions['Pages']:
 		for File in Path('Pages').rglob('*.{}'.format(Ext)):
@@ -355,6 +361,15 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteName,
 				Content, Titles, Meta = Preprocessor(FilePath, SiteRoot)
 				Pages += [[File, Content, Titles, Meta]]
 
+	for i,e in enumerate(ConfMenu):
+		print(e,i)
+		for File, Content, Titles, Meta in Pages:
+			File = StripExt(File)+'.html'
+			if e == File:
+				ConfMenu[i] = None
+				print(File)
+		print(ConfMenu)
+
 	print("[I] Writing Pages")
 	for File, Content, Titles, Meta in Pages:
 		HTMLPagesList = GetHTMLPagesList(
@@ -362,6 +377,7 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteName,
 			BlogName=BlogName,
 			SiteRoot=SiteRoot,
 			PathPrefix=GetPathLevels(File),
+			Unite=ConfMenu,
 			Type='Page',
 			For='Menu')
 		PagePath = 'public/{}.html'.format(StripExt(File))
@@ -388,7 +404,7 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, SiteName,
 			SiteLang=SiteLang,
 			Locale=Locale)
 		if Minify:
-			HTML = DoMinify(HTML)
+			HTML = DoMinifyHTML(HTML)
 		WriteFile(PagePath, HTML)
 		MadePages += [[File, Content, Titles, Meta, ContentHTML, SlimHTML, Description, Image]]
 
