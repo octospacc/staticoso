@@ -12,3 +12,11 @@ try:
 	from markdown import markdown
 except ModuleNotFoundError:
 	from Libs.markdown import markdown
+
+def MarkdownHTMLEscape(Str, Extensions=()): # WIP
+	Text = ''
+	for i,e in enumerate(Str):
+		if ('mdx_subscript' or 'markdown_del_ins') in Extensions and e == '~':
+			e = '&#x7E;'
+		Text += e
+	return Text

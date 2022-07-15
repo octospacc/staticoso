@@ -69,7 +69,7 @@ def MakeCategoryLine(File, Meta):
 			Categories += '[{}]({}{}.html)  '.format(i, GetPathLevels(File) + 'Categories/', i)
 	return Categories
 
-def GetHTMLPagesList(Pages, BlogName, SiteRoot, PathPrefix, Unite=[], Type='Page', Category=None, For='Menu'):
+def GetHTMLPagesList(Pages, BlogName, SiteRoot, PathPrefix, Unite=[], Type='Page', Category=None, For='Menu', MarkdownExts=()):
 	List, ToPop, LastParent = '', [], []
 	IndexPages = Pages.copy()
 	for e in IndexPages:
@@ -88,26 +88,26 @@ def GetHTMLPagesList(Pages, BlogName, SiteRoot, PathPrefix, Unite=[], Type='Page
 			IndexPages.insert(i,[e,None,None,{'Type':Type,'Index':'True','Order':'Unite'}])
 	for File, Content, Titles, Meta in IndexPages:
 		if Meta['Type'] == Type and CanIndex(Meta['Index'], For) and (not Category or Category in Meta['Categories']):
-			n = File.count('/') + 1
-			if n > 1:
+			Depth = (File.count('/') + 1) if Meta['Order'] != 'Unite' else 1
+			if Depth > 1 and Meta['Order'] != 'Unite':
 				CurParent = File.split('/')[:-1]
 				for i,s in enumerate(CurParent):
 					if LastParent != CurParent:
 						LastParent = CurParent
-						Levels = '- ' * (n-1+i)
+						Levels = '- ' * (Depth-1+i)
 						if StripExt(File).endswith('index'):
 							Title = MakeListTitle(File, Meta, Titles, 'HTMLTitle', SiteRoot, BlogName, PathPrefix)
 						else:
-							Title = CurParent[n-2+i]
+							Title = CurParent[Depth-2+i]
 						List += Levels + Title + '\n'
-			if not (n > 1 and StripExt(File).endswith('index')):
-				Levels = '- ' * n
+			if not (Depth > 1 and StripExt(File).endswith('index')):
+				Levels = '- ' * Depth
 				if Meta['Order'] == 'Unite':
 					Title = File
 				else:
 					Title = MakeListTitle(File, Meta, Titles, 'HTMLTitle', SiteRoot, BlogName, PathPrefix)
 				List += Levels + Title + '\n'
-	return markdown(List)
+	return markdown(MarkdownHTMLEscape(List, MarkdownExts), extensions=MarkdownExts)
 
 def Preprocessor(Path, SiteRoot):
 	File = ReadFile(Path)
@@ -338,7 +338,8 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, ConfMenu,
 					PathPrefix=GetPathLevels('Categories/'),
 					Type=Type,
 					Category=Cat,
-					For='Categories')
+					For='Categories',
+					MarkdownExts=MarkdownExts)
 
 	if AutoCategories:
 		Dir = 'public/Categories'
@@ -362,13 +363,13 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, ConfMenu,
 				Pages += [[File, Content, Titles, Meta]]
 
 	for i,e in enumerate(ConfMenu):
-		print(e,i)
+		#print(e,i)
 		for File, Content, Titles, Meta in Pages:
 			File = StripExt(File)+'.html'
 			if e == File:
 				ConfMenu[i] = None
-				print(File)
-		print(ConfMenu)
+				#print(File)
+		#print(ConfMenu)
 
 	print("[I] Writing Pages")
 	for File, Content, Titles, Meta in Pages:
@@ -379,7 +380,8 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, ConfMenu,
 			PathPrefix=GetPathLevels(File),
 			Unite=ConfMenu,
 			Type='Page',
-			For='Menu')
+			For='Menu',
+			MarkdownExts=MarkdownExts)
 		PagePath = 'public/{}.html'.format(StripExt(File))
 		if File.endswith('.md'):
 			Content = markdown(Content, extensions=MarkdownExts)

@@ -53,8 +53,7 @@ def SetSorting(Sorting):
 			Sorting.update({i:Default[i]})
 	return Sorting
 
-def GetConfMenu(Conf, MarkdownExts):
-	Entries = ReadConf(Conf, 'Menu')
+def GetConfMenu(Entries, MarkdownExts):
 	if Entries:
 		Menu, Max = [], 0
 		for i in Entries:
@@ -64,13 +63,18 @@ def GetConfMenu(Conf, MarkdownExts):
 			Menu += [[]]
 		for i in Entries:
 			e = Entries[i]
-			if (e.startswith('<') and e.endswith('>')) or (e.startswith('[') and e.endswith(')')):
-				Menu[int(i)] = markdown(e, extensions=MarkdownExts)
-			else:
+			#if not (e.startswith('<') or e.endswith('>') or e.startswith('[') or e.endswith(')')):
+			if not ((e.startswith('<') or e.startswith('[') or e.startswith('- ')) and (e.endswith('>') or e.endswith(')') or e.endswith(' }'))):
 				if not e.lower().endswith('.html'):
 					e += '.html'
-				Menu[int(i)] = e
-	print(Menu)
+			Menu[int(i)] = e
+			#if (e.startswith('<') and e.endswith('>')) or (e.startswith('[') and (e.endswith(')') or e.endswith('}'))):
+			#	Menu[int(i)] = markdown(e, extensions=MarkdownExts)
+			#else:
+			#	if not e.lower().endswith('.html'):
+			#		e += '.html'
+			#	Menu[int(i)] = e
+	#print(Menu)
 	return Menu
 
 def Main(Args, FeedEntries):
@@ -85,7 +89,7 @@ def Main(Args, FeedEntries):
 	Locale = LoadLocale(SiteLang)
 	MastodonURL = Args.MastodonURL if Args.MastodonURL else ''
 	MastodonToken = Args.MastodonToken if Args.MastodonToken else ''
-	MarkdownExts = literal_eval(Args.MarkdownExts) if Args.MarkdownExts else EvalOpt(ReadConf(SiteConf, 'Site', 'MarkdownExts')) if ReadConf(SiteConf, 'Site', 'MarkdownExts') else ['attr_list', 'def_list', 'markdown_del_ins', 'mdx_subscript', 'mdx_superscript']
+	MarkdownExts = literal_eval(Args.MarkdownExts) if Args.MarkdownExts else EvalOpt(ReadConf(SiteConf, 'Site', 'MarkdownExts')) if ReadConf(SiteConf, 'Site', 'MarkdownExts') else ('attr_list', 'def_list', 'markdown_del_ins', 'mdx_subscript', 'mdx_superscript')
 
 	Minify = False
 	if Args.Minify != None:
@@ -104,6 +108,12 @@ def Main(Args, FeedEntries):
 		if ReadConf(SiteConf, 'Site', 'AutoCategories') != None:
 			if EvalOpt(ReadConf(SiteConf, 'Site', 'AutoCategories')) == True:
 				AutoCategories = True
+
+	Entries = ReadConf(SiteConf, 'Menu')
+	if Entries:
+		ConfMenu = GetConfMenu(Entries, MarkdownExts)
+	else:
+		ConfMenu = []
 
 	ResetPublic()
 
@@ -128,7 +138,7 @@ def Main(Args, FeedEntries):
 		PartsText=LoadFromDir('Parts', '*.html'),
 		ContextParts=literal_eval(Args.ContextParts) if Args.ContextParts else {},
 		ContextPartsText=LoadFromDir('ContextParts', '*.html'),
-		ConfMenu=[],#GetConfMenu(SiteConf, MarkdownExts),
+		ConfMenu=ConfMenu,
 		SiteName=SiteName,
 		BlogName=BlogName,
 		SiteTagline=SiteTagline,
