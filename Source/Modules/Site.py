@@ -293,7 +293,7 @@ def DoMinifyHTML(HTML):
 		convert_charrefs=True,
 		keep_pre=True)
 
-def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, ConfMenu, SiteName, BlogName, SiteTagline, SiteDomain, SiteRoot, FolderRoots, SiteLang, Locale, Minify, Sorting, MarkdownExts, AutoCategories):
+def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, ConfMenu, SiteName, BlogName, SiteTagline, SiteDomain, SiteRoot, FolderRoots, SiteLang, Locale, Minify, NoScripts, Sorting, MarkdownExts, AutoCategories):
 	PagesPaths, PostsPaths, Pages, MadePages, Categories = [], [], [], [], {}
 	for Ext in FileExtensions['Pages']:
 		for File in Path('Pages').rglob('*.{}'.format(Ext)):
@@ -363,13 +363,10 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, ConfMenu,
 				Pages += [[File, Content, Titles, Meta]]
 
 	for i,e in enumerate(ConfMenu):
-		#print(e,i)
 		for File, Content, Titles, Meta in Pages:
 			File = StripExt(File)+'.html'
 			if e == File:
 				ConfMenu[i] = None
-				#print(File)
-		#print(ConfMenu)
 
 	print("[I] Writing Pages")
 	for File, Content, Titles, Meta in Pages:
@@ -405,6 +402,11 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, ConfMenu,
 			Categories=Categories,
 			SiteLang=SiteLang,
 			Locale=Locale)
+		if NoScripts:
+			HTML = (HTML
+				).replace('<script>', '<!-- script >'
+				).replace('<script ', '<!-- script '
+				).replace('</script>', '</ script -->')
 		if Minify:
 			HTML = DoMinifyHTML(HTML)
 		WriteFile(PagePath, HTML)

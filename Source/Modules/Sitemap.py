@@ -7,7 +7,7 @@
 |   Copyright (C) 2022, OctoSpacc     |
 | ================================= """ 
 
-import urllib
+from urllib.parse import quote as URLEncode
 from Modules.Utils import *
 
 def MakeSitemap(Pages, SiteDomain=''):
@@ -15,5 +15,5 @@ def MakeSitemap(Pages, SiteDomain=''):
 	for File, Content, Titles, Meta, ContentHTML, SlimHTML, Description, Image in Pages:
 		File = '{}.html'.format(StripExt(File))
 		Domain = SiteDomain + '/' if SiteDomain else ' '
-		Map += Domain + urllib.parse.quote(File) + '\n'
+		Map += Domain + URLEncode(File) + '\n'
 	WriteFile('public/sitemap.txt', Map)

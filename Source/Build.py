@@ -63,18 +63,10 @@ def GetConfMenu(Entries, MarkdownExts):
 			Menu += [[]]
 		for i in Entries:
 			e = Entries[i]
-			#if not (e.startswith('<') or e.endswith('>') or e.startswith('[') or e.endswith(')')):
 			if not ((e.startswith('<') or e.startswith('[') or e.startswith('- ')) and (e.endswith('>') or e.endswith(')') or e.endswith(' }'))):
 				if not e.lower().endswith('.html'):
 					e += '.html'
 			Menu[int(i)] = e
-			#if (e.startswith('<') and e.endswith('>')) or (e.startswith('[') and (e.endswith(')') or e.endswith('}'))):
-			#	Menu[int(i)] = markdown(e, extensions=MarkdownExts)
-			#else:
-			#	if not e.lower().endswith('.html'):
-			#		e += '.html'
-			#	Menu[int(i)] = e
-	#print(Menu)
 	return Menu
 
 def Main(Args, FeedEntries):
@@ -148,6 +140,7 @@ def Main(Args, FeedEntries):
 		SiteLang=SiteLang,
 		Locale=Locale,
 		Minify=Minify,
+		NoScripts=True if Args.NoScripts else False,
 		Sorting=SetSorting(literal_eval(Args.ContextParts) if Args.ContextParts else {}),
 		MarkdownExts=MarkdownExts,
 		AutoCategories=AutoCategories)
@@ -216,6 +209,7 @@ if __name__ == '__main__':
 	Parser.add_argument('--SiteName', type=str)
 	Parser.add_argument('--BlogName', type=str)
 	Parser.add_argument('--SiteDomain', type=str)
+	Parser.add_argument('--NoScripts', type=bool)
 	Parser.add_argument('--GemtextOut', type=bool)
 	Parser.add_argument('--GemtextHeader', type=str)
 	Parser.add_argument('--SiteTagline', type=str)
