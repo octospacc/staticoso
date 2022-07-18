@@ -13,10 +13,10 @@ from Libs.dateutil.parser import parse as date_parse
 from Libs.mastodon import Mastodon
 from Modules.Utils import *
 
-def MastodonGetSession(MastodonURL, MastodonToken):
+def MastodonGetSession(InstanceURL, Token):
 	return Mastodon(
-		api_base_url=MastodonURL,
-		access_token=MastodonToken)
+		api_base_url=InstanceURL,
+		access_token=Token)
 
 def MastodonGetMyID(Session):
 	return Session.me()['id']
@@ -52,8 +52,8 @@ def MastodonGetAllLinkPosts(Session, Domain=None):
 	return Posts
 
 # TODO: Set a limit/cooldown on how many new posts at a time can be posted, or ignore posts older than date X.. otherwise if someone starts using this after having written 100 blog posts, bad things will happen
-def MastodonShare(MastodonURL, MastodonToken, TypeFilter, CategoryFilter, HoursLimit, Pages, SiteDomain, SiteLang, Locale):
-	Session = MastodonGetSession(MastodonURL, MastodonToken)
+def MastodonShare(InstanceURL, Token, TypeFilter, CategoryFilter, HoursLimit, Pages, SiteDomain, SiteLang, Locale):
+	Session = MastodonGetSession(InstanceURL, Token)
 	Posts = MastodonGetAllLinkPosts(Session, SiteDomain)
 	Pages.sort()
 	for File, Content, Titles, Meta, ContentHTML, SlimHTML, Description, Image in Pages:

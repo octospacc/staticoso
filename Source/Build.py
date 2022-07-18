@@ -165,12 +165,12 @@ def Main(Args, FeedEntries):
 	if ActivityPub and MastodonURL and MastodonToken and SiteDomain:
 		print("[I] Mastodon Stuff")
 		MastodonPosts = MastodonShare(
-			MastodonURL,
-			MastodonToken,
-			Pages,
-			SiteDomain,
-			SiteLang,
-			Locale,
+			InstanceURL=MastodonURL,
+			Token=MastodonToken,
+			Pages=Pages,
+			SiteDomain=SiteDomain,
+			SiteLang=SiteLang,
+			Locale=Locale,
 			TypeFilter=Args.ActivityPubTypeFilter if Args.ActivityPubTypeFilter else 'Post',
 			CategoryFilter=Args.ActivityPubCategoryFilter if Args.ActivityPubCategoryFilter else 'Blog',
 			HoursLimit=Args.ActivityPubHoursLimit if Args.ActivityPubHoursLimit else 168)
