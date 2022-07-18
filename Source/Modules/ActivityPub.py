@@ -7,8 +7,9 @@
 |   Copyright (C) 2022, OctoSpacc     |
 | ================================= """
 
-from time import sleep
+import time
 from Libs.bs4 import BeautifulSoup
+from Libs.dateutil.parser import parse as date_parse
 from Libs.mastodon import Mastodon
 from Modules.Utils import *
 
@@ -51,12 +52,12 @@ def MastodonGetAllLinkPosts(Session, Domain=None):
 	return Posts
 
 # TODO: Set a limit/cooldown on how many new posts at a time can be posted, or ignore posts older than date X.. otherwise if someone starts using this after having written 100 blog posts, bad things will happen
-def MastodonShare(MastodonURL, MastodonToken, Pages, SiteDomain, SiteLang, Locale):
+def MastodonShare(MastodonURL, MastodonToken, TypeFilter, CategoryFilter, HoursLimit, Pages, SiteDomain, SiteLang, Locale):
 	Session = MastodonGetSession(MastodonURL, MastodonToken)
 	Posts = MastodonGetAllLinkPosts(Session, SiteDomain)
 	Pages.sort()
 	for File, Content, Titles, Meta, ContentHTML, SlimHTML, Description, Image in Pages:
-		if Meta['Type'] == 'Post':
+		if (not TypeFilter or (TypeFilter and (Meta['Type'] == TypeFilter or TypeFilter == '*'))) and (not CategoryFilter or (CategoryFilter and (CategoryFilter in Meta['Categories'] or CategoryFilter == '*'))):
 			Desc = ''
 			Parse = BeautifulSoup(ContentHTML, 'html.parser')
 			Paragraphs = Parse.p.get_text().split('\n')
@@ -75,8 +76,8 @@ def MastodonShare(MastodonURL, MastodonToken, Pages, SiteDomain, SiteLang, Local
 				if p['Link'] == URL:
 					DoPost = False
 					break
-			if DoPost:
-				sleep(3)
+			if DoPost and (not HoursLimit or (Meta['Created on'] and time.time() - time.mktime(date_parse(Meta['Created on']).timetuple()) < 60*60*HoursLimit)):
+				time.sleep(5)
 				Post = MastodonGetLinkFromPost(
 					Post=MastodonDoPost(
 						Session,

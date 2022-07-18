@@ -1,2 +1,1 @@
-- ActivityPub: Only post "Blog" posts and not older than some date
 - Fix arguments - some are only callable from CLI and not Site.ini

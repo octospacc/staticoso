@@ -170,7 +170,10 @@ def Main(Args, FeedEntries):
 			Pages,
 			SiteDomain,
 			SiteLang,
-			Locale)
+			Locale,
+			TypeFilter=Args.ActivityPubTypeFilter if Args.ActivityPubTypeFilter else 'Post',
+			CategoryFilter=Args.ActivityPubCategoryFilter if Args.ActivityPubCategoryFilter else 'Blog',
+			HoursLimit=Args.ActivityPubHoursLimit if Args.ActivityPubHoursLimit else 168)
 	else:
 		MastodonPosts = []
 
@@ -220,6 +223,9 @@ if __name__ == '__main__':
 	Parser.add_argument('--MarkdownExts', type=str)
 	Parser.add_argument('--MastodonURL', type=str)
 	Parser.add_argument('--MastodonToken', type=str)
+	Parser.add_argument('--ActivityPubTypeFilter', type=str)
+	Parser.add_argument('--ActivityPubCategoryFilter', type=str)
+	Parser.add_argument('--ActivityPubHoursLimit', type=int)
 	Parser.add_argument('--AutoCategories', type=str)
 	Args = Parser.parse_args()
 
