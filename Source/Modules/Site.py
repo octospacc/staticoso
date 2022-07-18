@@ -9,6 +9,7 @@
 
 from Libs import htmlmin
 from Libs.bs4 import BeautifulSoup
+from Modules.HTML import *
 from Modules.Markdown import *
 from Modules.Pug import *
 from Modules.Utils import *
@@ -403,10 +404,7 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, ConfMenu,
 			SiteLang=SiteLang,
 			Locale=Locale)
 		if NoScripts:
-			HTML = (HTML
-				).replace('<script>', '<!-- script >'
-				).replace('<script ', '<!-- script '
-				).replace('</script>', '</ script -->')
+			HTML = StripTags(HTML, ['script'])
 		if Minify:
 			HTML = DoMinifyHTML(HTML)
 		WriteFile(PagePath, HTML)
