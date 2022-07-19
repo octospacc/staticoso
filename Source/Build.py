@@ -81,7 +81,7 @@ def Main(Args, FeedEntries):
 	Locale = LoadLocale(SiteLang)
 	MastodonURL = Args.MastodonURL if Args.MastodonURL else ''
 	MastodonToken = Args.MastodonToken if Args.MastodonToken else ''
-	MarkdownExts = literal_eval(Args.MarkdownExts) if Args.MarkdownExts else EvalOpt(ReadConf(SiteConf, 'Site', 'MarkdownExts')) if ReadConf(SiteConf, 'Site', 'MarkdownExts') else ('attr_list', 'def_list', 'markdown_del_ins', 'mdx_subscript', 'mdx_superscript')
+	MarkdownExts = literal_eval(Args.MarkdownExts) if Args.MarkdownExts else EvalOpt(ReadConf(SiteConf, 'Site', 'MarkdownExts')) if ReadConf(SiteConf, 'Site', 'MarkdownExts') else ('attr_list', 'def_list', 'markdown_del_ins', 'md_in_html', 'mdx_subscript', 'mdx_superscript')
 
 	Minify = False
 	if Args.Minify != None:
