@@ -12,7 +12,7 @@
 from Libs.feedgen.feed import FeedGenerator
 from Modules.Utils import *
 
-def MakeFeed(Pages, SiteName, SiteTagline, SiteDomain, MaxEntries, Lang, FullSite=False, Minify=False):
+def MakeFeed(CategoryFilter, Pages, SiteName, SiteTagline, SiteDomain, MaxEntries, Lang, FullSite=False, Minify=False):
 	Feed = FeedGenerator()
 	Link = SiteDomain if SiteDomain else ' '
 	Feed.id(Link)
@@ -31,7 +31,7 @@ def MakeFeed(Pages, SiteName, SiteTagline, SiteDomain, MaxEntries, Lang, FullSit
 	DoPages.reverse()
 
 	for File, Content, Titles, Meta, ContentHTML, SlimHTML, Description, Image in DoPages:
-		if FullSite or (not FullSite and Meta['Type'] == 'Post'):
+		if FullSite or (not FullSite and Meta['Type'] == 'Post' and (not CategoryFilter or (CategoryFilter and (CategoryFilter in Meta['Categories'] or CategoryFilter == '*')))):
 			Entry = Feed.add_entry()
 			File = '{}.html'.format(StripExt(File))
 			Content = ReadFile('public/'+File)
@@ -39,7 +39,7 @@ def MakeFeed(Pages, SiteName, SiteTagline, SiteDomain, MaxEntries, Lang, FullSit
 			CreatedOn = GetFullDate(Meta['CreatedOn'])
 			EditedOn = GetFullDate(Meta['EditedOn'])
 			Entry.id(Link)
-			Entry.title(Meta['Title'] if Meta['Title'] else ' ')
+			Entry.title(Meta['Title'] if Meta['Title'] else Titles[0].lstrip('#') if Titles else 'Untitled')
 			Entry.description(Description)
 			Entry.link(href=Link, rel='alternate')
 			if not FullSite: # Avoid making an enormous site feed file...

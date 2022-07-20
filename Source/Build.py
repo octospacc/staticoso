@@ -82,6 +82,8 @@ def Main(Args, FeedEntries):
 	MastodonURL = Args.MastodonURL if Args.MastodonURL else ''
 	MastodonToken = Args.MastodonToken if Args.MastodonToken else ''
 	MarkdownExts = literal_eval(Args.MarkdownExts) if Args.MarkdownExts else EvalOpt(ReadConf(SiteConf, 'Site', 'MarkdownExts')) if ReadConf(SiteConf, 'Site', 'MarkdownExts') else ('attr_list', 'def_list', 'markdown_del_ins', 'md_in_html', 'mdx_subscript', 'mdx_superscript')
+	ActivityPubTypeFilter = Args.ActivityPubTypeFilter if Args.ActivityPubTypeFilter else 'Post'
+	FeedCategoryFilter = Args.FeedCategoryFilter if Args.FeedCategoryFilter else 'Blog'
 
 	Minify = False
 	if Args.Minify != None:
@@ -149,6 +151,7 @@ def Main(Args, FeedEntries):
 		print("[I] Generating Feeds")
 		for FeedType in (True, False):
 			MakeFeed(
+				CategoryFilter=FeedCategoryFilter,
 				Pages=Pages,
 				SiteName=SiteName,
 				SiteTagline=SiteTagline,
@@ -171,8 +174,8 @@ def Main(Args, FeedEntries):
 			SiteDomain=SiteDomain,
 			SiteLang=SiteLang,
 			Locale=Locale,
-			TypeFilter=Args.ActivityPubTypeFilter if Args.ActivityPubTypeFilter else 'Post',
-			CategoryFilter=Args.ActivityPubCategoryFilter if Args.ActivityPubCategoryFilter else 'Blog',
+			TypeFilter=ActivityPubTypeFilter,
+			CategoryFilter=FeedCategoryFilter,
 			HoursLimit=Args.ActivityPubHoursLimit if Args.ActivityPubHoursLimit else 168)
 	else:
 		MastodonPosts = []
@@ -223,8 +226,8 @@ if __name__ == '__main__':
 	Parser.add_argument('--MarkdownExts', type=str)
 	Parser.add_argument('--MastodonURL', type=str)
 	Parser.add_argument('--MastodonToken', type=str)
+	Parser.add_argument('--FeedCategoryFilter', type=str)
 	Parser.add_argument('--ActivityPubTypeFilter', type=str)
-	Parser.add_argument('--ActivityPubCategoryFilter', type=str)
 	Parser.add_argument('--ActivityPubHoursLimit', type=int)
 	Parser.add_argument('--AutoCategories', type=str)
 	Args = Parser.parse_args()
