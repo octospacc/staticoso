@@ -112,7 +112,7 @@ def GetHTMLPagesList(Pages, BlogName, SiteRoot, PathPrefix, Unite=[], Type='Page
 
 def Preprocessor(Path, SiteRoot):
 	File = ReadFile(Path)
-	Content, Titles, DashyTitles, Meta = '', [], [], {
+	Content, Titles, DashyTitles, HTMLTitlesFound, Meta = '', [], [], False, {
 		'Template': 'Standard.html',
 		'Style': '',
 		'Type': '',
@@ -143,16 +143,32 @@ def Preprocessor(Path, SiteRoot):
 			elif lss.startswith('Order: '):
 				Meta['Order'] = int(lss[len('Order: '):])
 		else:
-			if Path.endswith('.md'):
+			Headings = ('h1', 'h2', 'h3', 'h4', 'h5', 'h6')
+			if Path.endswith('.html') and not HTMLTitlesFound:
+				Soup = BeautifulSoup(File, 'html.parser')
+				Tags = Soup.find_all()
+				#for t in Soup.find_all(Headings):
+				for t in Tags:
+					if t.name in Headings:
+						Title = '#'*int(t.name[1]) + ' ' + str(t.text)
+						DashTitle = DashifyTitle(Title.lstrip('#'), DashyTitles)
+						DashyTitles += [DashTitle]
+						Titles += [Title]
+						t.replace_with(MakeLinkableTitle(None, Title, DashTitle, 'md'))
+						print(Titles)
+				Content = str(Soup)
+				print(Content)
+				HTMLTitlesFound = True
+			elif Path.endswith('.md'):
 				if ls.startswith('#'):
 					DashTitle = DashifyTitle(l.lstrip('#'), DashyTitles)
 					DashyTitles += [DashTitle]
 					Titles += [l]
-					Content += MakeLinkableTitle(l, ls, DashTitle, 'md') + '\n'
+					Content += MakeLinkableTitle(None, ls, DashTitle, 'md') + '\n'
 				else:
 					Content += l + '\n'
 			elif Path.endswith('.pug'):
-				if ls.startswith(('h1', 'h2', 'h3', 'h4', 'h5', 'h6')):
+				if ls.startswith(Headings):
 					if ls[2:].startswith(("(class='NoTitle", '(class="NoTitle')):
 						Content += l + '\n'
 					else:
@@ -383,7 +399,7 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, ConfMenu,
 		PagePath = 'public/{}.html'.format(StripExt(File))
 		if File.endswith('.md'):
 			Content = markdown(Content, extensions=MarkdownExts)
-		elif File.endswith('.pug'):
+		elif File.endswith(('.html','.pug')):
 			Content = ReadFile(PagePath)
 		HTML, ContentHTML, SlimHTML, Description, Image = PatchHTML(
 			File=File,
