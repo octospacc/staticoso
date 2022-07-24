@@ -20,4 +20,5 @@ def PugCompileList(Pages):
 			Path = 'public/{}'.format(File)
 			WriteFile(Path, Content)
 			Paths += '"{}" '.format(Path)
-	os.system('pug -P {} > /dev/null'.format(Paths))
+	if Paths:
+		os.system('pug -P {} > /dev/null'.format(Paths))

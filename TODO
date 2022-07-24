@@ -1,3 +1,2 @@
 - Fix arguments - some are only callable from CLI and not Site.ini
-- Accept HTML files as input pages
 - Optionally disabling nesting and folder listing for page lists

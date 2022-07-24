@@ -117,6 +117,7 @@ def Preprocessor(Path, SiteRoot):
 		'Style': '',
 		'Type': '',
 		'Index': 'True',
+		'Feed': 'True',
 		'Title': '',
 		'HTMLTitle': '',
 		'Description': '',
@@ -129,7 +130,7 @@ def Preprocessor(Path, SiteRoot):
 		ls = l.lstrip()
 		if ls.startswith('// '):
 			lss = ls[3:]
-			for Item in ('Template', 'Type', 'Index', 'Title', 'HTMLTitle', 'Description', 'Image', 'CreatedOn', 'EditedOn'):
+			for Item in ('Template', 'Type', 'Index', 'Feed', 'Title', 'HTMLTitle', 'Description', 'Image', 'CreatedOn', 'EditedOn'):
 				ItemText = '{}: '.format(Item)
 				if lss.startswith(ItemText):
 					Meta[Item] = lss[len(ItemText):]
@@ -147,7 +148,6 @@ def Preprocessor(Path, SiteRoot):
 			if Path.endswith('.html') and not HTMLTitlesFound:
 				Soup = BeautifulSoup(File, 'html.parser')
 				Tags = Soup.find_all()
-				#for t in Soup.find_all(Headings):
 				for t in Tags:
 					if t.name in Headings:
 						Title = '#'*int(t.name[1]) + ' ' + str(t.text)
@@ -155,9 +155,7 @@ def Preprocessor(Path, SiteRoot):
 						DashyTitles += [DashTitle]
 						Titles += [Title]
 						t.replace_with(MakeLinkableTitle(None, Title, DashTitle, 'md'))
-						print(Titles)
-				Content = str(Soup)
-				print(Content)
+				Content = str(Soup.prettify(formatter=None))
 				HTMLTitlesFound = True
 			elif Path.endswith('.md'):
 				if ls.startswith('#'):
@@ -399,7 +397,7 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, ConfMenu,
 		PagePath = 'public/{}.html'.format(StripExt(File))
 		if File.endswith('.md'):
 			Content = markdown(Content, extensions=MarkdownExts)
-		elif File.endswith(('.html','.pug')):
+		elif File.endswith(('.pug')):
 			Content = ReadFile(PagePath)
 		HTML, ContentHTML, SlimHTML, Description, Image = PatchHTML(
 			File=File,

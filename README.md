@@ -42,5 +42,5 @@ Feel free to experiment with all of this stuff!
 - [x] Generation of titles in right sidebar with clickable links
 - [x] Detections of titles in a page
 - [x] Custom static page parts by template
-- [x] Extended Markdown + Pug support for pages
+- [x] _HTML_, _Extended Markdown_, and _Pug_ supported for input page files
 - [x] Ready for use
