@@ -84,24 +84,29 @@ def Main(Args, FeedEntries):
 	MarkdownExts = literal_eval(Args.MarkdownExts) if Args.MarkdownExts else EvalOpt(ReadConf(SiteConf, 'Site', 'MarkdownExts')) if ReadConf(SiteConf, 'Site', 'MarkdownExts') else ('attr_list', 'def_list', 'markdown_del_ins', 'md_in_html', 'mdx_subscript', 'mdx_superscript', 'tables')
 	ActivityPubTypeFilter = Args.ActivityPubTypeFilter if Args.ActivityPubTypeFilter else 'Post'
 	FeedCategoryFilter = Args.FeedCategoryFilter if Args.FeedCategoryFilter else 'Blog'
+	Minify = StringBoolChoose(False, Args.Minify, ReadConf(SiteConf, 'Site', 'Minify'))
+	AutoCategories = StringBoolChoose(False, Args.AutoCategories, ReadConf(SiteConf, 'Site', 'AutoCategories'))
+	NoScripts = StringBoolChoose(False, Args.NoScripts, ReadConf(SiteConf, 'Site', 'NoScripts'))
+	GemtextOut = StringBoolChoose(False, Args.GemtextOut, ReadConf(SiteConf, 'Site', 'GemtextOut'))
+	SitemapOut = StringBoolChoose(False, Args.SitemapOut, ReadConf(SiteConf, 'Site', 'SitemapOut'))
 
-	Minify = False
-	if Args.Minify != None:
-		if Args.Minify not in ('False', 'None'):
-			Minify = True
-	else:
-		if ReadConf(SiteConf, 'Site', 'Minify') != None:
-			if ReadConf(SiteConf, 'Site', 'Minify') not in ('False', 'None'):
-				Minify = True
+	#Minify = False
+	#if Args.Minify != None:
+	#	if Args.Minify not in ('False', 'None'):
+	#		Minify = True
+	#else:
+	#	if ReadConf(SiteConf, 'Site', 'Minify') != None:
+	#		if ReadConf(SiteConf, 'Site', 'Minify') not in ('False', 'None'):
+	#			Minify = True
 
-	AutoCategories = False
-	if Args.AutoCategories != None:
-		if literal_eval(Args.AutoCategories) == True:
-			AutoCategories = True
-	else:
-		if ReadConf(SiteConf, 'Site', 'AutoCategories') != None:
-			if EvalOpt(ReadConf(SiteConf, 'Site', 'AutoCategories')) == True:
-				AutoCategories = True
+	#AutoCategories = False
+	#if Args.AutoCategories != None:
+	#	if literal_eval(Args.AutoCategories) == True:
+	#		AutoCategories = True
+	#else:
+	#	if ReadConf(SiteConf, 'Site', 'AutoCategories') != None:
+	#		if EvalOpt(ReadConf(SiteConf, 'Site', 'AutoCategories')) == True:
+	#			AutoCategories = True
 
 	Entries = ReadConf(SiteConf, 'Menu')
 	if Entries:
@@ -114,12 +119,12 @@ def Main(Args, FeedEntries):
 	if os.path.isdir('Pages'):
 		HavePages = True
 		shutil.copytree('Pages', 'public')
-		if Args.GemtextOut:
+		if GemtextOut:
 			shutil.copytree('Pages', 'public.gmi', ignore=IgnoreFiles)
 	if os.path.isdir('Posts'):
 		HavePosts = True
 		shutil.copytree('Posts', 'public/Posts')
-		if Args.GemtextOut:
+		if GemtextOut:
 			shutil.copytree('Posts', 'public.gmi/Posts', ignore=IgnoreFiles)
 
 	if not HavePages and not HavePosts:
@@ -142,7 +147,7 @@ def Main(Args, FeedEntries):
 		SiteLang=SiteLang,
 		Locale=Locale,
 		Minify=Minify,
-		NoScripts=True if Args.NoScripts else False,
+		NoScripts=NoScripts,
 		Sorting=SetSorting(literal_eval(Args.ContextParts) if Args.ContextParts else {}),
 		MarkdownExts=MarkdownExts,
 		AutoCategories=AutoCategories)
@@ -161,7 +166,7 @@ def Main(Args, FeedEntries):
 				FullSite=FeedType,
 				Minify=Minify)
 
-	if Args.SitemapOut:
+	if SitemapOut:
 		print("[I] Generating Sitemap")
 		MakeSitemap(Pages, SiteDomain)
 
@@ -194,7 +199,7 @@ def Main(Args, FeedEntries):
 		Content = Content.replace('[HTML:Comments]', Post)
 		WriteFile(File, Content)
 
-	if Args.GemtextOut:
+	if GemtextOut:
 		print("[I] Generating Gemtext")
 		GemtextCompileList(
 			Pages,
@@ -215,11 +220,11 @@ if __name__ == '__main__':
 	Parser.add_argument('--SiteName', type=str)
 	Parser.add_argument('--BlogName', type=str)
 	Parser.add_argument('--SiteDomain', type=str)
-	Parser.add_argument('--NoScripts', type=bool)
-	Parser.add_argument('--GemtextOut', type=bool)
+	Parser.add_argument('--NoScripts', type=str)
+	Parser.add_argument('--GemtextOut', type=str)
 	Parser.add_argument('--GemtextHeader', type=str)
 	Parser.add_argument('--SiteTagline', type=str)
-	Parser.add_argument('--SitemapOut', type=bool)
+	Parser.add_argument('--SitemapOut', type=str)
 	Parser.add_argument('--FeedEntries', type=int)
 	Parser.add_argument('--FolderRoots', type=str)
 	Parser.add_argument('--ContextParts', type=str)

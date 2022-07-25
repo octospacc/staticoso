@@ -29,3 +29,29 @@ def EvalOpt(Opt):
 		return literal_eval(Opt)
 	else:
 		return None
+
+def StringBoolChoose(Default, Primary, Secondary):
+	Var = Default
+	if Primary != None:
+		Check = Primary
+	else:
+		Check = Secondary
+	if type(Check) == bool:
+		Var = Check
+	elif type(Check) == str:
+		if Check in ('True', 'All', '*'):
+			Var = True
+		elif Check in ('False', 'None'):
+			Var = False
+	#if Primary != None:
+	#	if Primary in ('True', 'All', '*'):
+	#		Var = True
+	#	elif Primary in ('False', 'None'):
+	#		Var = False
+	#else:
+	#	if Secondary != None:
+	#		if Secondary in ('True', 'All', '*'):
+	#			Var = True
+	#		elif Secondary in ('False', 'None'):
+	#			Var = False
+	return Var
