@@ -90,27 +90,9 @@ def Main(Args, FeedEntries):
 	GemtextOut = StringBoolChoose(False, Args.GemtextOut, ReadConf(SiteConf, 'Site', 'GemtextOut'))
 	SitemapOut = StringBoolChoose(False, Args.SitemapOut, ReadConf(SiteConf, 'Site', 'SitemapOut'))
 
-	#Minify = False
-	#if Args.Minify != None:
-	#	if Args.Minify not in ('False', 'None'):
-	#		Minify = True
-	#else:
-	#	if ReadConf(SiteConf, 'Site', 'Minify') != None:
-	#		if ReadConf(SiteConf, 'Site', 'Minify') not in ('False', 'None'):
-	#			Minify = True
-
-	#AutoCategories = False
-	#if Args.AutoCategories != None:
-	#	if literal_eval(Args.AutoCategories) == True:
-	#		AutoCategories = True
-	#else:
-	#	if ReadConf(SiteConf, 'Site', 'AutoCategories') != None:
-	#		if EvalOpt(ReadConf(SiteConf, 'Site', 'AutoCategories')) == True:
-	#			AutoCategories = True
-
-	Entries = ReadConf(SiteConf, 'Menu')
-	if Entries:
-		ConfMenu = GetConfMenu(Entries, MarkdownExts)
+	MenuEntries = ReadConf(SiteConf, 'Menu')
+	if MenuEntries:
+		ConfMenu = GetConfMenu(MenuEntries, MarkdownExts)
 	else:
 		ConfMenu = []
 

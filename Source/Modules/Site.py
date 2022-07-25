@@ -36,7 +36,7 @@ def GetTitle(Meta, Titles, Prefer='MetaTitle', BlogName=None):
 		Title = Meta['Title'] if Meta['Title'] else Titles[0].lstrip('#') if Titles else 'Untitled'
 	elif Prefer == 'HTMLTitle':
 		Title = Meta['HTMLTitle'] if Meta['HTMLTitle'] else Meta['Title'] if Meta['Title'] else Titles[0].lstrip('#') if Titles else 'Untitled'
-	if Meta['Type'] == 'Post' and BlogName:
+	if BlogName and 'Blog' in Meta['Categories']:
 		Title += ' - ' + BlogName
 	return Title
 
@@ -70,7 +70,7 @@ def MakeCategoryLine(File, Meta):
 			Categories += '[{}]({}{}.html)  '.format(i, GetPathLevels(File) + 'Categories/', i)
 	return Categories
 
-def GetHTMLPagesList(Pages, BlogName, SiteRoot, PathPrefix, Unite=[], Type='Page', Category=None, For='Menu', MarkdownExts=()):
+def GetHTMLPagesList(Pages, BlogName, SiteRoot, PathPrefix, Unite=[], Type='Page', Category=None, For='Menu', MarkdownExts=(), ShowPaths=True, Flatten=False):
 	List, ToPop, LastParent = '', [], []
 	IndexPages = Pages.copy()
 	for e in IndexPages:
@@ -95,14 +95,14 @@ def GetHTMLPagesList(Pages, BlogName, SiteRoot, PathPrefix, Unite=[], Type='Page
 				for i,s in enumerate(CurParent):
 					if LastParent != CurParent:
 						LastParent = CurParent
-						Levels = '- ' * (Depth-1+i)
+						Levels = '- ' * ((Depth-1+i) if not Flatten else 1)
 						if StripExt(File).endswith('index'):
 							Title = MakeListTitle(File, Meta, Titles, 'HTMLTitle', SiteRoot, BlogName, PathPrefix)
 						else:
 							Title = CurParent[Depth-2+i]
 						List += Levels + Title + '\n'
-			if not (Depth > 1 and StripExt(File).endswith('index')):
-				Levels = '- ' * Depth
+			if not (Depth > 1 and StripExt(File).split('/')[-1] == 'index'):
+				Levels = '- ' * (Depth if not Flatten else 1)
 				if Meta['Order'] == 'Unite':
 					Title = File
 				else:
@@ -195,12 +195,12 @@ def MakeListTitle(File, Meta, Titles, Prefer, SiteRoot, BlogName, PathPrefix='')
 		Title = '[{}] {}'.format(CreatedOn, Title)
 	return Title
 
-def FormatTitles(Titles):
+def FormatTitles(Titles, Flatten=False):
 	# TODO: Somehow titles written in Pug can end up here and don't work, they should be handled
 	MDTitles, DashyTitles = '', []
 	for t in Titles:
 		n = t.split(' ')[0].count('#')
-		Heading = '- ' * n
+		Heading = '- ' * (n if not Flatten else 1)
 		Title = t.lstrip('#')
 		DashyTitle = DashifyTitle(Title, DashyTitles)
 		DashyTitles += [DashyTitle]
@@ -354,7 +354,8 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, ConfMenu,
 					Type=Type,
 					Category=Cat,
 					For='Categories',
-					MarkdownExts=MarkdownExts)
+					MarkdownExts=MarkdownExts,
+					Flatten=True)
 
 	if AutoCategories:
 		Dir = 'public/Categories'

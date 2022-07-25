@@ -43,15 +43,4 @@ def StringBoolChoose(Default, Primary, Secondary):
 			Var = True
 		elif Check in ('False', 'None'):
 			Var = False
-	#if Primary != None:
-	#	if Primary in ('True', 'All', '*'):
-	#		Var = True
-	#	elif Primary in ('False', 'None'):
-	#		Var = False
-	#else:
-	#	if Secondary != None:
-	#		if Secondary in ('True', 'All', '*'):
-	#			Var = True
-	#		elif Secondary in ('False', 'None'):
-	#			Var = False
 	return Var

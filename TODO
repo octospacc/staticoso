@@ -1,2 +1,1 @@
 - Fix arguments - some are only callable from CLI and not Site.ini
-- Optionally disabling nesting and folder listing for page lists
