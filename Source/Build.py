@@ -63,7 +63,7 @@ def GetConfMenu(Entries, MarkdownExts):
 			Menu += [[]]
 		for i in Entries:
 			e = Entries[i]
-			if not ((e.startswith('<') or e.startswith('[') or e.startswith('- ')) and (e.endswith('>') or e.endswith(')') or e.endswith(' }'))):
+			if not ((e.startswith('<') or e.startswith('[') or e.startswith('- ')) and (e.endswith('>') or e.endswith(')') or e.endswith('}'))):
 				if not e.lower().endswith('.html'):
 					e += '.html'
 			Menu[int(i)] = e
