@@ -111,7 +111,7 @@ def GetHTMLPagesList(Pages, BlogName, SiteRoot, PathPrefix, Unite=[], Type='Page
 				List += Levels + Title + '\n'
 	return markdown(MarkdownHTMLEscape(List, MarkdownExts), extensions=MarkdownExts)
 
-def Preprocessor(Path, SiteRoot):
+def Preprocessor(Path, SiteRoot, GlobalMacros):
 	File = ReadFile(Path)
 	Content, Titles, DashyTitles, HTMLTitlesFound, Macros, Meta = '', [], [], False, '', {
 		'Template': 'Standard.html',
@@ -185,7 +185,9 @@ def Preprocessor(Path, SiteRoot):
 							Content += MakeLinkableTitle(l, Title, DashTitle, 'pug') + '\n'
 				else:
 					Content += l + '\n'
-	Meta['Macros'] = ReadConf(LoadConfStr('[Macros]\n' + Macros), 'Macros')
+	if GlobalMacros:
+		Meta['Macros'].update(GlobalMacros)
+	Meta['Macros'].update(ReadConf(LoadConfStr('[Macros]\n' + Macros), 'Macros'))
 	return Content, Titles, Meta
 
 def Postprocessor(FileType, Text, Meta):
@@ -323,7 +325,7 @@ def DoMinifyHTML(HTML):
 		convert_charrefs=True,
 		keep_pre=True)
 
-def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, ConfMenu, SiteName, BlogName, SiteTagline, SiteDomain, SiteRoot, FolderRoots, SiteLang, Locale, Minify, NoScripts, Sorting, MarkdownExts, AutoCategories):
+def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, ConfMenu, GlobalMacros, SiteName, BlogName, SiteTagline, SiteDomain, SiteRoot, FolderRoots, SiteLang, Locale, Minify, NoScripts, Sorting, MarkdownExts, AutoCategories):
 	PagesPaths, PostsPaths, Pages, MadePages, Categories = [], [], [], [], {}
 	for Ext in FileExtensions['Pages']:
 		for File in Path('Pages').rglob(f"*.{Ext}"):
@@ -347,7 +349,7 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, ConfMenu,
 		elif Type == 'Post':
 			Files = PostsPaths
 		for File in Files:
-			Content, Titles, Meta = Preprocessor(f"{Type}s/{File}", SiteRoot)
+			Content, Titles, Meta = Preprocessor(f"{Type}s/{File}", SiteRoot, GlobalMacros)
 			if Type != 'Page':
 				File = f"{Type}s/{File}"
 			if not Meta['Type']:

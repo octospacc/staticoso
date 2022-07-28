@@ -120,6 +120,7 @@ def Main(Args, FeedEntries):
 		ContextParts=literal_eval(Args.ContextParts) if Args.ContextParts else {},
 		ContextPartsText=LoadFromDir('ContextParts', '*.html'),
 		ConfMenu=ConfMenu,
+		GlobalMacros=ReadConf(SiteConf, 'Macros'),
 		SiteName=SiteName,
 		BlogName=BlogName,
 		SiteTagline=SiteTagline,

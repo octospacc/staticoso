@@ -12,6 +12,7 @@ Feel free to experiment with all of this stuff!
 ## Dependencies
 - [Python == 3.10.4](https://python.org)
 - (Included) [Python Markdown == 3.3.7](https://pypi.org/project/Markdown)
+  - (Included) Third-Party Extensions for Python Markdown: [markdown_del_ins](https://github.com/honzajavorek/markdown-del-ins), [mdx_subscript](https://github.com/jambonrose/markdown_subscript_extension), [mdx_superscript](https://github.com/jambonrose/markdown_superscript_extension)
 - (Included) [Beautiful Soup == 4.11.1](https://pypi.org/project/beautifulsoup4)
 - (Included) [feedgen == 0.9.0](https://pypi.org/project/feedgen)
 - (Included) [htmlmin == 0.1.12](https://pypi.org/project/htmlmin)
@@ -21,7 +22,7 @@ Feel free to experiment with all of this stuff!
 - [html2gmi](https://github.com/LukeEmmet/html2gmi)
 
 ## Features roadmap
-- [ ] Local (per-page) and global (per-site) macros
+- [x] Local (per-page) and global (per-site) macros
 - [x] ActivityPub (Mastodon) support (Feed + embedded comments)
 - [ ] Polished Gemtext generation
 - [x] Autodetection of pages and posts

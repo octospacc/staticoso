@@ -1,1 +1,10 @@
 - Fix arguments - some are only callable from CLI and not Site.ini
+- Fix Python-Markdown is installed problem (to load our modules)
+- Hot-recompile
+- Differential recompile
+- Feed generation without native libraries
+- JSON feeds
+- Full XML sitemap
+- SCSS support
+- Images in post listings
+- "Uncategorized" category for posts without specified ones
