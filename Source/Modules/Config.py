@@ -7,12 +7,20 @@
 |   Copyright (C) 2022, OctoSpacc     |
 | ================================= """
 
+import io
 import configparser
 from ast import literal_eval
 
-def LoadConf(File):
+def LoadConfFile(File):
 	Conf = configparser.ConfigParser()
+	Conf.optionxform = lambda option: option
 	Conf.read(File)
+	return Conf
+
+def LoadConfStr(Str):
+	Conf = configparser.ConfigParser()
+	Conf.optionxform = lambda option: option
+	Conf.read_string(Str)
 	return Conf
 
 def ReadConf(Conf, Sect, Opt=None):

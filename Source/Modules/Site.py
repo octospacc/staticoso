@@ -9,6 +9,7 @@
 
 from Libs import htmlmin
 from Libs.bs4 import BeautifulSoup
+from Modules.Config import *
 from Modules.HTML import *
 from Modules.Markdown import *
 from Modules.Pug import *
@@ -112,7 +113,7 @@ def GetHTMLPagesList(Pages, BlogName, SiteRoot, PathPrefix, Unite=[], Type='Page
 
 def Preprocessor(Path, SiteRoot):
 	File = ReadFile(Path)
-	Content, Titles, DashyTitles, HTMLTitlesFound, Meta = '', [], [], False, {
+	Content, Titles, DashyTitles, HTMLTitlesFound, Macros, Meta = '', [], [], False, '', {
 		'Template': 'Standard.html',
 		'Style': '',
 		'Type': '',
@@ -122,6 +123,7 @@ def Preprocessor(Path, SiteRoot):
 		'HTMLTitle': '',
 		'Description': '',
 		'Image': '',
+		'Macros': {},
 		'Categories': [],
 		'CreatedOn': '',
 		'EditedOn': '',
@@ -134,7 +136,9 @@ def Preprocessor(Path, SiteRoot):
 				ItemText = '{}: '.format(Item)
 				if lss.startswith(ItemText):
 					Meta[Item] = lss[len(ItemText):]
-			if lss.startswith('Categories: '):
+			if lss.startswith('$'):
+				Macros += lss[1:].lstrip() + '\n'
+			elif lss.startswith('Categories: '):
 				for i in lss[len('Categories: '):].split(' '):
 					Meta['Categories'] += [i]
 			elif lss.startswith('Background: '):
@@ -181,6 +185,12 @@ def Preprocessor(Path, SiteRoot):
 							Content += MakeLinkableTitle(l, Title, DashTitle, 'pug') + '\n'
 				else:
 					Content += l + '\n'
+	#if Macros:
+	Meta['Macros'] = ReadConf(LoadConfStr('[Macros]\n' + Macros), 'Macros')
+	#	Macros = '[Macros]\n' + Macros
+	#	Macros = LoadConfStr(Macros)
+	#	Macros = ReadConf(Macros, 'Macros')
+	#	Meta['Macros'] = Macros
 	return Content, Titles, Meta
 
 def MakeListTitle(File, Meta, Titles, Prefer, SiteRoot, BlogName, PathPrefix=''):
@@ -279,19 +289,23 @@ def PatchHTML(File, HTML, PartsText, ContextParts, ContextPartsText, HTMLPagesLi
 	HTML = ReplWithEsc(HTML, '[HTML:Site:Name]', SiteName)
 	HTML = ReplWithEsc(HTML, '[HTML:Site:AbsoluteRoot]', SiteRoot)
 	HTML = ReplWithEsc(HTML, '[HTML:Site:RelativeRoot]', GetPathLevels(PagePath))
-	for i in FolderRoots:
-		HTML = HTML.replace('[HTML:Folder:{}:AbsoluteRoot]'.format(i), FolderRoots[i])
-	for i in Categories:
-		HTML = HTML.replace('<span>[HTML:Category:{}]</span>'.format(i), Categories[i])
+	for e in Meta['Macros']:
+		HTML = HTML.replace(f"{{{{{e}}}}}", Meta['Macros'][e]).replace(f"{{{{ {e} }}}}", Meta['Macros'][e])
+	for e in FolderRoots:
+		HTML = HTML.replace('[HTML:Folder:{}:AbsoluteRoot]'.format(e), FolderRoots[e])
+	for e in Categories:
+		HTML = HTML.replace('<span>[HTML:Category:{}]</span>'.format(e), Categories[e])
 
 	# TODO: Clean this doubling?
 	ContentHTML = Content
 	ContentHTML = ContentHTML.replace('[HTML:Site:AbsoluteRoot]', SiteRoot)
 	ContentHTML = ContentHTML.replace('[HTML:Site:RelativeRoot]', GetPathLevels(PagePath))
-	for i in FolderRoots:
-		ContentHTML = ContentHTML.replace('[HTML:Folder:{}:AbsoluteRoot]'.format(i), FolderRoots[i])
-	for i in Categories:
-		ContentHTML = ContentHTML.replace('<span>[HTML:Category:{}]</span>'.format(i), Categories[i])
+	for e in Meta['Macros']:
+		ContentHTML = ContentHTML.replace(f"{{{{{e}}}}}", Meta['Macros'][e]).replace(f"{{{{ {e} }}}}", Meta['Macros'][e])
+	for e in FolderRoots:
+		ContentHTML = ContentHTML.replace('[HTML:Folder:{}:AbsoluteRoot]'.format(e), FolderRoots[e])
+	for e in Categories:
+		ContentHTML = ContentHTML.replace('<span>[HTML:Category:{}]</span>'.format(e), Categories[e])
 	SlimHTML = HTMLPagesList + ContentHTML
 
 	return HTML, ContentHTML, SlimHTML, Description, Image

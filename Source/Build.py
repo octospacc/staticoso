@@ -71,7 +71,7 @@ def GetConfMenu(Entries, MarkdownExts):
 
 def Main(Args, FeedEntries):
 	HavePages, HavePosts = False, False
-	SiteConf = LoadConf('Site.ini')
+	SiteConf = LoadConfFile('Site.ini')
 
 	SiteName = Args.SiteName if Args.SiteName else ReadConf(SiteConf, 'Site', 'Name') if ReadConf(SiteConf, 'Site', 'Name') else ''
 	BlogName = Args.BlogName if Args.BlogName else ReadConf(SiteConf, 'Site', 'BlogName') if ReadConf(SiteConf, 'Site', 'BlogName') else ''
