@@ -185,13 +185,13 @@ def Preprocessor(Path, SiteRoot):
 							Content += MakeLinkableTitle(l, Title, DashTitle, 'pug') + '\n'
 				else:
 					Content += l + '\n'
-	#if Macros:
 	Meta['Macros'] = ReadConf(LoadConfStr('[Macros]\n' + Macros), 'Macros')
-	#	Macros = '[Macros]\n' + Macros
-	#	Macros = LoadConfStr(Macros)
-	#	Macros = ReadConf(Macros, 'Macros')
-	#	Meta['Macros'] = Macros
 	return Content, Titles, Meta
+
+def Postprocessor(FileType, Text, Meta):
+	for e in Meta['Macros']:
+		Text = ReplWithEsc(Text, f"[: {e} :]", f"[:{e}:]")
+	return Text
 
 def MakeListTitle(File, Meta, Titles, Prefer, SiteRoot, BlogName, PathPrefix=''):
 	Title = GetTitle(Meta, Titles, Prefer, BlogName)
@@ -267,15 +267,16 @@ def PatchHTML(File, HTML, PartsText, ContextParts, ContextPartsText, HTMLPagesLi
 				Part = ContextParts[Section]
 				Text = ''
 				if type(Part) == list:
-					for i in Part:
-						Text += ContextPartsText['{}/{}'.format(Path, i)] + '\n'
+					for e in Part:
+						Text += ContextPartsText[f"{Path}/{e}"] + '\n'
 				elif type(Part) == str:
-					Text = ContextPartsText['{}/{}'.format(Path, Part)]
+					Text = ContextPartsText[f"{Path}/{Part}"]
 			else:
 				Text = ''
-			HTML = HTML.replace('[HTML:ContextPart:{}]'.format(Path), Text)
-	for i in PartsText:
-		HTML = HTML.replace('[HTML:Part:{}]'.format(i), PartsText[i])
+			HTML = ReplWithEsc(HTML, f"[HTML:ContextPart:{Path}]", Text)
+
+	for e in PartsText:
+		HTML = ReplWithEsc(HTML, f"[HTML:Part:{e}]", PartsText[e])
 	HTML = ReplWithEsc(HTML, '[HTML:Site:Menu]', HTMLPagesList)
 	HTML = ReplWithEsc(HTML, '[HTML:Page:Lang]', SiteLang)
 	HTML = ReplWithEsc(HTML, '[HTML:Page:Chapters]', HTMLTitles)
@@ -290,22 +291,22 @@ def PatchHTML(File, HTML, PartsText, ContextParts, ContextPartsText, HTMLPagesLi
 	HTML = ReplWithEsc(HTML, '[HTML:Site:AbsoluteRoot]', SiteRoot)
 	HTML = ReplWithEsc(HTML, '[HTML:Site:RelativeRoot]', GetPathLevels(PagePath))
 	for e in Meta['Macros']:
-		HTML = HTML.replace(f"{{{{{e}}}}}", Meta['Macros'][e]).replace(f"{{{{ {e} }}}}", Meta['Macros'][e])
+		HTML = ReplWithEsc(HTML, f"[:{e}:]", Meta['Macros'][e])
 	for e in FolderRoots:
-		HTML = HTML.replace('[HTML:Folder:{}:AbsoluteRoot]'.format(e), FolderRoots[e])
+		HTML = ReplWithEsc(HTML, f"[HTML:Folder:{e}:AbsoluteRoot]", FolderRoots[e])
 	for e in Categories:
-		HTML = HTML.replace('<span>[HTML:Category:{}]</span>'.format(e), Categories[e])
+		HTML = ReplWithEsc(HTML, f"<span>[HTML:Category:{e}]</span>", Categories[e])
 
 	# TODO: Clean this doubling?
 	ContentHTML = Content
 	ContentHTML = ContentHTML.replace('[HTML:Site:AbsoluteRoot]', SiteRoot)
 	ContentHTML = ContentHTML.replace('[HTML:Site:RelativeRoot]', GetPathLevels(PagePath))
 	for e in Meta['Macros']:
-		ContentHTML = ContentHTML.replace(f"{{{{{e}}}}}", Meta['Macros'][e]).replace(f"{{{{ {e} }}}}", Meta['Macros'][e])
+		ContentHTML = ContentHTML.replace(f"[:{e}:]", Meta['Macros'][e])
 	for e in FolderRoots:
-		ContentHTML = ContentHTML.replace('[HTML:Folder:{}:AbsoluteRoot]'.format(e), FolderRoots[e])
+		ContentHTML = ContentHTML.replace(f"[HTML:Folder:{e}:AbsoluteRoot]", FolderRoots[e])
 	for e in Categories:
-		ContentHTML = ContentHTML.replace('<span>[HTML:Category:{}]</span>'.format(e), Categories[e])
+		ContentHTML = ContentHTML.replace(f"<span>[HTML:Category:{e}]</span>", Categories[e])
 	SlimHTML = HTMLPagesList + ContentHTML
 
 	return HTML, ContentHTML, SlimHTML, Description, Image
@@ -325,9 +326,9 @@ def DoMinifyHTML(HTML):
 def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, ConfMenu, SiteName, BlogName, SiteTagline, SiteDomain, SiteRoot, FolderRoots, SiteLang, Locale, Minify, NoScripts, Sorting, MarkdownExts, AutoCategories):
 	PagesPaths, PostsPaths, Pages, MadePages, Categories = [], [], [], [], {}
 	for Ext in FileExtensions['Pages']:
-		for File in Path('Pages').rglob('*.{}'.format(Ext)):
+		for File in Path('Pages').rglob(f"*.{Ext}"):
 			PagesPaths += [FileToStr(File, 'Pages/')]
-		for File in Path('Posts').rglob('*.{}'.format(Ext)):
+		for File in Path('Posts').rglob(f"*.{Ext}"):
 			PostsPaths += [FileToStr(File, 'Posts/')]
 
 	if Sorting['Pages'] == 'Standard':
@@ -346,9 +347,9 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, ConfMenu,
 		elif Type == 'Post':
 			Files = PostsPaths
 		for File in Files:
-			Content, Titles, Meta = Preprocessor('{}s/{}'.format(Type, File), SiteRoot)
+			Content, Titles, Meta = Preprocessor(f"{Type}s/{File}", SiteRoot)
 			if Type != 'Page':
-				File = Type + 's/' + File
+				File = f"{Type}s/{File}"
 			if not Meta['Type']:
 				Meta['Type'] = Type
 			Pages += [[File, Content, Titles, Meta]]
@@ -379,8 +380,8 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, ConfMenu,
 				Exists = True
 				break
 			if not Exists:
-				File = 'Categories/{}.md'.format(Cat)
-				FilePath = 'public/{}'.format(File)
+				File = f"Categories/{Cat}.md"
+				FilePath = f"public/{File}"
 				WriteFile(FilePath, """\
 // Title: {Category}
 // Type: Page
@@ -400,6 +401,12 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, ConfMenu,
 
 	print("[I] Writing Pages")
 	for File, Content, Titles, Meta in Pages:
+		PagePath = 'public/{}.html'.format(StripExt(File))
+		if File.endswith('.md'):
+			Content = markdown(Postprocessor('md', Content, Meta), extensions=MarkdownExts)
+		elif File.endswith(('.pug')):
+			Content = Postprocessor('pug', ReadFile(PagePath), Meta)
+
 		HTMLPagesList = GetHTMLPagesList(
 			Pages=Pages,
 			BlogName=BlogName,
@@ -409,11 +416,7 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, ConfMenu,
 			Type='Page',
 			For='Menu',
 			MarkdownExts=MarkdownExts)
-		PagePath = 'public/{}.html'.format(StripExt(File))
-		if File.endswith('.md'):
-			Content = markdown(Content, extensions=MarkdownExts)
-		elif File.endswith(('.pug')):
-			Content = ReadFile(PagePath)
+
 		HTML, ContentHTML, SlimHTML, Description, Image = PatchHTML(
 			File=File,
 			HTML=TemplatesText[Meta['Template']],

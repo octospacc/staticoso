@@ -38,7 +38,7 @@ def ResetPublic():
 
 def DelTmp():
 	for Ext in FileExtensions['Tmp']:
-		for File in Path('public').rglob('*.{}'.format(Ext)):
+		for File in Path('public').rglob(f"*.{Ext}"):
 			os.remove(File)
 	for Dir in ('public', 'public.gmi'):
 		for File in Path(Dir).rglob('*.tmp'):
@@ -185,7 +185,7 @@ def Main(Args, FeedEntries):
 		print("[I] Generating Gemtext")
 		GemtextCompileList(
 			Pages,
-			Header=Args.GemtextHeader if Args.GemtextHeader else '# {}\n\n'.format(SiteName) if SiteName else '')
+			Header=Args.GemtextHeader if Args.GemtextHeader else f"# {SiteName}\n\n" if SiteName else '')
 
 	print("[I] Last Steps")
 	DelTmp()
