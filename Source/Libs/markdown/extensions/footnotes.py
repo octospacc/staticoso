@@ -166,8 +166,9 @@ class FootnoteExtension(Extension):
 
         div = etree.Element("div")
         div.set('class', 'footnote')
-        etree.SubElement(div, "hr")
+        # etree.SubElement(div, "hr")
         ol = etree.SubElement(div, "ol")
+        # ol = etree.Element("ol")
         surrogate_parent = etree.Element("div")
 
         for index, id in enumerate(self.footnotes.keys(), start=1):
@@ -198,6 +199,7 @@ class FootnoteExtension(Extension):
                     p = etree.SubElement(li, "p")
                     p.append(backlink)
         return div
+        # return ol
 
 
 class FootnoteBlockProcessor(BlockProcessor):

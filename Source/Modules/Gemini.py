@@ -10,26 +10,8 @@
 # TODO: Write the Python HTML2Gemtext converter
 
 from Libs.bs4 import BeautifulSoup
+from Modules.HTML import *
 from Modules.Utils import *
-
-"""
-ClosedTags = (
-	'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-	'p', 'span', 'pre', 'code',
-	'a', 'b', 'i', 'del', 'strong',
-	'div', 'details', 'summary',
-	'ol', 'ul', 'li', 'dl', 'dt', 'dd')
-OpenTags = (
-	'img')
-"""
-
-def StripAttrs(HTML):
-	Soup = BeautifulSoup(HTML, 'html.parser')
-	Tags = Soup.find_all()
-	for t in Tags:
-		if 'href' not in t.attrs and 'src' not in t.attrs:
-			t.attrs = {}
-	return str(Soup)
 
 def FixGemlogDateLine(Line):
 	if len(Line) >= 2 and Line[0] == '[' and Line[1].isdigit():

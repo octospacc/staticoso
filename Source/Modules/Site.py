@@ -250,11 +250,15 @@ def CanIndex(Index, For):
 def PatchHTML(File, HTML, PartsText, ContextParts, ContextPartsText, HTMLPagesList, PagePath, Content, Titles, Meta, SiteRoot, SiteName, BlogName, FolderRoots, Categories, SiteLang, Locale):
 	HTMLTitles = FormatTitles(Titles)
 	BodyDescription, BodyImage = '', ''
-	Parse = BeautifulSoup(Content, 'html.parser')
-	if not BodyDescription and Parse.p:
-		BodyDescription = Parse.p.get_text()[:150].replace('\n', ' ').replace('"', "'") + '...'
-	if not BodyImage and Parse.img and Parse.img['src']:
-		BodyImage = Parse.img['src']
+	Soup = BeautifulSoup(Content, 'html.parser')
+	
+	if not BodyDescription and Soup.p:
+		BodyDescription = Soup.p.get_text()[:150].replace('\n', ' ').replace('"', "'") + '...'
+	if not BodyImage and Soup.img and Soup.img['src']:
+		BodyImage = Soup.img['src']
+
+	#Content = SquareFnrefs(Content)
+	Content = AddToTagStartEnd(Content, '<a class="footnote-ref"', '</a>', '[', ']')
 
 	Title = GetTitle(Meta, Titles, 'MetaTitle', BlogName)
 	Description = GetDescription(Meta, BodyDescription, 'MetaDescription')
@@ -301,14 +305,14 @@ def PatchHTML(File, HTML, PartsText, ContextParts, ContextPartsText, HTMLPagesLi
 
 	# TODO: Clean this doubling?
 	ContentHTML = Content
-	ContentHTML = ContentHTML.replace('[HTML:Site:AbsoluteRoot]', SiteRoot)
-	ContentHTML = ContentHTML.replace('[HTML:Site:RelativeRoot]', GetPathLevels(PagePath))
+	ContentHTML = ReplWithEsc(ContentHTML, '[HTML:Site:AbsoluteRoot]', SiteRoot)
+	ContentHTML = ReplWithEsc(ContentHTML, '[HTML:Site:RelativeRoot]', GetPathLevels(PagePath))
 	for e in Meta['Macros']:
-		ContentHTML = ContentHTML.replace(f"[:{e}:]", Meta['Macros'][e])
+		ContentHTML = ReplWithEsc(ContentHTML, f"[:{e}:]", Meta['Macros'][e])
 	for e in FolderRoots:
-		ContentHTML = ContentHTML.replace(f"[HTML:Folder:{e}:AbsoluteRoot]", FolderRoots[e])
+		ContentHTML = ReplWithEsc(ContentHTML, f"[HTML:Folder:{e}:AbsoluteRoot]", FolderRoots[e])
 	for e in Categories:
-		ContentHTML = ContentHTML.replace(f"<span>[HTML:Category:{e}]</span>", Categories[e])
+		ContentHTML = ReplWithEsc(ContentHTML, f"<span>[HTML:Category:{e}]</span>", Categories[e])
 	SlimHTML = HTMLPagesList + ContentHTML
 
 	return HTML, ContentHTML, SlimHTML, Description, Image

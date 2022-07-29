@@ -99,6 +99,9 @@ def RevSort(List):
 	List.reverse()
 	return List
 
+def FirstRealItem(List):
+	return next(e for e in List if e)
+
 def GetFullDate(Date):
 	if not Date:
 		return None

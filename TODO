@@ -1,5 +1,6 @@
 - Fix arguments - some are only callable from CLI and not Site.ini
 - Fix Python-Markdown is installed problem (to load our modules)
+- Postprocessing markdown footnotes to add brackets
 - Hot-recompile
 - Differential recompile
 - Feed generation without native libraries
