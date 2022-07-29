@@ -1,6 +1,8 @@
+- Make alt text for images also be title text
+- Custom category names showing in header links
 - Fix arguments - some are only callable from CLI and not Site.ini
+- Fix ordering menu in Site.ini (not working for inner pages)
 - Fix Python-Markdown is installed problem (to load our modules)
-- Postprocessing markdown footnotes to add brackets
 - Hot-recompile
 - Differential recompile
 - Feed generation without native libraries
@@ -8,4 +10,3 @@
 - Full XML sitemap
 - SCSS support
 - Images in post listings
-- "Uncategorized" category for posts without specified ones

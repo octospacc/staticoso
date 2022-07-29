@@ -111,13 +111,13 @@ def GetHTMLPagesList(Pages, BlogName, SiteRoot, PathPrefix, Unite=[], Type='Page
 				List += Levels + Title + '\n'
 	return markdown(MarkdownHTMLEscape(List, MarkdownExts), extensions=MarkdownExts)
 
-def Preprocessor(Path, SiteRoot, GlobalMacros):
+def Preprocessor(Path, Type, SiteRoot, GlobalMacros):
 	File = ReadFile(Path)
 	Content, Titles, DashyTitles, HTMLTitlesFound, Macros, Meta = '', [], [], False, '', {
 		'Template': 'Standard.html',
 		'Style': '',
-		'Type': '',
-		'Index': 'True',
+		'Type': Type,
+		'Index': 'Unspecified',
 		'Feed': 'True',
 		'Title': '',
 		'HTMLTitle': '',
@@ -185,6 +185,13 @@ def Preprocessor(Path, SiteRoot, GlobalMacros):
 							Content += MakeLinkableTitle(l, Title, DashTitle, 'pug') + '\n'
 				else:
 					Content += l + '\n'
+	if Meta['Index'] in ('Default', 'Unspecified'):
+		if not Meta['Categories']:
+			Meta['Categories'] = ['Uncategorized']
+		if Meta['Type'] == 'Page':
+			Meta['Index'] = 'False'
+		elif Meta['Type'] == 'Post':
+			Meta['Index'] = 'True'
 	if GlobalMacros:
 		Meta['Macros'].update(GlobalMacros)
 	Meta['Macros'].update(ReadConf(LoadConfStr('[Macros]\n' + Macros), 'Macros'))
@@ -353,11 +360,9 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, ConfMenu,
 		elif Type == 'Post':
 			Files = PostsPaths
 		for File in Files:
-			Content, Titles, Meta = Preprocessor(f"{Type}s/{File}", SiteRoot, GlobalMacros)
+			Content, Titles, Meta = Preprocessor(f"{Type}s/{File}", Type, SiteRoot, GlobalMacros)
 			if Type != 'Page':
 				File = f"{Type}s/{File}"
-			if not Meta['Type']:
-				Meta['Type'] = Type
 			Pages += [[File, Content, Titles, Meta]]
 			for Cat in Meta['Categories']:
 				Categories.update({Cat:''})
@@ -388,14 +393,15 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, ConfMenu,
 			if not Exists:
 				File = f"Categories/{Cat}.md"
 				FilePath = f"public/{File}"
-				WriteFile(FilePath, """\
-// Title: {Category}
+				WriteFile(FilePath, f"""\
+// Title: {Cat}
 // Type: Page
+// Index: True
 
-# {Category}
+# {Cat}
 
-<div><span>[HTML:Category:{Category}]</span></div>
-""".format(Category=Cat))
+<div><span>[HTML:Category:{Cat}]</span></div>
+""")
 				Content, Titles, Meta = Preprocessor(FilePath, SiteRoot)
 				Pages += [[File, Content, Titles, Meta]]
 
