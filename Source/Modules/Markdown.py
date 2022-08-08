@@ -13,7 +13,7 @@ try:
 except ModuleNotFoundError:
 	from Libs.markdown import markdown
 
-MarkdownExtsDefault = ('attr_list', 'def_list', 'footnotes', 'markdown_del_ins', 'md_in_html', 'mdx_subscript', 'mdx_superscript', 'tables')
+MarkdownExtsDefault = ('attr_list', 'def_list', 'footnotes', 'md_in_html', 'tables')
 
 def MarkdownHTMLEscape(Str, Extensions=()): # WIP
 	Text = ''
