@@ -111,10 +111,10 @@ def GetHTMLPagesList(Pages, BlogName, SiteRoot, PathPrefix, Unite=[], Type='Page
 				List += Levels + Title + '\n'
 	return markdown(MarkdownHTMLEscape(List, MarkdownExts), extensions=MarkdownExts)
 
-def Preprocessor(Path, Type, SiteRoot, GlobalMacros):
+def Preprocessor(Path, Type, SiteTemplate, SiteRoot, GlobalMacros):
 	File = ReadFile(Path)
 	Content, Titles, DashyTitles, HTMLTitlesFound, Macros, Meta = '', [], [], False, '', {
-		'Template': 'Standard.html',
+		'Template': SiteTemplate,
 		'Style': '',
 		'Type': Type,
 		'Index': 'Unspecified',
@@ -273,8 +273,8 @@ def PatchHTML(File, HTML, PartsText, ContextParts, ContextPartsText, HTMLPagesLi
 
 	for Line in HTML.splitlines():
 		Line = Line.lstrip().rstrip()
-		if Line.startswith('[HTML:ContextPart:') and Line.endswith(']'):
-			Path =  Line[len('[HTML:ContextPart:'):-1]
+		if Line.startswith('[staticoso:ContextPart:') and Line.endswith(']'):
+			Path =  Line[len('[staticoso:ContextPart:'):-1]
 			Section = Path.split('/')[-1]
 			if Section in ContextParts:
 				Part = ContextParts[Section]
@@ -286,40 +286,40 @@ def PatchHTML(File, HTML, PartsText, ContextParts, ContextPartsText, HTMLPagesLi
 					Text = ContextPartsText[f"{Path}/{Part}"]
 			else:
 				Text = ''
-			HTML = ReplWithEsc(HTML, f"[HTML:ContextPart:{Path}]", Text)
+			HTML = ReplWithEsc(HTML, f"[staticoso:ContextPart:{Path}]", Text)
 
 	for e in PartsText:
-		HTML = ReplWithEsc(HTML, f"[HTML:Part:{e}]", PartsText[e])
-	HTML = ReplWithEsc(HTML, '[HTML:Site:Menu]', HTMLPagesList)
-	HTML = ReplWithEsc(HTML, '[HTML:Page:Lang]', SiteLang)
-	HTML = ReplWithEsc(HTML, '[HTML:Page:Chapters]', HTMLTitles)
-	HTML = ReplWithEsc(HTML, '[HTML:Page:Title]', Title)
-	HTML = ReplWithEsc(HTML, '[HTML:Page:Description]', Description)
-	HTML = ReplWithEsc(HTML, '[HTML:Page:Image]', Image)
-	HTML = ReplWithEsc(HTML, '[HTML:Page:Path]', PagePath)
-	HTML = ReplWithEsc(HTML, '[HTML:Page:Style]', Meta['Style'])
-	HTML = ReplWithEsc(HTML, '[HTML:Page:Content]', Content)
-	HTML = ReplWithEsc(HTML, '[HTML:Page:ContentHeader]', MakeContentHeader(Meta, Locale, MakeCategoryLine(File, Meta)))
-	HTML = ReplWithEsc(HTML, '[HTML:Site:Name]', SiteName)
-	HTML = ReplWithEsc(HTML, '[HTML:Site:AbsoluteRoot]', SiteRoot)
-	HTML = ReplWithEsc(HTML, '[HTML:Site:RelativeRoot]', GetPathLevels(PagePath))
+		HTML = ReplWithEsc(HTML, f"[staticoso:Part:{e}]", PartsText[e])
+	HTML = ReplWithEsc(HTML, '[staticoso:Site:Menu]', HTMLPagesList)
+	HTML = ReplWithEsc(HTML, '[staticoso:Page:Lang]', SiteLang)
+	HTML = ReplWithEsc(HTML, '[staticoso:Page:Chapters]', HTMLTitles)
+	HTML = ReplWithEsc(HTML, '[staticoso:Page:Title]', Title)
+	HTML = ReplWithEsc(HTML, '[staticoso:Page:Description]', Description)
+	HTML = ReplWithEsc(HTML, '[staticoso:Page:Image]', Image)
+	HTML = ReplWithEsc(HTML, '[staticoso:Page:Path]', PagePath)
+	HTML = ReplWithEsc(HTML, '[staticoso:Page:Style]', Meta['Style'])
+	HTML = ReplWithEsc(HTML, '[staticoso:Page:Content]', Content)
+	HTML = ReplWithEsc(HTML, '[staticoso:Page:ContentInfo]', MakeContentHeader(Meta, Locale, MakeCategoryLine(File, Meta)))
+	HTML = ReplWithEsc(HTML, '[staticoso:Site:Name]', SiteName)
+	HTML = ReplWithEsc(HTML, '[staticoso:Site:AbsoluteRoot]', SiteRoot)
+	HTML = ReplWithEsc(HTML, '[staticoso:Site:RelativeRoot]', GetPathLevels(PagePath))
 	for e in Meta['Macros']:
 		HTML = ReplWithEsc(HTML, f"[:{e}:]", Meta['Macros'][e])
 	for e in FolderRoots:
-		HTML = ReplWithEsc(HTML, f"[HTML:Folder:{e}:AbsoluteRoot]", FolderRoots[e])
+		HTML = ReplWithEsc(HTML, f"[staticoso:Folder:{e}:AbsoluteRoot]", FolderRoots[e])
 	for e in Categories:
-		HTML = ReplWithEsc(HTML, f"<span>[HTML:Category:{e}]</span>", Categories[e])
+		HTML = ReplWithEsc(HTML, f"<span>[staticoso:Category:{e}]</span>", Categories[e])
 
 	# TODO: Clean this doubling?
 	ContentHTML = Content
-	ContentHTML = ReplWithEsc(ContentHTML, '[HTML:Site:AbsoluteRoot]', SiteRoot)
-	ContentHTML = ReplWithEsc(ContentHTML, '[HTML:Site:RelativeRoot]', GetPathLevels(PagePath))
+	ContentHTML = ReplWithEsc(ContentHTML, '[staticoso:Site:AbsoluteRoot]', SiteRoot)
+	ContentHTML = ReplWithEsc(ContentHTML, '[staticoso:Site:RelativeRoot]', GetPathLevels(PagePath))
 	for e in Meta['Macros']:
 		ContentHTML = ReplWithEsc(ContentHTML, f"[:{e}:]", Meta['Macros'][e])
 	for e in FolderRoots:
-		ContentHTML = ReplWithEsc(ContentHTML, f"[HTML:Folder:{e}:AbsoluteRoot]", FolderRoots[e])
+		ContentHTML = ReplWithEsc(ContentHTML, f"[staticoso:Folder:{e}:AbsoluteRoot]", FolderRoots[e])
 	for e in Categories:
-		ContentHTML = ReplWithEsc(ContentHTML, f"<span>[HTML:Category:{e}]</span>", Categories[e])
+		ContentHTML = ReplWithEsc(ContentHTML, f"<span>[staticoso:Category:{e}]</span>", Categories[e])
 	SlimHTML = HTMLPagesList + ContentHTML
 
 	return HTML, ContentHTML, SlimHTML, Description, Image
@@ -336,7 +336,7 @@ def DoMinifyHTML(HTML):
 		convert_charrefs=True,
 		keep_pre=True)
 
-def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, ConfMenu, GlobalMacros, SiteName, BlogName, SiteTagline, SiteDomain, SiteRoot, FolderRoots, SiteLang, Locale, Minify, NoScripts, Sorting, MarkdownExts, AutoCategories):
+def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, ConfMenu, GlobalMacros, SiteName, BlogName, SiteTagline, SiteTemplate, SiteDomain, SiteRoot, FolderRoots, SiteLang, Locale, Minify, NoScripts, Sorting, MarkdownExts, AutoCategories):
 	PagesPaths, PostsPaths, Pages, MadePages, Categories = [], [], [], [], {}
 	for Ext in FileExtensions['Pages']:
 		for File in Path('Pages').rglob(f"*.{Ext}"):
@@ -360,7 +360,7 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, ConfMenu,
 		elif Type == 'Post':
 			Files = PostsPaths
 		for File in Files:
-			Content, Titles, Meta = Preprocessor(f"{Type}s/{File}", Type, SiteRoot, GlobalMacros)
+			Content, Titles, Meta = Preprocessor(f"{Type}s/{File}", Type, SiteTemplate, SiteRoot, GlobalMacros)
 			if Type != 'Page':
 				File = f"{Type}s/{File}"
 			Pages += [[File, Content, Titles, Meta]]
@@ -400,7 +400,7 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, ConfMenu,
 
 # {Cat}
 
-<div><span>[HTML:Category:{Cat}]</span></div>
+<div><span>[staticoso:Category:{Cat}]</span></div>
 """)
 				Content, Titles, Meta = Preprocessor(FilePath, SiteRoot)
 				Pages += [[File, Content, Titles, Meta]]

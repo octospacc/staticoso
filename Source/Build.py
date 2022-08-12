@@ -72,10 +72,12 @@ def GetConfMenu(Entries, MarkdownExts):
 def Main(Args, FeedEntries):
 	HavePages, HavePosts = False, False
 	SiteConf = LoadConfFile('Site.ini')
+	#TemplatesConf = LoadConfFile('Templates.ini')
 
 	SiteName = Args.SiteName if Args.SiteName else ReadConf(SiteConf, 'Site', 'Name') if ReadConf(SiteConf, 'Site', 'Name') else ''
 	BlogName = Args.BlogName if Args.BlogName else ReadConf(SiteConf, 'Site', 'BlogName') if ReadConf(SiteConf, 'Site', 'BlogName') else ''
 	SiteTagline = Args.SiteTagline if Args.SiteTagline else ReadConf(SiteConf, 'Site', 'Tagline') if ReadConf(SiteConf, 'Site', 'Tagline') else ''
+	SiteTemplate = Args.SiteTemplate if Args.SiteTemplate else ReadConf(SiteConf, 'Site', 'Template') if ReadConf(SiteConf, 'Site', 'Template') else 'Default.html'
 	SiteDomain = Args.SiteDomain.rstrip('/') if Args.SiteDomain else ReadConf(SiteConf, 'Site', 'Domain') if ReadConf(SiteConf, 'Site', 'Domain') else ''
 	SiteLang = Args.SiteLang if Args.SiteLang else ReadConf(SiteConf, 'Site', 'Lang') if ReadConf(SiteConf, 'Site', 'Lang') else 'en'
 	Locale = LoadLocale(SiteLang)
@@ -124,6 +126,7 @@ def Main(Args, FeedEntries):
 		SiteName=SiteName,
 		BlogName=BlogName,
 		SiteTagline=SiteTagline,
+		SiteTemplate=SiteTemplate,
 		SiteDomain=SiteDomain,
 		SiteRoot=Args.SiteRoot if Args.SiteRoot else '/',
 		FolderRoots=literal_eval(Args.FolderRoots) if Args.FolderRoots else {},
@@ -179,7 +182,7 @@ def Main(Args, FeedEntries):
 					StrOpen=Locale['OpenInNewTab'],
 					URL=p['Post'])
 				break
-		Content = Content.replace('[HTML:Comments]', Post)
+		Content = Content.replace('[staticoso:Comments]', Post)
 		WriteFile(File, Content)
 
 	if GemtextOut:
@@ -202,6 +205,7 @@ if __name__ == '__main__':
 	Parser.add_argument('--SiteRoot', type=str)
 	Parser.add_argument('--SiteName', type=str)
 	Parser.add_argument('--BlogName', type=str)
+	Parser.add_argument('--SiteTemplate', type=str)
 	Parser.add_argument('--SiteDomain', type=str)
 	Parser.add_argument('--NoScripts', type=str)
 	Parser.add_argument('--GemtextOut', type=str)
