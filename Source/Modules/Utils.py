@@ -13,8 +13,8 @@ from datetime import datetime
 from pathlib import Path
 
 FileExtensions = {
-	'Pages': ('html', 'md', 'pug'),
-	'Tmp': ('md', 'pug')}
+	'Pages': ('htm', 'html', 'md', 'pug', 'txt'),
+	'Tmp': ('md', 'pug', 'txt')}
 
 def ReadFile(p):
 	try:

@@ -111,9 +111,24 @@ def GetHTMLPagesList(Pages, BlogName, SiteRoot, PathPrefix, Unite=[], Type='Page
 				List += Levels + Title + '\n'
 	return markdown(MarkdownHTMLEscape(List, MarkdownExts), extensions=MarkdownExts)
 
-def Preprocessor(Path, Type, SiteTemplate, SiteRoot, GlobalMacros):
+def TemplatePreprocessor(Text):
+	Meta, MetaDefault = '', {
+		'MenuStyle': 'Default'}
+	for l in Text.splitlines():
+		ll = l.lstrip()
+		if ll.startswith('<!--'):
+			lll = ll[4:].lstrip()
+			if lll.startswith('%'):
+				Meta += lll[1:-3].lstrip().rstrip() + '\n'
+	Meta = dict(ReadConf(LoadConfStr('[Meta]\n' + Meta), 'Meta'))
+	for i in MetaDefault:
+		if not i in Meta:
+			Meta.update({i:MetaDefault[i]})
+	return Meta
+
+def PagePreprocessor(Path, Type, SiteTemplate, SiteRoot, GlobalMacros):
 	File = ReadFile(Path)
-	Content, Titles, DashyTitles, HTMLTitlesFound, Macros, Meta = '', [], [], False, '', {
+	Content, Titles, DashyTitles, HTMLTitlesFound, Macros, Meta, MetaDefault = '', [], [], False, '', '', {
 		'Template': SiteTemplate,
 		'Style': '',
 		'Type': Type,
@@ -129,24 +144,13 @@ def Preprocessor(Path, Type, SiteTemplate, SiteRoot, GlobalMacros):
 		'EditedOn': '',
 		'Order': None}
 	for l in File.splitlines():
-		ls = l.lstrip()
-		if ls.startswith('// '):
-			lss = ls[3:]
-			for Item in ('Template', 'Type', 'Index', 'Feed', 'Title', 'HTMLTitle', 'Description', 'Image', 'CreatedOn', 'EditedOn'):
-				ItemText = '{}: '.format(Item)
-				if lss.startswith(ItemText):
-					Meta[Item] = lss[len(ItemText):]
-			if lss.startswith('$'):
-				Macros += lss[1:].lstrip() + '\n'
-			elif lss.startswith('Categories: '):
-				for i in lss[len('Categories: '):].split(' '):
-					Meta['Categories'] += [i]
-			elif lss.startswith('Background: '):
-				Meta['Style'] += "#MainBox{Background:" + lss[len('Background: '):] + ";} "
-			elif lss.startswith('Style: '):
-				Meta['Style'] += lss[len('Style: '):] + ' '
-			elif lss.startswith('Order: '):
-				Meta['Order'] = int(lss[len('Order: '):])
+		ll = l.lstrip()
+		if ll.startswith('//'):
+			lll = ll[2:].lstrip()
+			if lll.startswith('%'):
+				Meta += lll[1:].lstrip() + '\n'
+			elif lll.startswith('$'):
+				Macros += lll[1:].lstrip() + '\n'
 		else:
 			Headings = ('h1', 'h2', 'h3', 'h4', 'h5', 'h6')
 			if Path.endswith('.html') and not HTMLTitlesFound:
@@ -162,29 +166,39 @@ def Preprocessor(Path, Type, SiteTemplate, SiteRoot, GlobalMacros):
 				Content = str(Soup.prettify(formatter=None))
 				HTMLTitlesFound = True
 			elif Path.endswith('.md'):
-				if ls.startswith('#'):
+				if ll.startswith('#'):
 					DashTitle = DashifyTitle(l.lstrip('#'), DashyTitles)
 					DashyTitles += [DashTitle]
 					Titles += [l]
-					Content += MakeLinkableTitle(None, ls, DashTitle, 'md') + '\n'
+					Content += MakeLinkableTitle(None, ll, DashTitle, 'md') + '\n'
 				else:
 					Content += l + '\n'
 			elif Path.endswith('.pug'):
-				if ls.startswith(Headings):
-					if ls[2:].startswith(("(class='NoTitle", '(class="NoTitle')):
+				if ll.startswith(Headings):
+					if ll[2:].startswith(("(class='NoTitle", '(class="NoTitle')):
 						Content += l + '\n'
 					else:
-						Title = '#'*int(ls[1]) + str(ls[3:])
+						Title = '#'*int(ll[1]) + str(ll[3:])
 						DashTitle = DashifyTitle(Title.lstrip('#'), DashyTitles)
 						DashyTitles += [DashTitle]
 						Titles += [Title]
 						# TODO: We should handle headers that for any reason already have parenthesis
-						if ls[2:] == '(':
+						if ll[2:] == '(':
 							Content += l + '\n'
 						else:
 							Content += MakeLinkableTitle(l, Title, DashTitle, 'pug') + '\n'
 				else:
 					Content += l + '\n'
+	Meta = dict(ReadConf(LoadConfStr('[Meta]\n' + Meta), 'Meta'))
+	for i in MetaDefault:
+		if i in Meta:
+			if i == 'Categories':
+				Categories = Meta['Categories'].split(' ')
+				Meta['Categories'] = []
+				for j in Categories:
+					Meta['Categories'] += [j]
+		else:
+			Meta.update({i:MetaDefault[i]})
 	if Meta['Index'] in ('Default', 'Unspecified'):
 		if not Meta['Categories']:
 			Meta['Categories'] = ['Uncategorized']
@@ -197,7 +211,7 @@ def Preprocessor(Path, Type, SiteTemplate, SiteRoot, GlobalMacros):
 	Meta['Macros'].update(ReadConf(LoadConfStr('[Macros]\n' + Macros), 'Macros'))
 	return Content, Titles, Meta
 
-def Postprocessor(FileType, Text, Meta):
+def PagePostprocessor(FileType, Text, Meta):
 	for e in Meta['Macros']:
 		Text = ReplWithEsc(Text, f"[: {e} :]", f"[:{e}:]")
 	return Text
@@ -232,8 +246,8 @@ def OrderPages(Old):
 	for i,e in enumerate(Old):
 		Curr = e[3]['Order']
 		if Curr:
-			if Curr > Max:
-				Max = Curr
+			if int(Curr) > Max:
+				Max = int(Curr)
 		else:
 			NoOrder += [e]
 	for i in range(Max+1):
@@ -241,7 +255,7 @@ def OrderPages(Old):
 	for i,e in enumerate(Old):
 		Curr = e[3]['Order']
 		if Curr:
-			New[Curr] = e
+			New[int(Curr)] = e
 	while [] in New:
 		New.remove([])
 	return New + NoOrder
@@ -360,7 +374,7 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, ConfMenu,
 		elif Type == 'Post':
 			Files = PostsPaths
 		for File in Files:
-			Content, Titles, Meta = Preprocessor(f"{Type}s/{File}", Type, SiteTemplate, SiteRoot, GlobalMacros)
+			Content, Titles, Meta = PagePreprocessor(f"{Type}s/{File}", Type, SiteTemplate, SiteRoot, GlobalMacros)
 			if Type != 'Page':
 				File = f"{Type}s/{File}"
 			Pages += [[File, Content, Titles, Meta]]
@@ -402,7 +416,7 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, ConfMenu,
 
 <div><span>[staticoso:Category:{Cat}]</span></div>
 """)
-				Content, Titles, Meta = Preprocessor(FilePath, SiteRoot)
+				Content, Titles, Meta = PagePreprocessor(FilePath, SiteRoot)
 				Pages += [[File, Content, Titles, Meta]]
 
 	for i,e in enumerate(ConfMenu):
@@ -415,10 +429,17 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, ConfMenu,
 	for File, Content, Titles, Meta in Pages:
 		PagePath = 'public/{}.html'.format(StripExt(File))
 		if File.endswith('.md'):
-			Content = markdown(Postprocessor('md', Content, Meta), extensions=MarkdownExts)
+			Content = markdown(PagePostprocessor('md', Content, Meta), extensions=MarkdownExts)
 		elif File.endswith(('.pug')):
-			Content = Postprocessor('pug', ReadFile(PagePath), Meta)
+			Content = PagePostprocessor('pug', ReadFile(PagePath), Meta)
 
+		TemplateMeta = TemplatePreprocessor(TemplatesText[Meta['Template']])
+		if TemplateMeta['MenuStyle'] == 'Line':
+			PagesListShowPaths = False
+			PagesListFlatten = True
+		else:
+			PagesListShowPaths = True
+			PagesListFlatten = False
 		HTMLPagesList = GetHTMLPagesList(
 			Pages=Pages,
 			BlogName=BlogName,
@@ -427,7 +448,9 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, ConfMenu,
 			Unite=ConfMenu,
 			Type='Page',
 			For='Menu',
-			MarkdownExts=MarkdownExts)
+			MarkdownExts=MarkdownExts,
+			ShowPaths=PagesListShowPaths,
+			Flatten=PagesListFlatten)
 
 		HTML, ContentHTML, SlimHTML, Description, Image = PatchHTML(
 			File=File,
