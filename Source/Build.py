@@ -88,7 +88,8 @@ def Main(Args, FeedEntries):
 	AutoCategories = StringBoolChoose(False, Args.AutoCategories, ReadConf(SiteConf, 'Site', 'AutoCategories'))
 	NoScripts = StringBoolChoose(False, Args.NoScripts, ReadConf(SiteConf, 'Site', 'NoScripts'))
 	GemtextOut = StringBoolChoose(False, Args.GemtextOut, ReadConf(SiteConf, 'Site', 'GemtextOut'))
-	SitemapOut = StringBoolChoose(False, Args.SitemapOut, ReadConf(SiteConf, 'Site', 'SitemapOut'))
+	SitemapOut = StringBoolChoose(True, Args.SitemapOut, ReadConf(SiteConf, 'Site', 'SitemapOut'))
+	FeedEntries = int(FeedEntries) if FeedEntries and FeedEntries != 'Default' else int(ReadConf(SiteConf, 'Site', 'FeedEntries')) if ReadConf(SiteConf, 'Site', 'FeedEntries') else 10
 
 	MenuEntries = ReadConf(SiteConf, 'Menu')
 	if MenuEntries:
@@ -111,7 +112,7 @@ def Main(Args, FeedEntries):
 
 	if not HavePages and not HavePosts:
 		print("[E] No Pages or posts found. Nothing to do, exiting!")
-		exit()
+		exit(1)
 
 	print("[I] Generating HTML")
 	Pages = MakeSite(
@@ -210,7 +211,7 @@ if __name__ == '__main__':
 	Parser.add_argument('--GemtextHeader', type=str)
 	Parser.add_argument('--SiteTagline', type=str)
 	Parser.add_argument('--SitemapOut', type=str)
-	Parser.add_argument('--FeedEntries', type=int)
+	Parser.add_argument('--FeedEntries', type=str)
 	Parser.add_argument('--FolderRoots', type=str)
 	Parser.add_argument('--DynamicParts', type=str)
 	Parser.add_argument('--MarkdownExts', type=str)
@@ -225,7 +226,7 @@ if __name__ == '__main__':
 	try:
 		import lxml
 		from Modules.Feed import *
-		FeedEntries = Args.FeedEntries if Args.FeedEntries or Args.FeedEntries == 0 else 10
+		FeedEntries = Args.FeedEntries if Args.FeedEntries else 'Default'
 	except:
 		print("[E] Can't load the XML libraries. XML Feeds Generation is Disabled. Make sure the 'lxml' library is installed.")
 		FeedEntries = 0

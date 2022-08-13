@@ -20,3 +20,5 @@
 - Category-based feeds
 - Automatic guessing of .htm/.html extension for declarations of templates and stuff
 - Handle file extensions without case-sensitivity
+- Proper multi-language support
+- Exporting sites to different formats (?) (single-page HTML, PDF, EPUB, ...)

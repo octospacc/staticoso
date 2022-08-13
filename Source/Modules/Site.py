@@ -369,12 +369,14 @@ def MakeSite(TemplatesText, StaticPartsText, DynamicParts, DynamicPartsText, Con
 		for File in Path('Posts').rglob(f"*.{Ext}"):
 			PostsPaths += [FileToStr(File, 'Posts/')]
 
-	PagesPaths = FileNameDateSort(PagesPaths)
-	if Sorting['Pages'] == 'Inverse':
-		PagesPaths.reverse()
-	PostsPaths = FileNameDateSort(PostsPaths)
-	if Sorting['Posts'] == 'Inverse':
-		PostsPaths.reverse()
+	if PagesPaths:
+		PagesPaths = FileNameDateSort(PagesPaths)
+		if Sorting['Pages'] == 'Inverse':
+			PagesPaths.reverse()
+	if PostsPaths:
+		PostsPaths = FileNameDateSort(PostsPaths)
+		if Sorting['Posts'] == 'Inverse':
+			PostsPaths.reverse()
 
 	print("[I] Preprocessing Source Pages")
 	for Type in ['Page', 'Post']:
