@@ -71,7 +71,12 @@ def MakeCategoryLine(File, Meta):
 			Categories += '[{}]({}{}.html)  '.format(i, GetPathLevels(File) + 'Categories/', i)
 	return Categories
 
-def GetHTMLPagesList(Pages, BlogName, SiteRoot, PathPrefix, Unite=[], Type='Page', Category=None, For='Menu', MarkdownExts=(), ShowPaths=True, Flatten=False):
+def GetHTMLPagesList(Pages, BlogName, SiteRoot, PathPrefix, Unite=[], Type='Page', Category=None, For='Menu', MarkdownExts=(), MenuStyle='Default'):
+	ShowPaths, Flatten, SingleLine = True, False, False
+	if MenuStyle == 'Flat':
+		Flatten = True
+	elif MenuStyle == 'Line':
+		ShowPaths, SingleLine = False, True
 	List, ToPop, LastParent = '', [], []
 	IndexPages = Pages.copy()
 	for e in IndexPages:
@@ -91,24 +96,31 @@ def GetHTMLPagesList(Pages, BlogName, SiteRoot, PathPrefix, Unite=[], Type='Page
 	for File, Content, Titles, Meta in IndexPages:
 		if Meta['Type'] == Type and CanIndex(Meta['Index'], For) and (not Category or Category in Meta['Categories']):
 			Depth = (File.count('/') + 1) if Meta['Order'] != 'Unite' else 1
-			if Depth > 1 and Meta['Order'] != 'Unite':
+			if Depth > 1 and Meta['Order'] != 'Unite': # Folder names are handled here
 				CurParent = File.split('/')[:-1]
 				for i,s in enumerate(CurParent):
-					if LastParent != CurParent:
+					if LastParent != CurParent and ShowPaths:
 						LastParent = CurParent
 						Levels = '- ' * ((Depth-1+i) if not Flatten else 1)
+						 # Folders with else without an index file
 						if StripExt(File).endswith('index'):
 							Title = MakeListTitle(File, Meta, Titles, 'HTMLTitle', SiteRoot, BlogName, PathPrefix)
 						else:
 							Title = CurParent[Depth-2+i]
-						List += Levels + Title + '\n'
+						if SingleLine:
+							List += ' <span>' + Title + '</span> '
+						else:
+							List += Levels + Title + '\n'
 			if not (Depth > 1 and StripExt(File).split('/')[-1] == 'index'):
 				Levels = '- ' * (Depth if not Flatten else 1)
 				if Meta['Order'] == 'Unite':
 					Title = File
 				else:
 					Title = MakeListTitle(File, Meta, Titles, 'HTMLTitle', SiteRoot, BlogName, PathPrefix)
-				List += Levels + Title + '\n'
+				if SingleLine:
+					List += ' <span>' + Title + '</span> '
+				else:
+					List += Levels + Title + '\n'
 	return markdown(MarkdownHTMLEscape(List, MarkdownExts), extensions=MarkdownExts)
 
 def TemplatePreprocessor(Text):
@@ -395,7 +407,7 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, ConfMenu,
 					Category=Cat,
 					For='Categories',
 					MarkdownExts=MarkdownExts,
-					Flatten=True)
+					MenuStyle='Flat')
 
 	if AutoCategories:
 		Dir = 'public/Categories'
@@ -434,12 +446,6 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, ConfMenu,
 			Content = PagePostprocessor('pug', ReadFile(PagePath), Meta)
 
 		TemplateMeta = TemplatePreprocessor(TemplatesText[Meta['Template']])
-		if TemplateMeta['MenuStyle'] == 'Line':
-			PagesListShowPaths = False
-			PagesListFlatten = True
-		else:
-			PagesListShowPaths = True
-			PagesListFlatten = False
 		HTMLPagesList = GetHTMLPagesList(
 			Pages=Pages,
 			BlogName=BlogName,
@@ -449,8 +455,7 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, ConfMenu,
 			Type='Page',
 			For='Menu',
 			MarkdownExts=MarkdownExts,
-			ShowPaths=PagesListShowPaths,
-			Flatten=PagesListFlatten)
+			MenuStyle=TemplateMeta['MenuStyle'])
 
 		HTML, ContentHTML, SlimHTML, Description, Image = PatchHTML(
 			File=File,
