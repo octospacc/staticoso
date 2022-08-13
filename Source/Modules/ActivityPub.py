@@ -51,7 +51,6 @@ def MastodonGetAllLinkPosts(Session, Domain=None):
 			Posts += [Post]
 	return Posts
 
-# TODO: Set a limit/cooldown on how many new posts at a time can be posted, or ignore posts older than date X.. otherwise if someone starts using this after having written 100 blog posts, bad things will happen
 def MastodonShare(InstanceURL, Token, TypeFilter, CategoryFilter, HoursLimit, Pages, SiteDomain, SiteLang, Locale):
 	SaidPosting = False
 	Session = MastodonGetSession(InstanceURL, Token)
@@ -81,7 +80,7 @@ def MastodonShare(InstanceURL, Token, TypeFilter, CategoryFilter, HoursLimit, Pa
 				if not SaidPosting:
 					print("[I] Posting to Mastodon")
 					SaidPosting = True
-				time.sleep(5)
+				time.sleep(5) # Prevent flooding
 				Post = MastodonGetLinkFromPost(
 					Post=MastodonDoPost(
 						Session,

@@ -1,3 +1,4 @@
+- Fix sorting by date for files in different folders
 - Make alt text for images also be title text
 - Custom category names showing in header links
 - Fix arguments - some are only callable from CLI and not Site.ini
@@ -10,5 +11,7 @@
 - Full XML sitemap
 - SCSS support
 - Images in post listings
-- Fix HTML and TXT input pages
+- Fix HTML (and HTM) and TXT input pages
 - Fix feed titles and page title ids
+- Use filename as page title if it is missing
+- Hybrid global+page menu (like on documentation generators)

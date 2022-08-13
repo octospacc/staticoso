@@ -25,7 +25,7 @@ def MakeFeed(CategoryFilter, Pages, SiteName, SiteTagline, SiteDomain, MaxEntrie
 
 	DoPages = []
 	for e in Pages:
-		if FullSite or (not FullSite and MaxEntries != 0 and e[3]['Type'] == 'Post'): # No entry limit if site feed
+		if FullSite or (not FullSite and MaxEntries != 0 and e[3]['Type'] == 'Post' and e[3]['Feed'] == 'True'): # No entry limit if site feed
 			DoPages += [e]
 			MaxEntries -= 1
 	DoPages.reverse()

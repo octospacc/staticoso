@@ -62,7 +62,7 @@ def MakeContentHeader(Meta, Locale, Categories=''):
 			Header += '{} {}  \n'.format(Locale[i], Meta[i])
 	if Categories:
 		Header += '{}: {}  \n'.format(Locale['Categories'], Categories)
-	return markdown(Header)
+	return markdown(Header.rstrip())
 
 def MakeCategoryLine(File, Meta):
 	Categories = ''
