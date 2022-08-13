@@ -129,8 +129,8 @@ def TemplatePreprocessor(Text):
 	for l in Text.splitlines():
 		ll = l.lstrip()
 		if ll.startswith('<!--'):
-			lll = ll[4:].lstrip()
-			if lll.startswith('%'):
+			lll = ll[4:].lstrip().rstrip()
+			if lll.startswith('%') and lll.endswith('-->'):
 				Meta += lll[1:-3].lstrip().rstrip() + '\n'
 	Meta = dict(ReadConf(LoadConfStr('[Meta]\n' + Meta), 'Meta'))
 	for i in MetaDefault:
@@ -262,14 +262,13 @@ def OrderPages(Old):
 				Max = int(Curr)
 		else:
 			NoOrder += [e]
-	for i in range(Max+1):
-		New += [[]]
+	New = [None] * (Max+1)
 	for i,e in enumerate(Old):
 		Curr = e[3]['Order']
 		if Curr:
 			New[int(Curr)] = e
-	while [] in New:
-		New.remove([])
+	while None in New:
+		New.remove(None)
 	return New + NoOrder
 
 def CanIndex(Index, For):
@@ -280,7 +279,7 @@ def CanIndex(Index, For):
 	else:
 		return True if Index == For else False
 
-def PatchHTML(File, HTML, PartsText, ContextParts, ContextPartsText, HTMLPagesList, PagePath, Content, Titles, Meta, SiteRoot, SiteName, BlogName, FolderRoots, Categories, SiteLang, Locale):
+def PatchHTML(File, HTML, StaticPartsText, DynamicParts, DynamicPartsText, HTMLPagesList, PagePath, Content, Titles, Meta, SiteRoot, SiteName, BlogName, FolderRoots, Categories, SiteLang, Locale):
 	HTMLTitles = FormatTitles(Titles)
 	BodyDescription, BodyImage = '', ''
 	Soup = BeautifulSoup(Content, 'html.parser')
@@ -299,23 +298,23 @@ def PatchHTML(File, HTML, PartsText, ContextParts, ContextPartsText, HTMLPagesLi
 
 	for Line in HTML.splitlines():
 		Line = Line.lstrip().rstrip()
-		if Line.startswith('[staticoso:ContextPart:') and Line.endswith(']'):
-			Path =  Line[len('[staticoso:ContextPart:'):-1]
+		if Line.startswith('[staticoso:DynamicPart:') and Line.endswith(']'):
+			Path =  Line[len('[staticoso:DynamicPart:'):-1]
 			Section = Path.split('/')[-1]
-			if Section in ContextParts:
-				Part = ContextParts[Section]
+			if Section in DynamicParts:
+				Part = DynamicParts[Section]
 				Text = ''
 				if type(Part) == list:
 					for e in Part:
-						Text += ContextPartsText[f"{Path}/{e}"] + '\n'
+						Text += DynamicPartsText[f"{Path}/{e}"] + '\n'
 				elif type(Part) == str:
-					Text = ContextPartsText[f"{Path}/{Part}"]
+					Text = DynamicPartsText[f"{Path}/{Part}"]
 			else:
 				Text = ''
-			HTML = ReplWithEsc(HTML, f"[staticoso:ContextPart:{Path}]", Text)
+			HTML = ReplWithEsc(HTML, f"[staticoso:DynamicPart:{Path}]", Text)
 
-	for e in PartsText:
-		HTML = ReplWithEsc(HTML, f"[staticoso:Part:{e}]", PartsText[e])
+	for e in StaticPartsText:
+		HTML = ReplWithEsc(HTML, f"[staticoso:StaticPart:{e}]", StaticPartsText[e])
 	HTML = ReplWithEsc(HTML, '[staticoso:Site:Menu]', HTMLPagesList)
 	HTML = ReplWithEsc(HTML, '[staticoso:Page:Lang]', SiteLang)
 	HTML = ReplWithEsc(HTML, '[staticoso:Page:Chapters]', HTMLTitles)
@@ -362,7 +361,7 @@ def DoMinifyHTML(HTML):
 		convert_charrefs=True,
 		keep_pre=True)
 
-def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, ConfMenu, GlobalMacros, SiteName, BlogName, SiteTagline, SiteTemplate, SiteDomain, SiteRoot, FolderRoots, SiteLang, Locale, Minify, NoScripts, Sorting, MarkdownExts, AutoCategories):
+def MakeSite(TemplatesText, StaticPartsText, DynamicParts, DynamicPartsText, ConfMenu, GlobalMacros, SiteName, BlogName, SiteTagline, SiteTemplate, SiteDomain, SiteRoot, FolderRoots, SiteLang, Locale, Minify, NoScripts, Sorting, MarkdownExts, AutoCategories):
 	PagesPaths, PostsPaths, Pages, MadePages, Categories = [], [], [], [], {}
 	for Ext in FileExtensions['Pages']:
 		for File in Path('Pages').rglob(f"*.{Ext}"):
@@ -370,14 +369,12 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, ConfMenu,
 		for File in Path('Posts').rglob(f"*.{Ext}"):
 			PostsPaths += [FileToStr(File, 'Posts/')]
 
-	if Sorting['Pages'] == 'Standard':
-		PagesPaths.sort()
-	elif Sorting['Pages'] == 'Inverse':
-		PagesPaths = RevSort(PagesPaths)
-	if Sorting['Posts'] == 'Standard':
-		PostsPaths.sort()
-	elif Sorting['Posts'] == 'Inverse':
-		PostsPaths = RevSort(PostsPaths)
+	PagesPaths = FileNameDateSort(PagesPaths)
+	if Sorting['Pages'] == 'Inverse':
+		PagesPaths.reverse() #= RevSort(PagesPaths)
+	PostsPaths = FileNameDateSort(PostsPaths)
+	if Sorting['Posts'] == 'Inverse':
+		PostsPaths.reverse() #= RevSort(PostsPaths)
 
 	print("[I] Preprocessing Source Pages")
 	for Type in ['Page', 'Post']:
@@ -460,9 +457,9 @@ def MakeSite(TemplatesText, PartsText, ContextParts, ContextPartsText, ConfMenu,
 		HTML, ContentHTML, SlimHTML, Description, Image = PatchHTML(
 			File=File,
 			HTML=TemplatesText[Meta['Template']],
-			PartsText=PartsText,
-			ContextParts=ContextParts,
-			ContextPartsText=ContextPartsText,
+			StaticPartsText=StaticPartsText,
+			DynamicParts=DynamicParts,
+			DynamicPartsText=DynamicPartsText,
 			HTMLPagesList=HTMLPagesList,
 			PagePath=PagePath[len('public/'):],
 			Content=Content,

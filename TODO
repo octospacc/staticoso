@@ -1,4 +1,4 @@
-- Fix sorting by date for files in different folders
+- Test sorting by date for files not starting with date, and dated folders
 - Make alt text for images also be title text
 - Custom category names showing in header links
 - Fix arguments - some are only callable from CLI and not Site.ini
@@ -15,3 +15,8 @@
 - Fix feed titles and page title ids
 - Use filename as page title if it is missing
 - Hybrid global+page menu (like on documentation generators)
+- Choosing templates for all pages in a folder
+- Exporting the entire site text as JSON for full-text search tools
+- Category-based feeds
+- Automatic guessing of .htm/.html extension for declarations of templates and stuff
+- Handle file extensions without case-sensitivity

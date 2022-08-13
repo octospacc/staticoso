@@ -59,8 +59,7 @@ def GetConfMenu(Entries, MarkdownExts):
 		for i in Entries:
 			if int(i) > Max:
 				Max = int(i)
-		for i in range(Max+1):
-			Menu += [[]]
+		Menu = [None] * (Max+1)
 		for i in Entries:
 			e = Entries[i]
 			if not ((e.startswith('<') or e.startswith('[') or e.startswith('- ')) and (e.endswith('>') or e.endswith(')') or e.endswith('}'))):
@@ -117,9 +116,9 @@ def Main(Args, FeedEntries):
 	print("[I] Generating HTML")
 	Pages = MakeSite(
 		TemplatesText=LoadFromDir('Templates', '*.html'),
-		PartsText=LoadFromDir('Parts', '*.html'),
-		ContextParts=literal_eval(Args.ContextParts) if Args.ContextParts else {},
-		ContextPartsText=LoadFromDir('ContextParts', '*.html'),
+		StaticPartsText=LoadFromDir('StaticParts', '*.html'),
+		DynamicParts=literal_eval(Args.DynamicParts) if Args.DynamicParts else {},
+		DynamicPartsText=LoadFromDir('DynamicParts', '*.html'),
 		ConfMenu=ConfMenu,
 		GlobalMacros=ReadConf(SiteConf, 'Macros'),
 		SiteName=SiteName,
@@ -133,7 +132,7 @@ def Main(Args, FeedEntries):
 		Locale=Locale,
 		Minify=Minify,
 		NoScripts=NoScripts,
-		Sorting=SetSorting(literal_eval(Args.ContextParts) if Args.ContextParts else {}),
+		Sorting=SetSorting(literal_eval(Args.Sorting) if Args.Sorting else {}),
 		MarkdownExts=MarkdownExts,
 		AutoCategories=AutoCategories)
 
@@ -213,7 +212,7 @@ if __name__ == '__main__':
 	Parser.add_argument('--SitemapOut', type=str)
 	Parser.add_argument('--FeedEntries', type=int)
 	Parser.add_argument('--FolderRoots', type=str)
-	Parser.add_argument('--ContextParts', type=str)
+	Parser.add_argument('--DynamicParts', type=str)
 	Parser.add_argument('--MarkdownExts', type=str)
 	Parser.add_argument('--MastodonURL', type=str)
 	Parser.add_argument('--MastodonToken', type=str)
