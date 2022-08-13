@@ -68,7 +68,7 @@ def MakeCategoryLine(File, Meta):
 	Categories = ''
 	if Meta['Categories']:
 		for i in Meta['Categories']:
-			Categories += '[{}]({}{}.html)  '.format(i, GetPathLevels(File) + 'Categories/', i)
+			Categories += ' [{}]({}{}.html) '.format(i, GetPathLevels(File) + 'Categories/', i)
 	return Categories
 
 def GetHTMLPagesList(Pages, BlogName, SiteRoot, PathPrefix, Unite=[], Type='Page', Category=None, For='Menu', MarkdownExts=(), MenuStyle='Default'):
@@ -371,10 +371,10 @@ def MakeSite(TemplatesText, StaticPartsText, DynamicParts, DynamicPartsText, Con
 
 	PagesPaths = FileNameDateSort(PagesPaths)
 	if Sorting['Pages'] == 'Inverse':
-		PagesPaths.reverse() #= RevSort(PagesPaths)
+		PagesPaths.reverse()
 	PostsPaths = FileNameDateSort(PostsPaths)
 	if Sorting['Posts'] == 'Inverse':
-		PostsPaths.reverse() #= RevSort(PostsPaths)
+		PostsPaths.reverse()
 
 	print("[I] Preprocessing Source Pages")
 	for Type in ['Page', 'Post']:

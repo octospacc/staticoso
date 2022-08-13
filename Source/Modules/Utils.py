@@ -100,9 +100,6 @@ def NumsFromFileName(Path):
 	for i,e in enumerate(Name):
 		if e.lower() in 'qwfpbjluyarstgmneiozxcdvkh':
 			return Name[:i]
-			#Split = i
-			#break
-	#return Name[:Split]
 	return Path
 
 def RevSort(List):
@@ -110,34 +107,21 @@ def RevSort(List):
 	List.reverse()
 	return List
 
-def FileNameDateSort(Old):
+def FileNameDateSort(Old): # TODO: Test this for files not starting with date, and dated folders
 	New = []
 	Old.sort()
 	New.insert(0, Old[0])
-	#print(Old)
 	for i,e in enumerate(Old):
 		if i == 0:
 			continue
-		#print(e)
 		Done = False
 		for j,f in enumerate(New):
-			#print(f)
-			#if NumsFromFileName(e) > NumsFromFileName(f):
-			#print(j, e, f)
-			#print(j, NumsFromFileName(e), NumsFromFileName(f))
-			
-			#if NumsFromFileName(e) != e and NumsFromFileName(f) != f and NumsFromFileName(e) > NumsFromFileName(f):
 			if NumsFromFileName(e) != e and NumsFromFileName(f) != f and NumsFromFileName(e) < NumsFromFileName(f):
-			#if e.split('/')[-1] > f.split('/')[-1]:
-				#New.insert(j+1, e)
 				New.insert(j, e)
 				Done = True
 				break
 		if not Done:
-			#New.insert(0, e)
 			New += [e]
-	#New.reverse()
-	print(New)
 	return New
 
 def FirstRealItem(List):

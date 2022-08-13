@@ -76,7 +76,7 @@ def MastodonShare(InstanceURL, Token, TypeFilter, CategoryFilter, HoursLimit, Pa
 				if p['Link'] == URL:
 					DoPost = False
 					break
-			if DoPost and (not HoursLimit or (Meta['CreatedOn'] and time.time() - time.mktime(date_parse(Meta['CreatedOn']).timetuple()) < 60*60*HoursLimit)):
+			if DoPost and Meta['Feed'] == 'True' and (not HoursLimit or (Meta['CreatedOn'] and time.time() - time.mktime(date_parse(Meta['CreatedOn']).timetuple()) < 60*60*HoursLimit)):
 				if not SaidPosting:
 					print("[I] Posting to Mastodon")
 					SaidPosting = True
