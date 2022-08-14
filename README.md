@@ -7,7 +7,12 @@ I'm making this because I need a simple and kind-of-minimal program to serve me 
 This won't replace any of the big projects out there that do the same thing but, as all of my projects, I'm releasing it as free libre software, in the hope that someone would find it useful.  
 Also, this software is needed for someone to edit and compile my personal sub-website [sitoctt](https://gitlab.com/octtspacc/sitoctt) from its source. Being that site too released under a libre license that allows modifications, I have to also release the tools I use to build it.
 
-Feel free to experiment with all of this stuff!
+Everything is still an heavy WIP, and features might break across commits, but feel free to experiment with all of this stuff!
+
+## Documentation
+
+Documentation, can be found at [staticoso-docs.gitlab.io](https://staticoso-docs.gitlab.io).  
+Obviously, it's built with staticoso itself 😁️. Its source repo can be found at [gitlab.com/octtspacc/staticoso-docs](https://gitlab.com/octtspacc/staticoso-docs).
 
 ## Dependencies
 - [Python == 3.10.4](https://python.org)
@@ -22,6 +27,10 @@ Feel free to experiment with all of this stuff!
 - [html2gmi](https://github.com/LukeEmmet/html2gmi)
 
 ## Features roadmap
+- [ ] Configuration with both INI files and CLI arguments
+- [ ] Category-based feeds
+- [ ] Support for multi-language sites
+- [x] The `title` attribute added to images which only have `alt` (for desktop accessibility)
 - [x] Local (per-page) and global (per-site) macros
 - [x] ActivityPub (Mastodon) support (Feed + embedded comments)
 - [ ] Polished Gemtext generation
@@ -44,5 +53,5 @@ Feel free to experiment with all of this stuff!
 - [x] Generation of titles in right sidebar with clickable links
 - [x] Detections of titles in a page
 - [x] Custom static page parts by template
-- [x] _HTML_, _Extended Markdown_, and _Pug_ supported for input page files
+- [x] _HTML_, TXT, _Extended Markdown_, and _Pug_ supported for input page files
 - [x] Ready for use

@@ -16,7 +16,7 @@ def PugCompileList(Pages):
 	# Pug-cli seems to shit itself with folder paths as input, so we pass ALL the files as arguments
 	Paths = ''
 	for File, Content, Titles, Meta in Pages:
-		if File.endswith('.pug'):
+		if File.lower().endswith('.pug'):
 			Path = 'public/{}'.format(File)
 			WriteFile(Path, Content)
 			Paths += '"{}" '.format(Path)

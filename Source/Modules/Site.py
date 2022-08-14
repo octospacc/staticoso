@@ -30,13 +30,13 @@ def MakeLinkableTitle(Line, Title, DashTitle, Type):
 		NewLine += Line[Index+2:]
 		return NewLine
 
-def GetTitle(Meta, Titles, Prefer='MetaTitle', BlogName=None):
+def GetTitle(FileName, Meta, Titles, Prefer='MetaTitle', BlogName=None):
 	if Prefer == 'BodyTitle':
-		Title = Titles[0].lstrip('#') if Titles else Meta['Title'] if Meta['Title'] else 'Untitled'
+		Title = Titles[0].lstrip('#') if Titles else Meta['Title'] if Meta['Title'] else FileName
 	elif Prefer == 'MetaTitle':
-		Title = Meta['Title'] if Meta['Title'] else Titles[0].lstrip('#') if Titles else 'Untitled'
+		Title = Meta['Title'] if Meta['Title'] else Titles[0].lstrip('#') if Titles else FileName
 	elif Prefer == 'HTMLTitle':
-		Title = Meta['HTMLTitle'] if Meta['HTMLTitle'] else Meta['Title'] if Meta['Title'] else Titles[0].lstrip('#') if Titles else 'Untitled'
+		Title = Meta['HTMLTitle'] if Meta['HTMLTitle'] else Meta['Title'] if Meta['Title'] else Titles[0].lstrip('#') if Titles else FileName
 	if BlogName and 'Blog' in Meta['Categories']:
 		Title += ' - ' + BlogName
 	return Title
@@ -140,6 +140,7 @@ def TemplatePreprocessor(Text):
 
 def PagePreprocessor(Path, Type, SiteTemplate, SiteRoot, GlobalMacros):
 	File = ReadFile(Path)
+	Path = Path.lower()
 	Content, Titles, DashyTitles, HTMLTitlesFound, Macros, Meta, MetaDefault = '', [], [], False, '', '', {
 		'Template': SiteTemplate,
 		'Style': '',
@@ -165,7 +166,7 @@ def PagePreprocessor(Path, Type, SiteTemplate, SiteRoot, GlobalMacros):
 				Macros += lll[1:].lstrip() + '\n'
 		else:
 			Headings = ('h1', 'h2', 'h3', 'h4', 'h5', 'h6')
-			if Path.endswith('.html') and not HTMLTitlesFound:
+			if Path.endswith(FileExtensions['HTML']) and not HTMLTitlesFound:
 				Soup = BeautifulSoup(File, 'html.parser')
 				Tags = Soup.find_all()
 				for t in Tags:
@@ -177,7 +178,7 @@ def PagePreprocessor(Path, Type, SiteTemplate, SiteRoot, GlobalMacros):
 						t.replace_with(MakeLinkableTitle(None, Title, DashTitle, 'md'))
 				Content = str(Soup.prettify(formatter=None))
 				HTMLTitlesFound = True
-			elif Path.endswith('.md'):
+			elif Path.endswith(FileExtensions['Markdown']):
 				if ll.startswith('#'):
 					DashTitle = DashifyTitle(l.lstrip('#'), DashyTitles)
 					DashyTitles += [DashTitle]
@@ -201,6 +202,8 @@ def PagePreprocessor(Path, Type, SiteTemplate, SiteRoot, GlobalMacros):
 							Content += MakeLinkableTitle(l, Title, DashTitle, 'pug') + '\n'
 				else:
 					Content += l + '\n'
+			elif Path.endswith('.txt'):
+				Content += l + '\n'
 	Meta = dict(ReadConf(LoadConfStr('[Meta]\n' + Meta), 'Meta'))
 	for i in MetaDefault:
 		if i in Meta:
@@ -229,7 +232,7 @@ def PagePostprocessor(FileType, Text, Meta):
 	return Text
 
 def MakeListTitle(File, Meta, Titles, Prefer, SiteRoot, BlogName, PathPrefix=''):
-	Title = GetTitle(Meta, Titles, Prefer, BlogName)
+	Title = GetTitle(File.split('/')[-1], Meta, Titles, Prefer, BlogName)
 	Link = False if Meta['Index'] == 'Unlinked' else True
 	if Link:
 		Title = '[{}]({})'.format(
@@ -282,17 +285,18 @@ def CanIndex(Index, For):
 def PatchHTML(File, HTML, StaticPartsText, DynamicParts, DynamicPartsText, HTMLPagesList, PagePath, Content, Titles, Meta, SiteRoot, SiteName, BlogName, FolderRoots, Categories, SiteLang, Locale):
 	HTMLTitles = FormatTitles(Titles)
 	BodyDescription, BodyImage = '', ''
-	Soup = BeautifulSoup(Content, 'html.parser')
+	if not File.lower().endswith('.txt'):
+		Soup = BeautifulSoup(Content, 'html.parser')
 	
-	if not BodyDescription and Soup.p:
-		BodyDescription = Soup.p.get_text()[:150].replace('\n', ' ').replace('"', "'") + '...'
-	if not BodyImage and Soup.img and Soup.img['src']:
-		BodyImage = Soup.img['src']
+		if not BodyDescription and Soup.p:
+			BodyDescription = Soup.p.get_text()[:150].replace('\n', ' ').replace('"', "'") + '...'
+		if not BodyImage and Soup.img and Soup.img['src']:
+			BodyImage = Soup.img['src']
 
-	#Content = SquareFnrefs(Content)
-	Content = AddToTagStartEnd(Content, '<a class="footnote-ref"', '</a>', '[', ']')
+		#Content = SquareFnrefs(Content)
+		Content = AddToTagStartEnd(Content, '<a class="footnote-ref"', '</a>', '[', ']')
 
-	Title = GetTitle(Meta, Titles, 'MetaTitle', BlogName)
+	Title = GetTitle(File.split('/')[-1], Meta, Titles, 'MetaTitle', BlogName)
 	Description = GetDescription(Meta, BodyDescription, 'MetaDescription')
 	Image = GetImage(Meta, BodyImage, 'MetaImage')
 
@@ -439,10 +443,14 @@ def MakeSite(TemplatesText, StaticPartsText, DynamicParts, DynamicPartsText, Con
 	print("[I] Writing Pages")
 	for File, Content, Titles, Meta in Pages:
 		PagePath = 'public/{}.html'.format(StripExt(File))
-		if File.endswith('.md'):
+		if File.lower().endswith(('.markdown', '.md')):
 			Content = markdown(PagePostprocessor('md', Content, Meta), extensions=MarkdownExts)
-		elif File.endswith(('.pug')):
+		elif File.lower().endswith(('.pug')):
 			Content = PagePostprocessor('pug', ReadFile(PagePath), Meta)
+		elif File.lower().endswith(('.txt')):
+			Content = '<pre>' + Content + '</pre>'
+		elif File.lower().endswith(('.htm', '.html')):
+			Content = ReadFile(PagePath)
 
 		TemplateMeta = TemplatePreprocessor(TemplatesText[Meta['Template']])
 		HTMLPagesList = GetHTMLPagesList(
@@ -474,6 +482,8 @@ def MakeSite(TemplatesText, StaticPartsText, DynamicParts, DynamicPartsText, Con
 			Categories=Categories,
 			SiteLang=SiteLang,
 			Locale=Locale)
+
+		HTML = ImgAltToTitle(HTML)
 		if NoScripts:
 			HTML = StripTags(HTML, ['script'])
 		if Minify:

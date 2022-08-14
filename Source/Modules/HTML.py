@@ -32,12 +32,20 @@ def StripAttrs(HTML):
 			t.attrs = {}
 	return str(Soup)
 
-def StripTags(HTML, ToStrip):
+def StripTags(HTML, ToStrip): # Remove desired tags from the HTML
 	Soup = MkSoup(HTML)
 	Tags = Soup.find_all()
 	for t in Tags:
 		if t.name in ToStrip:
 			t.replace_with('')
+	return str(Soup)
+
+def ImgAltToTitle(HTML): # Adds title attr. to <img> which don't have it, but have alt text
+	Soup = MkSoup(HTML)
+	Tags = Soup.find_all('img')
+	for t in Tags:
+		if 'alt' in t.attrs and 'title' not in t.attrs:
+			t.attrs.update({'title': t.attrs['alt']})
 	return str(Soup)
 
 def AddToTagStartEnd(HTML, MatchStart, MatchEnd, AddStart, AddEnd): # This doesn't handle nested tags

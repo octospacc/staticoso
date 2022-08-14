@@ -63,7 +63,7 @@ def GetConfMenu(Entries, MarkdownExts):
 		for i in Entries:
 			e = Entries[i]
 			if not ((e.startswith('<') or e.startswith('[') or e.startswith('- ')) and (e.endswith('>') or e.endswith(')') or e.endswith('}'))):
-				if not e.lower().endswith('.html'):
+				if not (e.lower().endswith('.html') or e.lower().endswith('.htm')):
 					e += '.html'
 			Menu[int(i)] = e
 	return Menu
@@ -116,10 +116,10 @@ def Main(Args, FeedEntries):
 
 	print("[I] Generating HTML")
 	Pages = MakeSite(
-		TemplatesText=LoadFromDir('Templates', '*.html'),
-		StaticPartsText=LoadFromDir('StaticParts', '*.html'),
+		TemplatesText=LoadFromDir('Templates', ['*.htm', '*.html']),
+		StaticPartsText=LoadFromDir('StaticParts', ['*.htm', '*.html']),
 		DynamicParts=literal_eval(Args.DynamicParts) if Args.DynamicParts else {},
-		DynamicPartsText=LoadFromDir('DynamicParts', '*.html'),
+		DynamicPartsText=LoadFromDir('DynamicParts', ['*.htm', '*.html']),
 		ConfMenu=ConfMenu,
 		GlobalMacros=ReadConf(SiteConf, 'Macros'),
 		SiteName=SiteName,
@@ -190,8 +190,10 @@ def Main(Args, FeedEntries):
 			Pages,
 			Header=Args.GemtextHeader if Args.GemtextHeader else f"# {SiteName}\n\n" if SiteName else '')
 
-	print("[I] Last Steps")
+	print("[I] Cleaning Temporary Files")
 	DelTmp()
+
+	print("[I] Copying Assets")
 	os.system("cp -R Assets/* public/")
 
 	print("[I] Done!")

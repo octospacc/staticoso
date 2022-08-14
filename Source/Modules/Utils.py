@@ -13,8 +13,10 @@ from datetime import datetime
 from pathlib import Path
 
 FileExtensions = {
-	'Pages': ('htm', 'html', 'md', 'pug', 'txt'),
-	'Tmp': ('md', 'pug', 'txt')}
+	'Pages': ('htm', 'html', 'markdown', 'md', 'pug', 'txt'),
+	'HTML': ('.htm', '.html'),
+	'Markdown': ('.markdown', '.md'),
+	'Tmp': ('htm', 'markdown', 'md', 'pug', 'txt')}
 
 def ReadFile(p):
 	try:
@@ -40,11 +42,14 @@ def FileToStr(File, Truncate=''):
 def IgnoreFiles(Dir, Files):
     return [f for f in Files if os.path.isfile(os.path.join(Dir, f))]
 
-def LoadFromDir(Dir, Rglob):
+def LoadFromDir(Dir, Matchs):
 	Contents = {}
-	for File in Path(Dir).rglob(Rglob):
-		File = str(File)[len(Dir)+1:]
-		Contents.update({File: ReadFile('{}/{}'.format(Dir, File))})
+	if type(Matchs) != list:
+		Matchs = [Matchs]
+	for Match in Matchs:
+		for File in Path(Dir).rglob(Match):
+			File = str(File)[len(Dir)+1:]
+			Contents.update({File: ReadFile('{}/{}'.format(Dir, File))})
 	return Contents
 
 def StripExt(Path):
