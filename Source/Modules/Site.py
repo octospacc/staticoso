@@ -443,13 +443,13 @@ def MakeSite(TemplatesText, StaticPartsText, DynamicParts, DynamicPartsText, Con
 	print("[I] Writing Pages")
 	for File, Content, Titles, Meta in Pages:
 		PagePath = 'public/{}.html'.format(StripExt(File))
-		if File.lower().endswith(('.markdown', '.md')):
+		if File.lower().endswith(FileExtensions['Markdown']):
 			Content = markdown(PagePostprocessor('md', Content, Meta), extensions=MarkdownExts)
 		elif File.lower().endswith(('.pug')):
 			Content = PagePostprocessor('pug', ReadFile(PagePath), Meta)
 		elif File.lower().endswith(('.txt')):
 			Content = '<pre>' + Content + '</pre>'
-		elif File.lower().endswith(('.htm', '.html')):
+		elif File.lower().endswith(FileExtensions['HTML']):
 			Content = ReadFile(PagePath)
 
 		TemplateMeta = TemplatePreprocessor(TemplatesText[Meta['Template']])
