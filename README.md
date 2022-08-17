@@ -44,7 +44,7 @@ Needed for Gemtext output support:
 - [ ] Configuration with both INI files and CLI arguments
 - [ ] Category-based feeds
 - [ ] Support for multi-language sites
-- [x] The `title` attribute added to images which only have `alt` (for desktop accessibility)
+- [x] The `title` attribute is added to images which only have `alt` (for desktop accessibility)
 - [x] Local (per-page) and global (per-site) macros
 - [x] ActivityPub (Mastodon) support (Feed + embedded comments)
 - [ ] Polished Gemtext generation
