@@ -16,7 +16,7 @@ def MakeFeed(CategoryFilter, Pages, SiteName, SiteTagline, SiteDomain, MaxEntrie
 	Feed = FeedGenerator()
 	Link = SiteDomain if SiteDomain else ' '
 	Feed.id(Link)
-	Feed.title(SiteName if SiteName else ' ')
+	Feed.title(SiteName if SiteName else 'Untitled Site')
 	Feed.link(href=Link, rel='alternate')
 	Feed.description(SiteTagline if SiteTagline else ' ')
 	if SiteDomain:
@@ -33,13 +33,15 @@ def MakeFeed(CategoryFilter, Pages, SiteName, SiteTagline, SiteDomain, MaxEntrie
 	for File, Content, Titles, Meta, ContentHTML, SlimHTML, Description, Image in DoPages:
 		if FullSite or (not FullSite and Meta['Type'] == 'Post' and (not CategoryFilter or (CategoryFilter and (CategoryFilter in Meta['Categories'] or CategoryFilter == '*')))):
 			Entry = Feed.add_entry()
+			FileName = File.split('/')[-1]
 			File = '{}.html'.format(StripExt(File))
 			Content = ReadFile('public/'+File)
 			Link = SiteDomain + '/' + File if SiteDomain else ' '
 			CreatedOn = GetFullDate(Meta['CreatedOn'])
 			EditedOn = GetFullDate(Meta['EditedOn'])
 			Entry.id(Link)
-			Entry.title(Meta['Title'] if Meta['Title'] else Titles[0].lstrip('#') if Titles else 'Untitled')
+			Title = Meta['Title'] if Meta['Title'] else Titles[0].lstrip('#') if Titles else FileName
+			Entry.title(Title.lstrip().rstrip())
 			Entry.description(Description)
 			Entry.link(href=Link, rel='alternate')
 			if not FullSite: # Avoid making an enormous site feed file...

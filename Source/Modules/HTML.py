@@ -7,6 +7,7 @@
 |   Copyright (C) 2022, OctoSpacc     |
 | ================================= """
 
+import html
 from Libs.bs4 import BeautifulSoup
 from Modules.Utils import *
 
@@ -40,12 +41,14 @@ def StripTags(HTML, ToStrip): # Remove desired tags from the HTML
 			t.replace_with('')
 	return str(Soup)
 
-def ImgAltToTitle(HTML): # Adds title attr. to <img> which don't have it, but have alt text
+def WriteImgAltAndTitle(HTML): # Adds alt or title attr. to <img> which only have one of them
 	Soup = MkSoup(HTML)
 	Tags = Soup.find_all('img')
 	for t in Tags:
 		if 'alt' in t.attrs and 'title' not in t.attrs:
 			t.attrs.update({'title': t.attrs['alt']})
+		elif 'title' in t.attrs and 'alt' not in t.attrs:
+		    t.attrs.update({'alt': t.attrs['title']})
 	return str(Soup)
 
 def AddToTagStartEnd(HTML, MatchStart, MatchEnd, AddStart, AddEnd): # This doesn't handle nested tags

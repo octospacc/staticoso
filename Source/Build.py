@@ -76,20 +76,24 @@ def Main(Args, FeedEntries):
 	BlogName = Args.BlogName if Args.BlogName else ReadConf(SiteConf, 'Site', 'BlogName') if ReadConf(SiteConf, 'Site', 'BlogName') else ''
 	SiteTagline = Args.SiteTagline if Args.SiteTagline else ReadConf(SiteConf, 'Site', 'Tagline') if ReadConf(SiteConf, 'Site', 'Tagline') else ''
 	SiteTemplate = Args.SiteTemplate if Args.SiteTemplate else ReadConf(SiteConf, 'Site', 'Template') if ReadConf(SiteConf, 'Site', 'Template') else 'Default.html'
-	SiteDomain = Args.SiteDomain.rstrip('/') if Args.SiteDomain else ReadConf(SiteConf, 'Site', 'Domain') if ReadConf(SiteConf, 'Site', 'Domain') else ''
+	SiteDomain = Args.SiteDomain.rstrip('/') if Args.SiteDomain else ReadConf(SiteConf, 'Site', 'Domain').rstrip('/') if ReadConf(SiteConf, 'Site', 'Domain') else ''
+	SiteRoot = Args.SiteRoot if Args.SiteRoot else ReadConf(SiteConf, 'Site', 'Root') if ReadConf(SiteConf, 'Site', 'Root') else '/'
 	SiteLang = Args.SiteLang if Args.SiteLang else ReadConf(SiteConf, 'Site', 'Lang') if ReadConf(SiteConf, 'Site', 'Lang') else 'en'
 	Locale = LoadLocale(SiteLang)
-	MastodonURL = Args.MastodonURL if Args.MastodonURL else ''
-	MastodonToken = Args.MastodonToken if Args.MastodonToken else ''
-	MarkdownExts = literal_eval(Args.MarkdownExts) if Args.MarkdownExts else EvalOpt(ReadConf(SiteConf, 'Site', 'MarkdownExts')) if ReadConf(SiteConf, 'Site', 'MarkdownExts') else MarkdownExtsDefault
-	ActivityPubTypeFilter = Args.ActivityPubTypeFilter if Args.ActivityPubTypeFilter else 'Post'
+	MastodonURL = Args.MastodonURL if Args.MastodonURL else ReadConf(SiteConf, 'Mastodon', 'URL') if ReadConf(SiteConf, 'Mastodon', 'URL') else ''
+	MastodonToken = Args.MastodonToken if Args.MastodonToken else ReadConf(SiteConf, 'Mastodon', 'Token') if ReadConf(SiteConf, 'Mastodon', 'Token') else ''
+	DynamicParts = literal_eval(Args.DynamicParts) if Args.DynamicParts else EvalOpt(ReadConf(SiteConf, 'Site', 'DynamicParts')) if ReadConf(SiteConf, 'Site', 'DynamicParts') else {}
+	MarkdownExts = literal_eval(Args.MarkdownExts) if Args.MarkdownExts else EvalOpt(ReadConf(SiteConf, 'Markdown', 'Exts')) if ReadConf(SiteConf, 'Markdown', 'Exts') else MarkdownExtsDefault
+	ActivityPubTypeFilter = Args.ActivityPubTypeFilter if Args.ActivityPubTypeFilter else ReadConf(SiteConf, 'ActivityPub', 'TypeFilter') if ReadConf(SiteConf, 'ActivityPub', 'TypeFilter') else 'Post'
 	FeedCategoryFilter = Args.FeedCategoryFilter if Args.FeedCategoryFilter else 'Blog'
 	Minify = StringBoolChoose(False, Args.Minify, ReadConf(SiteConf, 'Site', 'Minify'))
-	AutoCategories = StringBoolChoose(False, Args.AutoCategories, ReadConf(SiteConf, 'Site', 'AutoCategories'))
 	NoScripts = StringBoolChoose(False, Args.NoScripts, ReadConf(SiteConf, 'Site', 'NoScripts'))
+	ImgAltAndTitle = StringBoolChoose(True, Args.ImgAltAndTitle, ReadConf(SiteConf, 'Site', 'ImgAltAndTitle'))
+	AutoCategories = StringBoolChoose(False, Args.AutoCategories, ReadConf(SiteConf, 'Site', 'AutoCategories'))
 	GemtextOut = StringBoolChoose(False, Args.GemtextOut, ReadConf(SiteConf, 'Site', 'GemtextOut'))
 	SitemapOut = StringBoolChoose(True, Args.SitemapOut, ReadConf(SiteConf, 'Site', 'SitemapOut'))
-	FeedEntries = int(FeedEntries) if FeedEntries and FeedEntries != 'Default' else int(ReadConf(SiteConf, 'Site', 'FeedEntries')) if ReadConf(SiteConf, 'Site', 'FeedEntries') else 10
+	FeedEntries = int(FeedEntries) if (FeedEntries or FeedEntries == 0) and FeedEntries != 'Default' else int(ReadConf(SiteConf, 'Site', 'FeedEntries')) if ReadConf(SiteConf, 'Site', 'FeedEntries') else 10
+	Sorting = literal_eval(Args.Sorting) if Args.Sorting else EvalOpt(ReadConf(SiteConf, 'Site', 'Sorting')) if ReadConf(SiteConf, 'Site', 'Sorting') else {}
 
 	MenuEntries = ReadConf(SiteConf, 'Menu')
 	if MenuEntries:
@@ -118,7 +122,7 @@ def Main(Args, FeedEntries):
 	Pages = MakeSite(
 		TemplatesText=LoadFromDir('Templates', ['*.htm', '*.html']),
 		StaticPartsText=LoadFromDir('StaticParts', ['*.htm', '*.html']),
-		DynamicParts=literal_eval(Args.DynamicParts) if Args.DynamicParts else {},
+		DynamicParts=DynamicParts,
 		DynamicPartsText=LoadFromDir('DynamicParts', ['*.htm', '*.html']),
 		ConfMenu=ConfMenu,
 		GlobalMacros=ReadConf(SiteConf, 'Macros'),
@@ -127,13 +131,14 @@ def Main(Args, FeedEntries):
 		SiteTagline=SiteTagline,
 		SiteTemplate=SiteTemplate,
 		SiteDomain=SiteDomain,
-		SiteRoot=Args.SiteRoot if Args.SiteRoot else '/',
+		SiteRoot=SiteRoot,
 		FolderRoots=literal_eval(Args.FolderRoots) if Args.FolderRoots else {},
 		SiteLang=SiteLang,
 		Locale=Locale,
 		Minify=Minify,
 		NoScripts=NoScripts,
-		Sorting=SetSorting(literal_eval(Args.Sorting) if Args.Sorting else {}),
+		ImgAltAndTitle=ImgAltAndTitle,
+		Sorting=SetSorting(Sorting),
 		MarkdownExts=MarkdownExts,
 		AutoCategories=AutoCategories)
 
@@ -200,7 +205,6 @@ def Main(Args, FeedEntries):
 
 if __name__ == '__main__':
 	Parser = argparse.ArgumentParser()
-	Parser.add_argument('--Minify', type=str)
 	Parser.add_argument('--Sorting', type=str)
 	Parser.add_argument('--SiteLang', type=str)
 	Parser.add_argument('--SiteRoot', type=str)
@@ -208,7 +212,9 @@ if __name__ == '__main__':
 	Parser.add_argument('--BlogName', type=str)
 	Parser.add_argument('--SiteTemplate', type=str)
 	Parser.add_argument('--SiteDomain', type=str)
+	Parser.add_argument('--Minify', type=str)
 	Parser.add_argument('--NoScripts', type=str)
+	Parser.add_argument('--ImgAltAndTitle', type=str)
 	Parser.add_argument('--GemtextOut', type=str)
 	Parser.add_argument('--GemtextHeader', type=str)
 	Parser.add_argument('--SiteTagline', type=str)

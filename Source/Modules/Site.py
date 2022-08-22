@@ -16,7 +16,7 @@ from Modules.Pug import *
 from Modules.Utils import *
 
 def DashifyTitle(Title, Done=[]):
-	return UndupeStr(DashifyStr(Title), Done, '-')
+	return UndupeStr(DashifyStr(Title.lstrip(' ').rstrip(' ')), Done, '-')
 
 def MakeLinkableTitle(Line, Title, DashTitle, Type):
 	if Type == 'md':
@@ -365,7 +365,7 @@ def DoMinifyHTML(HTML):
 		convert_charrefs=True,
 		keep_pre=True)
 
-def MakeSite(TemplatesText, StaticPartsText, DynamicParts, DynamicPartsText, ConfMenu, GlobalMacros, SiteName, BlogName, SiteTagline, SiteTemplate, SiteDomain, SiteRoot, FolderRoots, SiteLang, Locale, Minify, NoScripts, Sorting, MarkdownExts, AutoCategories):
+def MakeSite(TemplatesText, StaticPartsText, DynamicParts, DynamicPartsText, ConfMenu, GlobalMacros, SiteName, BlogName, SiteTagline, SiteTemplate, SiteDomain, SiteRoot, FolderRoots, SiteLang, Locale, Minify, NoScripts, ImgAltAndTitle, Sorting, MarkdownExts, AutoCategories):
 	PagesPaths, PostsPaths, Pages, MadePages, Categories = [], [], [], [], {}
 	for Ext in FileExtensions['Pages']:
 		for File in Path('Pages').rglob(f"*.{Ext}"):
@@ -448,7 +448,7 @@ def MakeSite(TemplatesText, StaticPartsText, DynamicParts, DynamicPartsText, Con
 		elif File.lower().endswith(('.pug')):
 			Content = PagePostprocessor('pug', ReadFile(PagePath), Meta)
 		elif File.lower().endswith(('.txt')):
-			Content = '<pre>' + Content + '</pre>'
+			Content = '<pre>' + html.escape(Content) + '</pre>'
 		elif File.lower().endswith(FileExtensions['HTML']):
 			Content = ReadFile(PagePath)
 
@@ -483,11 +483,13 @@ def MakeSite(TemplatesText, StaticPartsText, DynamicParts, DynamicPartsText, Con
 			SiteLang=SiteLang,
 			Locale=Locale)
 
-		HTML = ImgAltToTitle(HTML)
-		if NoScripts:
-			HTML = StripTags(HTML, ['script'])
 		if Minify:
 			HTML = DoMinifyHTML(HTML)
+		if NoScripts:
+			HTML = StripTags(HTML, ['script'])
+		if ImgAltAndTitle:
+			HTML = WriteImgAltAndTitle(HTML)
+
 		WriteFile(PagePath, HTML)
 		MadePages += [[File, Content, Titles, Meta, ContentHTML, SlimHTML, Description, Image]]
 
