@@ -68,12 +68,24 @@ def GetConfMenu(Entries, MarkdownExts):
 			Menu[int(i)] = e
 	return Menu
 
+def CheckSafeOutputDir(OutDir):
+	InDir = os.path.realpath(os.getcwd())
+	OutDir = os.path.realpath(OutDir)
+	OutFolder = OutDir.split('/')[-1]
+	if InDir == OutDir:
+		print(f"[E] Output and Input directories ({OutDir}) can't be the same. Exiting.")
+		exit(1)
+	elif OutFolder in ReservedPaths and f"{InDir}/{OutFolder}" == OutDir:
+		print(f"[E] Output directory {OutDir} can't be a reserved subdirectory of the Input. Exiting.")
+		exit(1)
+
 def Main(Args, FeedEntries):
 	HavePages, HavePosts = False, False
 	SiteConf = LoadConfFile('Site.ini')
 
 	OutputDir = Args.OutputDir if Args.OutputDir else ReadConf(SiteConf, 'Site', 'OutputDir') if ReadConf(SiteConf, 'Site', 'OutputDir') else 'public'
 	OutputDir = OutputDir.removesuffix('/')
+	CheckSafeOutputDir(OutputDir)
 	print(f"[I] Outputting to {OutputDir}/")
 
 	SiteName = Args.SiteName if Args.SiteName else ReadConf(SiteConf, 'Site', 'Name') if ReadConf(SiteConf, 'Site', 'Name') else ''
@@ -89,12 +101,14 @@ def Main(Args, FeedEntries):
 	DynamicParts = literal_eval(Args.DynamicParts) if Args.DynamicParts else EvalOpt(ReadConf(SiteConf, 'Site', 'DynamicParts')) if ReadConf(SiteConf, 'Site', 'DynamicParts') else {}
 	MarkdownExts = literal_eval(Args.MarkdownExts) if Args.MarkdownExts else EvalOpt(ReadConf(SiteConf, 'Markdown', 'Exts')) if ReadConf(SiteConf, 'Markdown', 'Exts') else MarkdownExtsDefault
 	ActivityPubTypeFilter = Args.ActivityPubTypeFilter if Args.ActivityPubTypeFilter else ReadConf(SiteConf, 'ActivityPub', 'TypeFilter') if ReadConf(SiteConf, 'ActivityPub', 'TypeFilter') else 'Post'
-	FeedCategoryFilter = Args.FeedCategoryFilter if Args.FeedCategoryFilter else 'Blog'
+	ActivityPubHoursLimit = OptionChoose(168, Args.ActivityPubHoursLimit, ReadConf(SiteConf, 'ActivityPub', 'HoursLimit'))
+	FeedCategoryFilter = OptionChoose('Blog', Args.FeedCategoryFilter, ReadConf(SiteConf, 'Feed', 'CategoryFilter'))
 	Minify = StringBoolChoose(False, Args.Minify, ReadConf(SiteConf, 'Site', 'Minify'))
 	NoScripts = StringBoolChoose(False, Args.NoScripts, ReadConf(SiteConf, 'Site', 'NoScripts'))
 	ImgAltAndTitle = StringBoolChoose(True, Args.ImgAltAndTitle, ReadConf(SiteConf, 'Site', 'ImgAltAndTitle'))
 	AutoCategories = StringBoolChoose(False, Args.AutoCategories, ReadConf(SiteConf, 'Site', 'AutoCategories'))
 	GemtextOut = StringBoolChoose(False, Args.GemtextOut, ReadConf(SiteConf, 'Site', 'GemtextOut'))
+	GemtextHeader = Args.GemtextHeader if Args.GemtextHeader else ReadConf(SiteConf, 'Gemtext', 'Header') if ReadConf(SiteConf, 'Gemtext', 'Header') else f"# {SiteName}\n\n" if SiteName else ''
 	SitemapOut = StringBoolChoose(True, Args.SitemapOut, ReadConf(SiteConf, 'Site', 'SitemapOut'))
 	FeedEntries = int(FeedEntries) if (FeedEntries or FeedEntries == 0) and FeedEntries != 'Default' else int(ReadConf(SiteConf, 'Site', 'FeedEntries')) if ReadConf(SiteConf, 'Site', 'FeedEntries') else 10
 	Sorting = literal_eval(Args.Sorting) if Args.Sorting else EvalOpt(ReadConf(SiteConf, 'Site', 'Sorting')) if ReadConf(SiteConf, 'Site', 'Sorting') else {}
@@ -177,7 +191,7 @@ def Main(Args, FeedEntries):
 			Locale=Locale,
 			TypeFilter=ActivityPubTypeFilter,
 			CategoryFilter=FeedCategoryFilter,
-			HoursLimit=Args.ActivityPubHoursLimit if Args.ActivityPubHoursLimit else 168)
+			HoursLimit=ActivityPubHoursLimit)
 	else:
 		MastodonPosts = []
 
@@ -192,15 +206,12 @@ def Main(Args, FeedEntries):
 					StrOpen=Locale['OpenInNewTab'],
 					URL=p['Post'])
 				break
-		Content = Content.replace('[staticoso:Comments]', Post)
+		Content = ReplWithEsc(Content, '[staticoso:Comments]', Post)
 		WriteFile(File, Content)
 
 	if GemtextOut:
 		print("[I] Generating Gemtext")
-		GemtextCompileList(
-			OutputDir,
-			Pages,
-			Header=Args.GemtextHeader if Args.GemtextHeader else f"# {SiteName}\n\n" if SiteName else '')
+		GemtextCompileList(OutputDir, Pages, GemtextHeader)
 
 	print("[I] Cleaning Temporary Files")
 	DelTmp(OutputDir)
@@ -244,7 +255,7 @@ if __name__ == '__main__':
 		from Modules.Feed import *
 		FeedEntries = Args.FeedEntries if Args.FeedEntries else 'Default'
 	except:
-		print("[E] Can't load the XML libraries. XML Feeds Generation is Disabled. Make sure the 'lxml' library is installed.")
+		print("[W] Can't load the XML libraries. XML Feeds Generation is Disabled. Make sure the 'lxml' library is installed.")
 		FeedEntries = 0
 
 	Main(

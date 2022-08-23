@@ -12,6 +12,7 @@ import os
 from datetime import datetime
 from pathlib import Path
 
+ReservedPaths = ('Site.ini', 'Assets', 'Pages', 'Posts', 'Templates', 'StaticParts', 'DynamicParts')
 FileExtensions = {
 	'Pages': ('htm', 'html', 'markdown', 'md', 'pug', 'txt'),
 	'HTML': ('.htm', '.html'),

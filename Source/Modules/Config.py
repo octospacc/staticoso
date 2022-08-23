@@ -38,12 +38,12 @@ def EvalOpt(Opt):
 	else:
 		return None
 
+def OptionChoose(Default, Primary, Secondary):
+	return Primary if Primary != None else Secondary if Secondary != None else Default
+
 def StringBoolChoose(Default, Primary, Secondary):
 	Var = Default
-	if Primary != None:
-		Check = Primary
-	else:
-		Check = Secondary
+	Check = Primary if Primary != None else Secondary
 	if type(Check) == bool:
 		Var = Check
 	elif type(Check) == str:
