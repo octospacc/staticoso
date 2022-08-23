@@ -7,6 +7,7 @@
 |   Copyright (C) 2022, OctoSpacc     |
 | ================================= """
 
+from datetime import datetime
 from Libs import htmlmin
 from Libs.bs4 import BeautifulSoup
 from Modules.Config import *
@@ -21,12 +22,12 @@ def DashifyTitle(Title, Done=[]):
 def MakeLinkableTitle(Line, Title, DashTitle, Type):
 	if Type == 'md':
 		Index = Title.split(' ')[0].count('#')
-		return '<h{} id="{}">{}</h{}>'.format(Index, DashTitle, Title[Index+1:], Index)
+		return f'<h{Index} id="{DashTitle}">{Title[Index+1:]}</h{Index}>'
 	elif Type == 'pug':
 		NewLine = ''
 		Index = Line.find('h')
 		NewLine += Line[:Index]
-		NewLine += "{}(id='{}')".format(Line[Index:Index+2], DashTitle)
+		NewLine += f"{Line[Index:Index+2]}(id='{DashTitle}')"
 		NewLine += Line[Index+2:]
 		return NewLine
 
@@ -59,16 +60,16 @@ def MakeContentHeader(Meta, Locale, Categories=''):
 	Header = ''
 	for i in ['CreatedOn', 'EditedOn']:
 		if Meta[i]:
-			Header += '{} {}  \n'.format(Locale[i], Meta[i])
+			Header += f"{Locale[i]}: {Meta[i]}  \n"
 	if Categories:
-		Header += '{}: {}  \n'.format(Locale['Categories'], Categories)
+		Header += f"{Locale['Categories']}: {Categories}  \n"
 	return markdown(Header.rstrip())
 
 def MakeCategoryLine(File, Meta):
 	Categories = ''
 	if Meta['Categories']:
 		for i in Meta['Categories']:
-			Categories += ' [{}]({}{}.html) '.format(i, GetPathLevels(File) + 'Categories/', i)
+			Categories += f" [{i}]({GetPathLevels(File)}Categories/{i}.html) "
 	return Categories
 
 def GetHTMLPagesList(Pages, BlogName, SiteRoot, PathPrefix, Unite=[], Type='Page', Category=None, For='Menu', MarkdownExts=(), MenuStyle='Default'):
@@ -240,7 +241,7 @@ def MakeListTitle(File, Meta, Titles, Prefer, SiteRoot, BlogName, PathPrefix='')
 			'{}{}.html'.format(PathPrefix, StripExt(File)))
 	if Meta['Type'] == 'Post':
 		CreatedOn = Meta['CreatedOn'] if Meta['CreatedOn'] else '?'
-		Title = '[{}] {}'.format(CreatedOn, Title)
+		Title = f"[{CreatedOn}] {Title}"
 	return Title
 
 def FormatTitles(Titles, Flatten=False):
@@ -252,7 +253,7 @@ def FormatTitles(Titles, Flatten=False):
 		Title = t.lstrip('#')
 		DashyTitle = DashifyTitle(Title, DashyTitles)
 		DashyTitles += [DashyTitle]
-		Title = '[{}](#{})'.format(Title, DashyTitle)
+		Title = f"[{Title}](#{DashyTitle})"
 		MDTitles += Heading + Title + '\n'
 	return markdown(MDTitles)
 
@@ -329,6 +330,7 @@ def PatchHTML(File, HTML, StaticPartsText, DynamicParts, DynamicPartsText, HTMLP
 	HTML = ReplWithEsc(HTML, '[staticoso:Page:Style]', Meta['Style'])
 	HTML = ReplWithEsc(HTML, '[staticoso:Page:Content]', Content)
 	HTML = ReplWithEsc(HTML, '[staticoso:Page:ContentInfo]', MakeContentHeader(Meta, Locale, MakeCategoryLine(File, Meta)))
+	HTML = ReplWithEsc(HTML, '[staticoso:BuildTime]', datetime.now().strftime('%Y-%m-%d %H:%M'))
 	HTML = ReplWithEsc(HTML, '[staticoso:Site:Name]', SiteName)
 	HTML = ReplWithEsc(HTML, '[staticoso:Site:AbsoluteRoot]', SiteRoot)
 	HTML = ReplWithEsc(HTML, '[staticoso:Site:RelativeRoot]', GetPathLevels(PagePath))
@@ -365,7 +367,7 @@ def DoMinifyHTML(HTML):
 		convert_charrefs=True,
 		keep_pre=True)
 
-def MakeSite(TemplatesText, StaticPartsText, DynamicParts, DynamicPartsText, ConfMenu, GlobalMacros, SiteName, BlogName, SiteTagline, SiteTemplate, SiteDomain, SiteRoot, FolderRoots, SiteLang, Locale, Minify, NoScripts, ImgAltAndTitle, Sorting, MarkdownExts, AutoCategories):
+def MakeSite(OutputDir, TemplatesText, StaticPartsText, DynamicParts, DynamicPartsText, ConfMenu, GlobalMacros, SiteName, BlogName, SiteTagline, SiteTemplate, SiteDomain, SiteRoot, FolderRoots, SiteLang, Locale, Minify, NoScripts, ImgAltAndTitle, Sorting, MarkdownExts, AutoCategories):
 	PagesPaths, PostsPaths, Pages, MadePages, Categories = [], [], [], [], {}
 	for Ext in FileExtensions['Pages']:
 		for File in Path('Pages').rglob(f"*.{Ext}"):
@@ -395,7 +397,7 @@ def MakeSite(TemplatesText, StaticPartsText, DynamicParts, DynamicPartsText, Con
 			Pages += [[File, Content, Titles, Meta]]
 			for Cat in Meta['Categories']:
 				Categories.update({Cat:''})
-	PugCompileList(Pages)
+	PugCompileList(OutputDir, Pages)
 
 	if Categories:
 		print("[I] Generating Category Lists")
@@ -413,7 +415,7 @@ def MakeSite(TemplatesText, StaticPartsText, DynamicParts, DynamicPartsText, Con
 					MenuStyle='Flat')
 
 	if AutoCategories:
-		Dir = 'public/Categories'
+		Dir = f"{OutputDir}/Categories"
 		for Cat in Categories:
 			Exists = False
 			for File in Path(Dir).rglob(str(Cat)+'.*'):
@@ -421,7 +423,7 @@ def MakeSite(TemplatesText, StaticPartsText, DynamicParts, DynamicPartsText, Con
 				break
 			if not Exists:
 				File = f"Categories/{Cat}.md"
-				FilePath = f"public/{File}"
+				FilePath = f"{OutputDir}/{File}"
 				WriteFile(FilePath, f"""\
 // Title: {Cat}
 // Type: Page
@@ -442,7 +444,7 @@ def MakeSite(TemplatesText, StaticPartsText, DynamicParts, DynamicPartsText, Con
 
 	print("[I] Writing Pages")
 	for File, Content, Titles, Meta in Pages:
-		PagePath = 'public/{}.html'.format(StripExt(File))
+		PagePath = f"{OutputDir}/{StripExt(File)}.html"
 		if File.lower().endswith(FileExtensions['Markdown']):
 			Content = markdown(PagePostprocessor('md', Content, Meta), extensions=MarkdownExts)
 		elif File.lower().endswith(('.pug')):
@@ -471,7 +473,7 @@ def MakeSite(TemplatesText, StaticPartsText, DynamicParts, DynamicPartsText, Con
 			DynamicParts=DynamicParts,
 			DynamicPartsText=DynamicPartsText,
 			HTMLPagesList=HTMLPagesList,
-			PagePath=PagePath[len('public/'):],
+			PagePath=PagePath[len(f"{OutputDir}/"):],
 			Content=Content,
 			Titles=Titles,
 			Meta=Meta,

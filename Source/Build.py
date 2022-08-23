@@ -28,19 +28,19 @@ from Modules.Markdown import *
 from Modules.Site import *
 from Modules.Sitemap import *
 from Modules.Utils import *
-
-def ResetPublic():
-	for i in ('public', 'public.gmi'):
+	
+def ResetPublic(OutputDir):
+	for i in (OutputDir, f"{OutputDir}.gmi"):
 		try:
 			shutil.rmtree(i)
 		except FileNotFoundError:
 			pass
 
-def DelTmp():
+def DelTmp(OutputDir):
 	for Ext in FileExtensions['Tmp']:
-		for File in Path('public').rglob(f"*.{Ext}"):
+		for File in Path(OutputDir).rglob(f"*.{Ext}"):
 			os.remove(File)
-	for Dir in ('public', 'public.gmi'):
+	for Dir in (OutputDir, f"{OutputDir}.gmi"):
 		for File in Path(Dir).rglob('*.tmp'):
 			os.remove(File)
 
@@ -72,6 +72,10 @@ def Main(Args, FeedEntries):
 	HavePages, HavePosts = False, False
 	SiteConf = LoadConfFile('Site.ini')
 
+	OutputDir = Args.OutputDir if Args.OutputDir else ReadConf(SiteConf, 'Site', 'OutputDir') if ReadConf(SiteConf, 'Site', 'OutputDir') else 'public'
+	OutputDir = OutputDir.removesuffix('/')
+	print(f"[I] Outputting to {OutputDir}/")
+
 	SiteName = Args.SiteName if Args.SiteName else ReadConf(SiteConf, 'Site', 'Name') if ReadConf(SiteConf, 'Site', 'Name') else ''
 	BlogName = Args.BlogName if Args.BlogName else ReadConf(SiteConf, 'Site', 'BlogName') if ReadConf(SiteConf, 'Site', 'BlogName') else ''
 	SiteTagline = Args.SiteTagline if Args.SiteTagline else ReadConf(SiteConf, 'Site', 'Tagline') if ReadConf(SiteConf, 'Site', 'Tagline') else ''
@@ -101,25 +105,26 @@ def Main(Args, FeedEntries):
 	else:
 		ConfMenu = []
 
-	ResetPublic()
+	ResetPublic(OutputDir)
 
 	if os.path.isdir('Pages'):
 		HavePages = True
-		shutil.copytree('Pages', 'public')
+		shutil.copytree('Pages', OutputDir)
 		if GemtextOut:
-			shutil.copytree('Pages', 'public.gmi', ignore=IgnoreFiles)
+			shutil.copytree('Pages', f"{OutputDir}.gmi", ignore=IgnoreFiles)
 	if os.path.isdir('Posts'):
 		HavePosts = True
-		shutil.copytree('Posts', 'public/Posts')
+		shutil.copytree('Posts', f"{OutputDir}/Posts")
 		if GemtextOut:
-			shutil.copytree('Posts', 'public.gmi/Posts', ignore=IgnoreFiles)
+			shutil.copytree('Posts', f"{OutputDir}.gmi/Posts", ignore=IgnoreFiles)
 
-	if not HavePages and not HavePosts:
+	if not (HavePages or HavePosts):
 		print("[E] No Pages or posts found. Nothing to do, exiting!")
 		exit(1)
 
 	print("[I] Generating HTML")
 	Pages = MakeSite(
+		OutputDir=OutputDir,
 		TemplatesText=LoadFromDir('Templates', ['*.htm', '*.html']),
 		StaticPartsText=LoadFromDir('StaticParts', ['*.htm', '*.html']),
 		DynamicParts=DynamicParts,
@@ -146,6 +151,7 @@ def Main(Args, FeedEntries):
 		print("[I] Generating Feeds")
 		for FeedType in (True, False):
 			MakeFeed(
+				OutputDir=OutputDir,
 				CategoryFilter=FeedCategoryFilter,
 				Pages=Pages,
 				SiteName=SiteName,
@@ -158,7 +164,7 @@ def Main(Args, FeedEntries):
 
 	if SitemapOut:
 		print("[I] Generating Sitemap")
-		MakeSitemap(Pages, SiteDomain)
+		MakeSitemap(OutputDir, Pages, SiteDomain)
 
 	if ActivityPub and MastodonURL and MastodonToken and SiteDomain:
 		print("[I] Mastodon Stuff")
@@ -176,11 +182,11 @@ def Main(Args, FeedEntries):
 		MastodonPosts = []
 
 	for File, Content, Titles, Meta, ContentHTML, SlimHTML, Description, Image in Pages:
-		File = 'public/{}.html'.format(StripExt(File))
+		File = f"{OutputDir}/{StripExt(File)}.html"
 		Content = ReadFile(File)
 		Post = ''
 		for p in MastodonPosts:
-			if p['Link'] == SiteDomain + '/' + File[len('public/'):]:
+			if p['Link'] == SiteDomain + '/' + File[len(f"{OutputDir}/"):]:
 				Post = '<br><h3>{StrComments}</h3><a href="{URL}" rel="noopener" target="_blank">{StrOpen} ↗️</a>'.format(
 					StrComments=Locale['Comments'],
 					StrOpen=Locale['OpenInNewTab'],
@@ -192,19 +198,21 @@ def Main(Args, FeedEntries):
 	if GemtextOut:
 		print("[I] Generating Gemtext")
 		GemtextCompileList(
+			OutputDir,
 			Pages,
 			Header=Args.GemtextHeader if Args.GemtextHeader else f"# {SiteName}\n\n" if SiteName else '')
 
 	print("[I] Cleaning Temporary Files")
-	DelTmp()
+	DelTmp(OutputDir)
 
 	print("[I] Copying Assets")
-	os.system("cp -R Assets/* public/")
+	os.system(f"cp -R Assets/* {OutputDir}/")
 
 	print("[I] Done!")
 
 if __name__ == '__main__':
 	Parser = argparse.ArgumentParser()
+	Parser.add_argument('--OutputDir', type=str)
 	Parser.add_argument('--Sorting', type=str)
 	Parser.add_argument('--SiteLang', type=str)
 	Parser.add_argument('--SiteRoot', type=str)

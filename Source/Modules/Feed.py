@@ -12,7 +12,7 @@
 from Libs.feedgen.feed import FeedGenerator
 from Modules.Utils import *
 
-def MakeFeed(CategoryFilter, Pages, SiteName, SiteTagline, SiteDomain, MaxEntries, Lang, FullSite=False, Minify=False):
+def MakeFeed(OutputDir, CategoryFilter, Pages, SiteName, SiteTagline, SiteDomain, MaxEntries, Lang, FullSite=False, Minify=False):
 	Feed = FeedGenerator()
 	Link = SiteDomain if SiteDomain else ' '
 	Feed.id(Link)
@@ -34,8 +34,8 @@ def MakeFeed(CategoryFilter, Pages, SiteName, SiteTagline, SiteDomain, MaxEntrie
 		if FullSite or (not FullSite and Meta['Type'] == 'Post' and (not CategoryFilter or (CategoryFilter and (CategoryFilter in Meta['Categories'] or CategoryFilter == '*')))):
 			Entry = Feed.add_entry()
 			FileName = File.split('/')[-1]
-			File = '{}.html'.format(StripExt(File))
-			Content = ReadFile('public/'+File)
+			File = f"{StripExt(File)}.html"
+			Content = ReadFile(f"{OutputDir}/{File}")
 			Link = SiteDomain + '/' + File if SiteDomain else ' '
 			CreatedOn = GetFullDate(Meta['CreatedOn'])
 			EditedOn = GetFullDate(Meta['EditedOn'])
@@ -51,11 +51,8 @@ def MakeFeed(CategoryFilter, Pages, SiteName, SiteTagline, SiteDomain, MaxEntrie
 			EditedOn = EditedOn if EditedOn else CreatedOn if CreatedOn and not EditedOn else '1970-01-01T00:00+00:00'
 			Entry.updated(EditedOn)
 
-	if not os.path.exists('public/feed'):
-		os.mkdir('public/feed')
-	if FullSite:
-		FeedType = 'site.'
-	else:
-		FeedType = ''
-	Feed.atom_file('public/feed/' + FeedType + 'atom.xml', pretty=(not Minify))
-	Feed.rss_file('public/feed/' + FeedType + 'rss.xml', pretty=(not Minify))
+	if not os.path.exists(f"{OutputDir}/feed"):
+		os.mkdir(f"{OutputDir}/feed")
+	FeedType = 'site.' if FullSite else ''
+	Feed.atom_file(f"{OutputDir}/feed/{FeedType}atom.xml", pretty=(not Minify))
+	Feed.rss_file(f"{OutputDir}/feed/{FeedType}rss.xml", pretty=(not Minify))

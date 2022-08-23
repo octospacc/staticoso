@@ -62,7 +62,7 @@ def MastodonShare(InstanceURL, Token, TypeFilter, CategoryFilter, HoursLimit, Pa
 			Parse = BeautifulSoup(ContentHTML, 'html.parser')
 			Paragraphs = Parse.p.get_text().split('\n')
 			Read = '...' + Locale['ReadFullPost'] + ':\n'
-			URL = '{}/{}.html'.format(SiteDomain, StripExt(File))
+			URL = f"{SiteDomain}/{StripExt(File)}.html"
 			for p in Paragraphs:
 				if p and len(Read+Desc+p)+25 < 500:
 					Desc += p + '\n\n'
