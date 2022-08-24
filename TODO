@@ -1,3 +1,6 @@
+- Fix excess whitespace in some section/menu titles
+- Change staticoso service tag enclosure from [] to <>
+- Investigate a strange bug with Macros
 - Handle file extensions with any case sensitivity, not just lowercase; currently the bulk of the issue is finding the files on disk
 - Test sorting by date for files not starting with date, and dated folders
 - Fix arguments - some are only callable from CLI and not Site.ini - make them coherent with INI categories

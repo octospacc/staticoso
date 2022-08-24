@@ -24,7 +24,7 @@ def ReadFile(p):
 		with open(p, 'r') as f:
 			return f.read()
 	except Exception:
-		print("[E] Error reading file {}".format(p))
+		print(f"[E] Error reading file {p}")
 		return None
 
 def WriteFile(p, c):
@@ -33,7 +33,7 @@ def WriteFile(p, c):
 			f.write(c)
 		return True
 	except Exception:
-		print("[E] Error writing file {}".format(p))
+		print(f"[E] Error writing file {p}")
 		return False
 
 def FileToStr(File, Truncate=''):
@@ -50,7 +50,7 @@ def LoadFromDir(Dir, Matchs):
 	for Match in Matchs:
 		for File in Path(Dir).rglob(Match):
 			File = str(File)[len(Dir)+1:]
-			Contents.update({File: ReadFile('{}/{}'.format(Dir, File))})
+			Contents.update({File: ReadFile(f"{Dir}/{File}")})
 	return Contents
 
 def StripExt(Path):
@@ -67,8 +67,8 @@ def UndupeStr(Str, Known, Split):
 	return Str
 
 def DashifyStr(s, Limit=32):
-	Str, lc = '', Limit
-	for c in s[:Limit].replace(' ','-').replace('	','-'):
+	Str = ''
+	for c in s[:Limit].replace('\n','-').replace('\t','-').replace(' ','-'):
 		if c.lower() in '0123456789qwfpbjluyarstgmneiozxcdvkh-':
 			Str += c
 	return '-' + Str

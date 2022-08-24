@@ -22,14 +22,10 @@ def DashifyTitle(Title, Done=[]):
 def MakeLinkableTitle(Line, Title, DashTitle, Type):
 	if Type == 'md':
 		Index = Title.split(' ')[0].count('#')
-		return f'<h{Index} id="{DashTitle}">{Title[Index+1:]}</h{Index}>'
+		return f'<h{Index} id="{DashTitle}" class="SectionTitle"><span class="SectionLink"><a href="#{DashTitle}"><span>&gt;&gt;</span></a> </span>{Title[Index+1:]}</h{Index}>'
 	elif Type == 'pug':
-		NewLine = ''
 		Index = Line.find('h')
-		NewLine += Line[:Index]
-		NewLine += f"{Line[Index:Index+2]}(id='{DashTitle}')"
-		NewLine += Line[Index+2:]
-		return NewLine
+		return f"{Line[:Index]}{Line[Index:Index+2]}(id='{DashTitle}' class='SectionTitle') #[span(class='SectionLink') #[a(href='#{DashTitle}') #[span &gt;&gt;]] ]{Line[Index+2:]}"
 
 def GetTitle(FileName, Meta, Titles, Prefer='MetaTitle', BlogName=None):
 	if Prefer == 'BodyTitle':
@@ -180,11 +176,21 @@ def PagePreprocessor(Path, Type, SiteTemplate, SiteRoot, GlobalMacros):
 				Content = str(Soup.prettify(formatter=None))
 				HTMLTitlesFound = True
 			elif Path.endswith(FileExtensions['Markdown']):
-				if ll.startswith('#'):
-					DashTitle = DashifyTitle(l.lstrip('#'), DashyTitles)
+				if ll.startswith('#') or (ll.startswith('<') and ll[1:].startswith(Headings)):
+					if ll.startswith('#'):
+						Title = ll
+						#Index = Title.split(' ')[0].count('#')
+					elif ll.startswith('<'):
+						#Index = int(ll[2])
+						Title = '#'*h + str(ll[3:])
+					DashTitle = DashifyTitle(MkSoup(Title.lstrip('#')).get_text(), DashyTitles)
 					DashyTitles += [DashTitle]
-					Titles += [l]
-					Content += MakeLinkableTitle(None, ll, DashTitle, 'md') + '\n'
+					Titles += [Title]
+					Title = MakeLinkableTitle(None, Title, DashTitle, 'md')
+					#Title = Title.replace(' </h{Index}>', '</h{Index}>')
+					Title = Title.replace('> </', '>  </')
+					Title = Title.replace(' </', '</')
+					Content += Title + '\n'
 				else:
 					Content += l + '\n'
 			elif Path.endswith('.pug'):
@@ -250,7 +256,7 @@ def FormatTitles(Titles, Flatten=False):
 	for t in Titles:
 		n = t.split(' ')[0].count('#')
 		Heading = '- ' * (n if not Flatten else 1)
-		Title = t.lstrip('#')
+		Title = MkSoup(t.lstrip('#')).get_text()
 		DashyTitle = DashifyTitle(Title, DashyTitles)
 		DashyTitles += [DashyTitle]
 		Title = f"[{Title}](#{DashyTitle})"

@@ -8,19 +8,12 @@
 | ================================= """
 
 import html
+import warnings
 from Libs.bs4 import BeautifulSoup
 from Modules.Utils import *
 
-"""
-ClosedTags = (
-	'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-	'p', 'span', 'pre', 'code',
-	'a', 'b', 'i', 'del', 'strong',
-	'div', 'details', 'summary',
-	'ol', 'ul', 'li', 'dl', 'dt', 'dd')
-OpenTags = (
-	'img')
-"""
+# Suppress useless bs4 warnings
+warnings.filterwarnings('ignore', message='The input looks more like a filename than markup.')
 
 def MkSoup(HTML):
 	return BeautifulSoup(HTML, 'html.parser')
@@ -60,7 +53,6 @@ def AddToTagStartEnd(HTML, MatchStart, MatchEnd, AddStart, AddEnd): # This doesn
 			break
 		if FilterStart == MatchStart:
 			StartPos = i
-			# TagName = FirstRealItem(FirstRealItem(FilterStart.split('<')).split(' '))
 			if AddStart:
 				HTML = HTML[:i] + AddStart + HTML[i:]
 				AddStart = None
