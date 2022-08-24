@@ -34,13 +34,13 @@ def StripTags(HTML, ToStrip): # Remove desired tags from the HTML
 			t.replace_with('')
 	return str(Soup)
 
-def WriteImgAltAndTitle(HTML): # Adds alt or title attr. to <img> which only have one of them
+def WriteImgAltAndTitle(HTML, AltToTitle, TitleToAlt): # Adds alt or title attr. to <img> which only have one of them
 	Soup = MkSoup(HTML)
 	Tags = Soup.find_all('img')
 	for t in Tags:
-		if 'alt' in t.attrs and 'title' not in t.attrs:
+		if AltToTitle and 'alt' in t.attrs and 'title' not in t.attrs:
 			t.attrs.update({'title': t.attrs['alt']})
-		elif 'title' in t.attrs and 'alt' not in t.attrs:
+		elif TitleToAlt and 'title' in t.attrs and 'alt' not in t.attrs:
 		    t.attrs.update({'alt': t.attrs['title']})
 	return str(Soup)
 

@@ -105,7 +105,8 @@ def Main(Args, FeedEntries):
 	FeedCategoryFilter = OptionChoose('Blog', Args.FeedCategoryFilter, ReadConf(SiteConf, 'Feed', 'CategoryFilter'))
 	Minify = StringBoolChoose(False, Args.Minify, ReadConf(SiteConf, 'Site', 'Minify'))
 	NoScripts = StringBoolChoose(False, Args.NoScripts, ReadConf(SiteConf, 'Site', 'NoScripts'))
-	ImgAltAndTitle = StringBoolChoose(True, Args.ImgAltAndTitle, ReadConf(SiteConf, 'Site', 'ImgAltAndTitle'))
+	ImgAltToTitle = StringBoolChoose(True, Args.ImgAltToTitle, ReadConf(SiteConf, 'Site', 'ImgAltToTitle'))
+	ImgTitleToAlt = StringBoolChoose(False, Args.ImgTitleToAlt, ReadConf(SiteConf, 'Site', 'ImgTitleToAlt'))
 	AutoCategories = StringBoolChoose(False, Args.AutoCategories, ReadConf(SiteConf, 'Site', 'AutoCategories'))
 	GemtextOut = StringBoolChoose(False, Args.GemtextOut, ReadConf(SiteConf, 'Site', 'GemtextOut'))
 	GemtextHeader = Args.GemtextHeader if Args.GemtextHeader else ReadConf(SiteConf, 'Gemtext', 'Header') if ReadConf(SiteConf, 'Gemtext', 'Header') else f"# {SiteName}\n\n" if SiteName else ''
@@ -156,7 +157,7 @@ def Main(Args, FeedEntries):
 		Locale=Locale,
 		Minify=Minify,
 		NoScripts=NoScripts,
-		ImgAltAndTitle=ImgAltAndTitle,
+		ImgAltToTitle=ImgAltToTitle, ImgTitleToAlt=ImgTitleToAlt,
 		Sorting=SetSorting(Sorting),
 		MarkdownExts=MarkdownExts,
 		AutoCategories=AutoCategories)
@@ -233,7 +234,8 @@ if __name__ == '__main__':
 	Parser.add_argument('--SiteDomain', type=str)
 	Parser.add_argument('--Minify', type=str)
 	Parser.add_argument('--NoScripts', type=str)
-	Parser.add_argument('--ImgAltAndTitle', type=str)
+	Parser.add_argument('--ImgAltToTitle', type=str)
+	Parser.add_argument('--ImgTitleToAlt', type=str)
 	Parser.add_argument('--GemtextOut', type=str)
 	Parser.add_argument('--GemtextHeader', type=str)
 	Parser.add_argument('--SiteTagline', type=str)

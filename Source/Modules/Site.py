@@ -373,7 +373,7 @@ def DoMinifyHTML(HTML):
 		convert_charrefs=True,
 		keep_pre=True)
 
-def MakeSite(OutputDir, TemplatesText, StaticPartsText, DynamicParts, DynamicPartsText, ConfMenu, GlobalMacros, SiteName, BlogName, SiteTagline, SiteTemplate, SiteDomain, SiteRoot, FolderRoots, SiteLang, Locale, Minify, NoScripts, ImgAltAndTitle, Sorting, MarkdownExts, AutoCategories):
+def MakeSite(OutputDir, TemplatesText, StaticPartsText, DynamicParts, DynamicPartsText, ConfMenu, GlobalMacros, SiteName, BlogName, SiteTagline, SiteTemplate, SiteDomain, SiteRoot, FolderRoots, SiteLang, Locale, Minify, NoScripts, ImgAltToTitle, ImgTitleToAlt, Sorting, MarkdownExts, AutoCategories):
 	PagesPaths, PostsPaths, Pages, MadePages, Categories = [], [], [], [], {}
 	for Ext in FileExtensions['Pages']:
 		for File in Path('Pages').rglob(f"*.{Ext}"):
@@ -495,8 +495,8 @@ def MakeSite(OutputDir, TemplatesText, StaticPartsText, DynamicParts, DynamicPar
 			HTML = DoMinifyHTML(HTML)
 		if NoScripts:
 			HTML = StripTags(HTML, ['script'])
-		if ImgAltAndTitle:
-			HTML = WriteImgAltAndTitle(HTML)
+		if ImgAltToTitle or ImgTitleToAlt:
+			HTML = WriteImgAltAndTitle(HTML, ImgAltToTitle, ImgTitleToAlt)
 
 		WriteFile(PagePath, HTML)
 		MadePages += [[File, Content, Titles, Meta, ContentHTML, SlimHTML, Description, Image]]
