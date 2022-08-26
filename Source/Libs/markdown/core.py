@@ -133,20 +133,14 @@ class Markdown:
         """
         Build extension from a string name, then return an instance.
 
-        First attempt to load an entry point. The string name must be registered as an entry point in the
-        `markdown.extensions` group which points to a subclass of the `markdown.extensions.Extension` class.
-        If multiple distributions have registered the same name, the first one found is returned.
-
-        If no entry point is found, assume dot notation (`path.to.module:ClassName`). Load the specified class and
-        return an instance. If no class is specified, import the module and call a `makeExtension` function and return
-        the Extension instance returned by that function.
+        Don't attempt to load any entrypoint,
+        as it conflicts with an already installed Python-Markdown.
+        Assume dot notation (`path.to.module:ClassName`).
+        Load the specified class and return an instance. If no class is specified,
+        import the module and call a `makeExtension` function
+        and return the Extension instance returned by that function.
         """
         configs = dict(configs)
-
-        entry_points = [ep for ep in util.INSTALLED_EXTENSIONS if ep.name == ext_name]
-        if entry_points:
-            ext = entry_points[0].load()
-            return ext(**configs)
 
         # Get class name (if provided): `path.to.module:ClassName`
         ext_name, class_name = ext_name.split(':', 1) if ':' in ext_name else (ext_name, '')

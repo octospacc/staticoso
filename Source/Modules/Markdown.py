@@ -7,11 +7,7 @@
 |   Copyright (C) 2022, OctoSpacc     |
 | ================================= """
 
-# Our local Markdown patches conflict if the module is installed on the system, so first try to import from system
-try:
-	from markdown import markdown
-except ModuleNotFoundError:
-	from Libs.markdown import markdown
+from Libs.markdown import markdown
 
 MarkdownExtsDefault = ('attr_list', 'def_list', 'footnotes', 'md_in_html', 'tables')
 

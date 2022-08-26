@@ -1,3 +1,6 @@
+- Specify input folder(s) and files (idea is Makefile compatibility too)
+- Show page size/words/time in meta line
+- Add feed support for diary-like pages
 - Fix excess whitespace in some section/menu titles
 - Change staticoso service tag enclosure from [] to <>
 - Investigate a strange bug with Macros
@@ -7,7 +10,6 @@
 - Accept Macros as CLI arguments
 - Deprecate FolderRoots (Macros make it redundant)
 - Fix ordering menu in Site.ini (not working for inner pages)
-- Fix Python-Markdown is installed problem (to load our modules)
 - Feed generation without native libraries
 - JSON feeds
 - Full XML sitemap
@@ -20,4 +22,5 @@
 - Automatic guessing of .htm/.html extension for declarations of templates and stuff
 - Exporting sites to different formats (?) (single-page HTML, PDF, EPUB, ...)
 - Disable only ActivityPub feed for a page
-- Override ActivityPub URL
+- Automatic redirects/symlinks for making pages work without .html suffix
+- Override URL for a page / Add custom redirects for it

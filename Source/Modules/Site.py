@@ -22,10 +22,10 @@ def DashifyTitle(Title, Done=[]):
 def MakeLinkableTitle(Line, Title, DashTitle, Type):
 	if Type == 'md':
 		Index = Title.split(' ')[0].count('#')
-		return f'<h{Index} id="{DashTitle}" class="SectionTitle"><span class="SectionLink"><a href="#{DashTitle}"><span>&gt;&gt;</span></a> </span>{Title[Index+1:]}</h{Index}>'
+		return f'<h{Index} id="{DashTitle}" class="SectionTitle"><span class="SectionLink"><a href="#{DashTitle}"><span>»</span></a> </span>{Title[Index+1:]}</h{Index}>'
 	elif Type == 'pug':
 		Index = Line.find('h')
-		return f"{Line[:Index]}{Line[Index:Index+2]}(id='{DashTitle}' class='SectionTitle') #[span(class='SectionLink') #[a(href='#{DashTitle}') #[span &gt;&gt;]] ]{Line[Index+2:]}"
+		return f"{Line[:Index]}{Line[Index:Index+2]}(id='{DashTitle}' class='SectionTitle') #[span(class='SectionLink') #[a(href='#{DashTitle}') #[span »]] ]{Line[Index+2:]}"
 
 def GetTitle(FileName, Meta, Titles, Prefer='MetaTitle', BlogName=None):
 	if Prefer == 'BodyTitle':

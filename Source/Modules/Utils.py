@@ -95,6 +95,7 @@ def ReplWithEsc(Str, Find, Repl, Esc='\\'):
 				New = New[:-1]
 				New += Repl + e
 			elif Sects[i-1].endswith(Esc):
+				New = New[:-1]
 				New += Find + e
 			else:
 				New += Repl + e

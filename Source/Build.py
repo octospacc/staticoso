@@ -177,10 +177,6 @@ def Main(Args, FeedEntries):
 				FullSite=FeedType,
 				Minify=Minify)
 
-	if SitemapOut:
-		print("[I] Generating Sitemap")
-		MakeSitemap(OutputDir, Pages, SiteDomain)
-
 	if ActivityPub and MastodonURL and MastodonToken and SiteDomain:
 		print("[I] Mastodon Stuff")
 		MastodonPosts = MastodonShare(
@@ -216,6 +212,10 @@ def Main(Args, FeedEntries):
 
 	print("[I] Cleaning Temporary Files")
 	DelTmp(OutputDir)
+
+	if SitemapOut:
+		print("[I] Generating Sitemap")
+		MakeSitemap(OutputDir, Pages, SiteDomain)
 
 	print("[I] Copying Assets")
 	os.system(f"cp -R Assets/* {OutputDir}/")
