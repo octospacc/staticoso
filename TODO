@@ -1,3 +1,4 @@
+- Check if external tools are installed
 - Specify input folder(s) and files (idea is Makefile compatibility too)
 - Show page size/words/time in meta line
 - Add feed support for diary-like pages

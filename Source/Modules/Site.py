@@ -373,7 +373,7 @@ def DoMinifyHTML(HTML):
 		convert_charrefs=True,
 		keep_pre=True)
 
-def MakeSite(OutputDir, TemplatesText, StaticPartsText, DynamicParts, DynamicPartsText, ConfMenu, GlobalMacros, SiteName, BlogName, SiteTagline, SiteTemplate, SiteDomain, SiteRoot, FolderRoots, SiteLang, Locale, Minify, NoScripts, ImgAltToTitle, ImgTitleToAlt, Sorting, MarkdownExts, AutoCategories):
+def MakeSite(OutputDir, LimitFiles, TemplatesText, StaticPartsText, DynamicParts, DynamicPartsText, ConfMenu, GlobalMacros, SiteName, BlogName, SiteTagline, SiteTemplate, SiteDomain, SiteRoot, FolderRoots, SiteLang, Locale, Minify, NoScripts, ImgAltToTitle, ImgTitleToAlt, Sorting, MarkdownExts, AutoCategories):
 	PagesPaths, PostsPaths, Pages, MadePages, Categories = [], [], [], [], {}
 	for Ext in FileExtensions['Pages']:
 		for File in Path('Pages').rglob(f"*.{Ext}"):
@@ -381,14 +381,12 @@ def MakeSite(OutputDir, TemplatesText, StaticPartsText, DynamicParts, DynamicPar
 		for File in Path('Posts').rglob(f"*.{Ext}"):
 			PostsPaths += [FileToStr(File, 'Posts/')]
 
-	if PagesPaths:
-		PagesPaths = FileNameDateSort(PagesPaths)
-		if Sorting['Pages'] == 'Inverse':
-			PagesPaths.reverse()
-	if PostsPaths:
-		PostsPaths = FileNameDateSort(PostsPaths)
-		if Sorting['Posts'] == 'Inverse':
-			PostsPaths.reverse()
+	PagesPaths = FileNameDateSort(PagesPaths)
+	if Sorting['Pages'] == 'Inverse':
+		PagesPaths.reverse()
+	PostsPaths = FileNameDateSort(PostsPaths)
+	if Sorting['Posts'] == 'Inverse':
+		PostsPaths.reverse()
 
 	print("[I] Preprocessing Source Pages")
 	for Type in ['Page', 'Post']:
@@ -403,7 +401,7 @@ def MakeSite(OutputDir, TemplatesText, StaticPartsText, DynamicParts, DynamicPar
 			Pages += [[File, Content, Titles, Meta]]
 			for Cat in Meta['Categories']:
 				Categories.update({Cat:''})
-	PugCompileList(OutputDir, Pages)
+	PugCompileList(OutputDir, Pages, LimitFiles)
 
 	if Categories:
 		print("[I] Generating Category Lists")

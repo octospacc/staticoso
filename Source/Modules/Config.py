@@ -7,7 +7,6 @@
 |   Copyright (C) 2022, OctoSpacc     |
 | ================================= """
 
-import io
 import configparser
 from ast import literal_eval
 

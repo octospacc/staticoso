@@ -19,7 +19,7 @@ try:
 	from Modules.ActivityPub import *
 	ActivityPub = True
 except:
-	print("[E] Can't load the ActivityPub module. Its use is disabled. Make sure the 'requests' library is installed.")
+	print("[W] ⚠️ Can't load the ActivityPub module. Its use is disabled. Make sure the 'requests' library is installed.")
 	ActivityPub = False
 
 from Modules.Config import *
@@ -29,18 +29,18 @@ from Modules.Site import *
 from Modules.Sitemap import *
 from Modules.Utils import *
 	
-def ResetPublic(OutputDir):
-	for i in (OutputDir, f"{OutputDir}.gmi"):
+def ResetOutputDir(OutDir):
+	for e in (OutDir, f"{OutDir}.gmi"):
 		try:
-			shutil.rmtree(i)
+			shutil.rmtree(e)
 		except FileNotFoundError:
 			pass
 
-def DelTmp(OutputDir):
+def DelTmp(OutDir):
 	for Ext in FileExtensions['Tmp']:
-		for File in Path(OutputDir).rglob(f"*.{Ext}"):
+		for File in Path(OutDir).rglob(f"*.{Ext}"):
 			os.remove(File)
-	for Dir in (OutputDir, f"{OutputDir}.gmi"):
+	for Dir in (OutDir, f"{OutDir}.gmi"):
 		for File in Path(Dir).rglob('*.tmp'):
 			os.remove(File)
 
@@ -73,16 +73,48 @@ def CheckSafeOutputDir(OutDir):
 	OutDir = os.path.realpath(OutDir)
 	OutFolder = OutDir.split('/')[-1]
 	if InDir == OutDir:
-		print(f"[E] Output and Input directories ({OutDir}) can't be the same. Exiting.")
+		print(f"[E] ⛔ Output and Input directories ({OutDir}) can't be the same. Exiting.")
 		exit(1)
 	elif OutFolder in ReservedPaths and f"{InDir}/{OutFolder}" == OutDir:
-		print(f"[E] Output directory {OutDir} can't be a reserved subdirectory of the Input. Exiting.")
+		print(f"[E] ⛔ Output directory {OutDir} can't be a reserved subdirectory of the Input. Exiting.")
 		exit(1)
+
+def GetModifiedFiles(OutDir):
+	All, Mod = [], []
+	for Path in ('Pages', 'Posts'):
+		for Root, Dirs, Files in os.walk(Path):
+			for File in Files:
+				Src = os.path.join(Root,File)
+				SrcTime = int(os.path.getmtime(Src))
+				if Path == 'Pages':
+					Tmp = '/'.join(Src.split('/')[1:])
+				elif Path == 'Posts':
+					Tmp = Src
+				Obj = f"{OutDir}/{StripExt(Tmp)}.html"
+				try:
+					ObjTime = int(os.path.getmtime(Obj))
+				except FileNotFoundError:
+					ObjTime = 0
+				All += [{'Tmp':Tmp, 'SrcTime':SrcTime, 'ObjTime':ObjTime}]
+	for File in All:
+		if File['SrcTime'] > File['ObjTime']:
+			Mod += [File['Tmp']]
+	#Latest = 0
+	#for File in Sources:
+	#	if File['t'] > Latest:
+	#		Latest = File['t']	
+	#Meta = ReadFile('staticoso.meta')
+	return Mod
 
 def Main(Args, FeedEntries):
 	HavePages, HavePosts = False, False
 	SiteConf = LoadConfFile('Site.ini')
 
+	#if Args.InputDir:
+	#	os.chdir(Args.InputDir)
+	#	print(f"[I] Current directory: {Args.InputDir}")
+
+	CleanBuild = Args.CleanBuild
 	OutputDir = Args.OutputDir if Args.OutputDir else ReadConf(SiteConf, 'Site', 'OutputDir') if ReadConf(SiteConf, 'Site', 'OutputDir') else 'public'
 	OutputDir = OutputDir.removesuffix('/')
 	CheckSafeOutputDir(OutputDir)
@@ -120,18 +152,23 @@ def Main(Args, FeedEntries):
 	else:
 		ConfMenu = []
 
-	ResetPublic(OutputDir)
+	if CleanBuild:
+		print("[I] Building Clean")
+		ResetOutputDir(OutputDir)
+	else:
+		print("[I] Building Differentially")
+		LimitFiles = GetModifiedFiles(OutputDir)
 
 	if os.path.isdir('Pages'):
 		HavePages = True
-		shutil.copytree('Pages', OutputDir)
+		shutil.copytree('Pages', OutputDir, dirs_exist_ok=True)
 		if GemtextOut:
-			shutil.copytree('Pages', f"{OutputDir}.gmi", ignore=IgnoreFiles)
+			shutil.copytree('Pages', f"{OutputDir}.gmi", ignore=IgnoreFiles, dirs_exist_ok=True)
 	if os.path.isdir('Posts'):
 		HavePosts = True
-		shutil.copytree('Posts', f"{OutputDir}/Posts")
+		shutil.copytree('Posts', f"{OutputDir}/Posts", dirs_exist_ok=True)
 		if GemtextOut:
-			shutil.copytree('Posts', f"{OutputDir}.gmi/Posts", ignore=IgnoreFiles)
+			shutil.copytree('Posts', f"{OutputDir}.gmi/Posts", ignore=IgnoreFiles, dirs_exist_ok=True)
 
 	if not (HavePages or HavePosts):
 		print("[E] No Pages or posts found. Nothing to do, exiting!")
@@ -140,6 +177,7 @@ def Main(Args, FeedEntries):
 	print("[I] Generating HTML")
 	Pages = MakeSite(
 		OutputDir=OutputDir,
+		LimitFiles=LimitFiles,
 		TemplatesText=LoadFromDir('Templates', ['*.htm', '*.html']),
 		StaticPartsText=LoadFromDir('StaticParts', ['*.htm', '*.html']),
 		DynamicParts=DynamicParts,
@@ -220,11 +258,14 @@ def Main(Args, FeedEntries):
 	print("[I] Copying Assets")
 	os.system(f"cp -R Assets/* {OutputDir}/")
 
-	print("[I] Done!")
+	print("[I] ✅ Done!")
 
 if __name__ == '__main__':
 	Parser = argparse.ArgumentParser()
+	Parser.add_argument('--CleanBuild', action='store_true')
 	Parser.add_argument('--OutputDir', type=str)
+	#Parser.add_argument('--InputDir', type=str)
+	#Parser.add_argument('--InputFiles', type=str, nargs='+')
 	Parser.add_argument('--Sorting', type=str)
 	Parser.add_argument('--SiteLang', type=str)
 	Parser.add_argument('--SiteRoot', type=str)
@@ -257,7 +298,7 @@ if __name__ == '__main__':
 		from Modules.Feed import *
 		FeedEntries = Args.FeedEntries if Args.FeedEntries else 'Default'
 	except:
-		print("[W] Can't load the XML libraries. XML Feeds Generation is Disabled. Make sure the 'lxml' library is installed.")
+		print("[W] ⚠️ Can't load the XML libraries. XML Feeds Generation is Disabled. Make sure the 'lxml' library is installed.")
 		FeedEntries = 0
 
 	Main(

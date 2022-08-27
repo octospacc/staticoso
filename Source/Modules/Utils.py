@@ -116,19 +116,20 @@ def RevSort(List):
 
 def FileNameDateSort(Old): # TODO: Test this for files not starting with date, and dated folders
 	New = []
-	Old.sort()
-	New.insert(0, Old[0])
-	for i,e in enumerate(Old):
-		if i == 0:
-			continue
-		Done = False
-		for j,f in enumerate(New):
-			if NumsFromFileName(e) != e and NumsFromFileName(f) != f and NumsFromFileName(e) < NumsFromFileName(f):
-				New.insert(j, e)
-				Done = True
-				break
-		if not Done:
-			New += [e]
+	if Old:
+		Old.sort()
+		New.insert(0, Old[0])
+		for i,e in enumerate(Old):
+			if i == 0:
+				continue
+			Done = False
+			for j,f in enumerate(New):
+				if NumsFromFileName(e) != e and NumsFromFileName(f) != f and NumsFromFileName(e) < NumsFromFileName(f):
+					New.insert(j, e)
+					Done = True
+					break
+			if not Done:
+				New += [e]
 	return New
 
 def FirstRealItem(List):
