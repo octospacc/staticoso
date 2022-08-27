@@ -11,6 +11,7 @@
 import argparse
 import os
 import shutil
+import time
 from ast import literal_eval
 from datetime import datetime
 from pathlib import Path
@@ -19,7 +20,7 @@ try:
 	from Modules.ActivityPub import *
 	ActivityPub = True
 except:
-	print("[W] ⚠️ Can't load the ActivityPub module. Its use is disabled. Make sure the 'requests' library is installed.")
+	print("[W] ⚠ Can't load the ActivityPub module. Its use is disabled. Make sure the 'requests' library is installed.")
 	ActivityPub = False
 
 from Modules.Config import *
@@ -99,11 +100,6 @@ def GetModifiedFiles(OutDir):
 	for File in All:
 		if File['SrcTime'] > File['ObjTime']:
 			Mod += [File['Tmp']]
-	#Latest = 0
-	#for File in Sources:
-	#	if File['t'] > Latest:
-	#		Latest = File['t']	
-	#Meta = ReadFile('staticoso.meta')
 	return Mod
 
 def Main(Args, FeedEntries):
@@ -155,6 +151,7 @@ def Main(Args, FeedEntries):
 	if CleanBuild:
 		print("[I] Building Clean")
 		ResetOutputDir(OutputDir)
+		LimitFiles = False
 	else:
 		print("[I] Building Differentially")
 		LimitFiles = GetModifiedFiles(OutputDir)
@@ -258,14 +255,11 @@ def Main(Args, FeedEntries):
 	print("[I] Copying Assets")
 	os.system(f"cp -R Assets/* {OutputDir}/")
 
-	print("[I] ✅ Done!")
-
 if __name__ == '__main__':
 	Parser = argparse.ArgumentParser()
 	Parser.add_argument('--CleanBuild', action='store_true')
 	Parser.add_argument('--OutputDir', type=str)
 	#Parser.add_argument('--InputDir', type=str)
-	#Parser.add_argument('--InputFiles', type=str, nargs='+')
 	Parser.add_argument('--Sorting', type=str)
 	Parser.add_argument('--SiteLang', type=str)
 	Parser.add_argument('--SiteRoot', type=str)
@@ -298,9 +292,10 @@ if __name__ == '__main__':
 		from Modules.Feed import *
 		FeedEntries = Args.FeedEntries if Args.FeedEntries else 'Default'
 	except:
-		print("[W] ⚠️ Can't load the XML libraries. XML Feeds Generation is Disabled. Make sure the 'lxml' library is installed.")
+		print("[W] ⚠ Can't load the XML libraries. XML Feeds Generation is Disabled. Make sure the 'lxml' library is installed.")
 		FeedEntries = 0
 
 	Main(
 		Args=Args,
 		FeedEntries=FeedEntries)
+	print(f"[I] ✅ Done! ({round(time.process_time(),3)}s)")

@@ -16,7 +16,7 @@ def PugCompileList(OutputDir, Pages, LimitFiles):
 	# Pug-cli seems to shit itself with folder paths as input, so we pass ALL the files as arguments
 	Paths = ''
 	for File, Content, Titles, Meta in Pages:
-		if File.lower().endswith('.pug') and File in LimitFiles:
+		if File.lower().endswith('.pug') and (LimitFiles == False or File in LimitFiles):
 			Path = f'{OutputDir}/{File}'
 			WriteFile(Path, Content)
 			Paths += f'"{Path}" '

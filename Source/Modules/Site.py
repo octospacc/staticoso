@@ -135,7 +135,7 @@ def TemplatePreprocessor(Text):
 			Meta.update({i:MetaDefault[i]})
 	return Meta
 
-def PagePreprocessor(Path, Type, SiteTemplate, SiteRoot, GlobalMacros):
+def PagePreprocessor(Path, Type, SiteTemplate, SiteRoot, GlobalMacros, LightRun=False):
 	File = ReadFile(Path)
 	Path = Path.lower()
 	Content, Titles, DashyTitles, HTMLTitlesFound, Macros, Meta, MetaDefault = '', [], [], False, '', '', {
@@ -187,7 +187,6 @@ def PagePreprocessor(Path, Type, SiteTemplate, SiteRoot, GlobalMacros):
 					DashyTitles += [DashTitle]
 					Titles += [Title]
 					Title = MakeLinkableTitle(None, Title, DashTitle, 'md')
-					#Title = Title.replace(' </h{Index}>', '</h{Index}>')
 					Title = Title.replace('> </', '>  </')
 					Title = Title.replace(' </', '</')
 					Content += Title + '\n'
@@ -392,13 +391,15 @@ def MakeSite(OutputDir, LimitFiles, TemplatesText, StaticPartsText, DynamicParts
 	for Type in ['Page', 'Post']:
 		if Type == 'Page':
 			Files = PagesPaths
+			PathPrefix = ''
 		elif Type == 'Post':
 			Files = PostsPaths
+			PathPrefix = 'Posts/'
 		for File in Files:
-			Content, Titles, Meta = PagePreprocessor(f"{Type}s/{File}", Type, SiteTemplate, SiteRoot, GlobalMacros)
-			if Type != 'Page':
-				File = f"{Type}s/{File}"
-			Pages += [[File, Content, Titles, Meta]]
+			TempPath = f"{PathPrefix}{File}"
+			LightRun = False if LimitFiles == False or TempPath in LimitFiles else True
+			Content, Titles, Meta = PagePreprocessor(f"{Type}s/{File}", Type, SiteTemplate, SiteRoot, GlobalMacros, LightRun=LightRun)
+			Pages += [[TempPath, Content, Titles, Meta]]
 			for Cat in Meta['Categories']:
 				Categories.update({Cat:''})
 	PugCompileList(OutputDir, Pages, LimitFiles)
