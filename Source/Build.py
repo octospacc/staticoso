@@ -110,7 +110,7 @@ def Main(Args, FeedEntries):
 	#	os.chdir(Args.InputDir)
 	#	print(f"[I] Current directory: {Args.InputDir}")
 
-	CleanBuild = Args.CleanBuild
+	DiffBuild = Args.DiffBuild
 	OutputDir = Args.OutputDir if Args.OutputDir else ReadConf(SiteConf, 'Site', 'OutputDir') if ReadConf(SiteConf, 'Site', 'OutputDir') else 'public'
 	OutputDir = OutputDir.removesuffix('/')
 	CheckSafeOutputDir(OutputDir)
@@ -148,13 +148,13 @@ def Main(Args, FeedEntries):
 	else:
 		ConfMenu = []
 
-	if CleanBuild:
-		print("[I] Building Clean")
+	if DiffBuild:
+		print("[I] Build mode: Differential")
+		LimitFiles = GetModifiedFiles(OutputDir)
+	else:
+		print("[I] Build mode: Clean")
 		ResetOutputDir(OutputDir)
 		LimitFiles = False
-	else:
-		print("[I] Building Differentially")
-		LimitFiles = GetModifiedFiles(OutputDir)
 
 	if os.path.isdir('Pages'):
 		HavePages = True
@@ -257,7 +257,7 @@ def Main(Args, FeedEntries):
 
 if __name__ == '__main__':
 	Parser = argparse.ArgumentParser()
-	Parser.add_argument('--CleanBuild', action='store_true')
+	Parser.add_argument('--DiffBuild', action='store_true')
 	Parser.add_argument('--OutputDir', type=str)
 	#Parser.add_argument('--InputDir', type=str)
 	Parser.add_argument('--Sorting', type=str)
