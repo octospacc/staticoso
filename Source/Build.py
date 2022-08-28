@@ -110,25 +110,29 @@ def Main(Args, FeedEntries):
 	#	os.chdir(Args.InputDir)
 	#	print(f"[I] Current directory: {Args.InputDir}")
 
-	DiffBuild = Args.DiffBuild
-	OutputDir = Args.OutputDir if Args.OutputDir else ReadConf(SiteConf, 'Site', 'OutputDir') if ReadConf(SiteConf, 'Site', 'OutputDir') else 'public'
+	SiteName = OptionChoose('', Args.SiteName, ReadConf(SiteConf, 'Site', 'Name'))
+	if SiteName:
+		print(f"[I] Compiling: {SiteName}")
+
+	OutputDir = OptionChoose('public', Args.OutputDir, ReadConf(SiteConf, 'Site', 'OutputDir'))
 	OutputDir = OutputDir.removesuffix('/')
 	CheckSafeOutputDir(OutputDir)
 	print(f"[I] Outputting to {OutputDir}/")
 
-	SiteName = Args.SiteName if Args.SiteName else ReadConf(SiteConf, 'Site', 'Name') if ReadConf(SiteConf, 'Site', 'Name') else ''
-	BlogName = Args.BlogName if Args.BlogName else ReadConf(SiteConf, 'Site', 'BlogName') if ReadConf(SiteConf, 'Site', 'BlogName') else ''
-	SiteTagline = Args.SiteTagline if Args.SiteTagline else ReadConf(SiteConf, 'Site', 'Tagline') if ReadConf(SiteConf, 'Site', 'Tagline') else ''
-	SiteTemplate = Args.SiteTemplate if Args.SiteTemplate else ReadConf(SiteConf, 'Site', 'Template') if ReadConf(SiteConf, 'Site', 'Template') else 'Default.html'
-	SiteDomain = Args.SiteDomain.rstrip('/') if Args.SiteDomain else ReadConf(SiteConf, 'Site', 'Domain').rstrip('/') if ReadConf(SiteConf, 'Site', 'Domain') else ''
-	SiteRoot = Args.SiteRoot if Args.SiteRoot else ReadConf(SiteConf, 'Site', 'Root') if ReadConf(SiteConf, 'Site', 'Root') else '/'
-	SiteLang = Args.SiteLang if Args.SiteLang else ReadConf(SiteConf, 'Site', 'Lang') if ReadConf(SiteConf, 'Site', 'Lang') else 'en'
+	DiffBuild = Args.DiffBuild
+	BlogName = OptionChoose('', Args.BlogName, ReadConf(SiteConf, 'Site', 'BlogName'))
+	SiteTagline = OptionChoose('', Args.SiteTagline, ReadConf(SiteConf, 'Site', 'Tagline'))
+	SiteTemplate = OptionChoose('Default.html', Args.SiteTemplate, ReadConf(SiteConf, 'Site', 'Template'))
+	SiteDomain = OptionChoose('', Args.SiteDomain, ReadConf(SiteConf, 'Site', 'Domain'))
+	SiteDomain = SiteDomain.removesuffix('/')
+	SiteRoot = OptionChoose('/', Args.SiteRoot, ReadConf(SiteConf, 'Site', 'Root'))
+	SiteLang = OptionChoose('en', Args.SiteLang, ReadConf(SiteConf, 'Site', 'Lang'))
 	Locale = LoadLocale(SiteLang)
-	MastodonURL = Args.MastodonURL if Args.MastodonURL else ReadConf(SiteConf, 'Mastodon', 'URL') if ReadConf(SiteConf, 'Mastodon', 'URL') else ''
-	MastodonToken = Args.MastodonToken if Args.MastodonToken else ReadConf(SiteConf, 'Mastodon', 'Token') if ReadConf(SiteConf, 'Mastodon', 'Token') else ''
-	DynamicParts = literal_eval(Args.DynamicParts) if Args.DynamicParts else EvalOpt(ReadConf(SiteConf, 'Site', 'DynamicParts')) if ReadConf(SiteConf, 'Site', 'DynamicParts') else {}
-	MarkdownExts = literal_eval(Args.MarkdownExts) if Args.MarkdownExts else EvalOpt(ReadConf(SiteConf, 'Markdown', 'Exts')) if ReadConf(SiteConf, 'Markdown', 'Exts') else MarkdownExtsDefault
-	ActivityPubTypeFilter = Args.ActivityPubTypeFilter if Args.ActivityPubTypeFilter else ReadConf(SiteConf, 'ActivityPub', 'TypeFilter') if ReadConf(SiteConf, 'ActivityPub', 'TypeFilter') else 'Post'
+	MastodonURL = OptionChoose('', Args.MastodonURL, ReadConf(SiteConf, 'Mastodon', 'URL'))
+	MastodonToken = OptionChoose('', Args.MastodonToken, ReadConf(SiteConf, 'Mastodon', 'Token'))
+	DynamicParts = literal_eval(OptionChoose('{}', Args.DynamicParts, ReadConf(SiteConf, 'Site', 'DynamicParts'))) 
+	MarkdownExts = literal_eval(OptionChoose(str(MarkdownExtsDefault), Args.MarkdownExts, ReadConf(SiteConf, 'Markdown', 'Exts')))
+	ActivityPubTypeFilter = OptionChoose('Post', Args.ActivityPubTypeFilter, ReadConf(SiteConf, 'ActivityPub', 'TypeFilter'))
 	ActivityPubHoursLimit = OptionChoose(168, Args.ActivityPubHoursLimit, ReadConf(SiteConf, 'ActivityPub', 'HoursLimit'))
 	FeedCategoryFilter = OptionChoose('Blog', Args.FeedCategoryFilter, ReadConf(SiteConf, 'Feed', 'CategoryFilter'))
 	Minify = StringBoolChoose(False, Args.Minify, ReadConf(SiteConf, 'Site', 'Minify'))
@@ -140,7 +144,7 @@ def Main(Args, FeedEntries):
 	GemtextHeader = Args.GemtextHeader if Args.GemtextHeader else ReadConf(SiteConf, 'Gemtext', 'Header') if ReadConf(SiteConf, 'Gemtext', 'Header') else f"# {SiteName}\n\n" if SiteName else ''
 	SitemapOut = StringBoolChoose(True, Args.SitemapOut, ReadConf(SiteConf, 'Site', 'SitemapOut'))
 	FeedEntries = int(FeedEntries) if (FeedEntries or FeedEntries == 0) and FeedEntries != 'Default' else int(ReadConf(SiteConf, 'Site', 'FeedEntries')) if ReadConf(SiteConf, 'Site', 'FeedEntries') else 10
-	Sorting = literal_eval(Args.Sorting) if Args.Sorting else EvalOpt(ReadConf(SiteConf, 'Site', 'Sorting')) if ReadConf(SiteConf, 'Site', 'Sorting') else {}
+	Sorting = literal_eval(OptionChoose('{}', Args.Sorting, ReadConf(SiteConf, 'Site', 'Sorting')))
 
 	MenuEntries = ReadConf(SiteConf, 'Menu')
 	if MenuEntries:
@@ -282,7 +286,7 @@ if __name__ == '__main__':
 	Parser.add_argument('--MastodonURL', type=str)
 	Parser.add_argument('--MastodonToken', type=str)
 	Parser.add_argument('--FeedCategoryFilter', type=str)
-	Parser.add_argument('--ActivityPubTypeFilter', type=str)
+	Parser.add_argument('--ActivityPubTypeFilter', type=str, help=argparse.SUPPRESS)
 	Parser.add_argument('--ActivityPubHoursLimit', type=int)
 	Parser.add_argument('--AutoCategories', type=str)
 	Args = Parser.parse_args()

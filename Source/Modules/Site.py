@@ -16,14 +16,19 @@ from Modules.Markdown import *
 from Modules.Pug import *
 from Modules.Utils import *
 
+HTMLSectionTitleLine = '<h{Index} class="SectionHeading"><span class="SectionLink"><a href="#{DashTitle}"><span>»</span></a> </span><span class="SectionTitle" id="{DashTitle}">{Title}</span></h{Index}>'
+#PugSectionTitleLine = "{Line[:Index]}{Line[Index:Index+2]}.SectionHeading #[span.SectionLink #[a(href='#{DashTitle}') #[span »]] ]#[span#{DashTitle}.SectionTitle {Line[Index+2:]}]"
+
 def DashifyTitle(Title, Done=[]):
 	return UndupeStr(DashifyStr(Title.lstrip(' ').rstrip(' ')), Done, '-')
 
 def MakeLinkableTitle(Line, Title, DashTitle, Type):
 	if Type == 'md':
 		Index = Title.split(' ')[0].count('#')
-		#return f'<h{Index} id="{DashTitle}" class="SectionTitle"><a href="#{DashTitle}">{Title[Index+1:]}</a></h{Index}>'
-		return f'<h{Index} class="SectionHeading"><span class="SectionLink"><a href="#{DashTitle}"><span>»</span></a> </span><span class="SectionTitle" id="{DashTitle}">{Title[Index+1:]}</span></h{Index}>'
+		return HTMLSectionTitleLine.format(
+			Index=Index,
+			DashTitle=DashTitle,
+			Title=Title[Index+1:])
 	elif Type == 'pug':
 		Index = Line.find('h')
 		return f"{Line[:Index]}{Line[Index:Index+2]}.SectionHeading #[span.SectionLink #[a(href='#{DashTitle}') #[span »]] ]#[span#{DashTitle}.SectionTitle {Line[Index+2:]}]"
