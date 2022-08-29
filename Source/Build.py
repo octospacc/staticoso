@@ -117,42 +117,53 @@ def Main(Args, FeedEntries):
 	OutputDir = OptionChoose('public', Args.OutputDir, ReadConf(SiteConf, 'Site', 'OutputDir'))
 	OutputDir = OutputDir.removesuffix('/')
 	CheckSafeOutputDir(OutputDir)
-	print(f"[I] Outputting to {OutputDir}/")
+	print(f"[I] Outputting to: {OutputDir}/")
 
 	DiffBuild = Args.DiffBuild
+
 	BlogName = OptionChoose('', Args.BlogName, ReadConf(SiteConf, 'Site', 'BlogName'))
 	SiteTagline = OptionChoose('', Args.SiteTagline, ReadConf(SiteConf, 'Site', 'Tagline'))
 	SiteTemplate = OptionChoose('Default.html', Args.SiteTemplate, ReadConf(SiteConf, 'Site', 'Template'))
 	SiteDomain = OptionChoose('', Args.SiteDomain, ReadConf(SiteConf, 'Site', 'Domain'))
-	SiteDomain = SiteDomain.removesuffix('/')
 	SiteRoot = OptionChoose('/', Args.SiteRoot, ReadConf(SiteConf, 'Site', 'Root'))
 	SiteLang = OptionChoose('en', Args.SiteLang, ReadConf(SiteConf, 'Site', 'Lang'))
-	Locale = LoadLocale(SiteLang)
-	MastodonURL = OptionChoose('', Args.MastodonURL, ReadConf(SiteConf, 'Mastodon', 'URL'))
-	MastodonToken = OptionChoose('', Args.MastodonToken, ReadConf(SiteConf, 'Mastodon', 'Token'))
+
+	Sorting = literal_eval(OptionChoose('{}', Args.Sorting, ReadConf(SiteConf, 'Site', 'Sorting')))
 	DynamicParts = literal_eval(OptionChoose('{}', Args.DynamicParts, ReadConf(SiteConf, 'Site', 'DynamicParts'))) 
-	MarkdownExts = literal_eval(OptionChoose(str(MarkdownExtsDefault), Args.MarkdownExts, ReadConf(SiteConf, 'Markdown', 'Exts')))
+	NoScripts = StringBoolChoose(False, Args.NoScripts, ReadConf(SiteConf, 'Site', 'NoScripts'))
+
 	ActivityPubTypeFilter = OptionChoose('Post', Args.ActivityPubTypeFilter, ReadConf(SiteConf, 'ActivityPub', 'TypeFilter'))
 	ActivityPubHoursLimit = OptionChoose(168, Args.ActivityPubHoursLimit, ReadConf(SiteConf, 'ActivityPub', 'HoursLimit'))
-	FeedCategoryFilter = OptionChoose('Blog', Args.FeedCategoryFilter, ReadConf(SiteConf, 'Feed', 'CategoryFilter'))
+
+	MastodonURL = OptionChoose('', Args.MastodonURL, ReadConf(SiteConf, 'Mastodon', 'URL'))
+	MastodonToken = OptionChoose('', Args.MastodonToken, ReadConf(SiteConf, 'Mastodon', 'Token'))
+
+	MarkdownExts = literal_eval(OptionChoose(str(MarkdownExtsDefault), Args.MarkdownExts, ReadConf(SiteConf, 'Markdown', 'Exts')))
+	SitemapOutput = StringBoolChoose(True, Args.SitemapOutput, ReadConf(SiteConf, 'Sitemap', 'Output'))
+
 	Minify = StringBoolChoose(False, Args.Minify, ReadConf(SiteConf, 'Minify', 'Minify'))
 	MinifyKeepComments = StringBoolChoose(False, Args.MinifyKeepComments, ReadConf(SiteConf, 'Minify', 'KeepComments'))
-	NoScripts = StringBoolChoose(False, Args.NoScripts, ReadConf(SiteConf, 'Site', 'NoScripts'))
+
 	ImgAltToTitle = StringBoolChoose(True, Args.ImgAltToTitle, ReadConf(SiteConf, 'Site', 'ImgAltToTitle'))
 	ImgTitleToAlt = StringBoolChoose(False, Args.ImgTitleToAlt, ReadConf(SiteConf, 'Site', 'ImgTitleToAlt'))
+
 	CategoriesAutomatic = StringBoolChoose(False, Args.CategoriesAutomatic, ReadConf(SiteConf, 'Categories', 'Automatic'))
 	CategoriesUncategorized = OptionChoose('Uncategorized', Args.CategoriesUncategorized, ReadConf(SiteConf, 'Categories', 'Uncategorized'))
+
 	GemtextOutput = StringBoolChoose(False, Args.GemtextOutput, ReadConf(SiteConf, 'Gemtext', 'Output'))
 	GemtextHeader = Args.GemtextHeader if Args.GemtextHeader else ReadConf(SiteConf, 'Gemtext', 'Header') if ReadConf(SiteConf, 'Gemtext', 'Header') else f"# {SiteName}\n\n" if SiteName else ''
-	SitemapOutput = StringBoolChoose(True, Args.SitemapOutput, ReadConf(SiteConf, 'Sitemap', 'Output'))
-	FeedEntries = int(FeedEntries) if (FeedEntries or FeedEntries == 0) and FeedEntries != 'Default' else int(ReadConf(SiteConf, 'Site', 'FeedEntries')) if ReadConf(SiteConf, 'Site', 'FeedEntries') else 10
-	Sorting = literal_eval(OptionChoose('{}', Args.Sorting, ReadConf(SiteConf, 'Site', 'Sorting')))
+
+	FeedCategoryFilter = OptionChoose('Blog', Args.FeedCategoryFilter, ReadConf(SiteConf, 'Feed', 'CategoryFilter'))
+	FeedEntries = int(FeedEntries) if (FeedEntries or FeedEntries == 0) and FeedEntries != 'Default' else int(ReadConf(SiteConf, 'Feed', 'Entries')) if ReadConf(SiteConf, 'Feed', 'Entries') else 10
 
 	MenuEntries = ReadConf(SiteConf, 'Menu')
 	if MenuEntries:
 		ConfMenu = GetConfMenu(MenuEntries, MarkdownExts)
 	else:
 		ConfMenu = []
+
+	SiteDomain = SiteDomain.removesuffix('/')
+	Locale = LoadLocale(SiteLang)
 
 	if DiffBuild:
 		print("[I] Build mode: Differential")
@@ -202,7 +213,8 @@ def Main(Args, FeedEntries):
 		ImgAltToTitle=ImgAltToTitle, ImgTitleToAlt=ImgTitleToAlt,
 		Sorting=SetSorting(Sorting),
 		MarkdownExts=MarkdownExts,
-		AutoCategories=CategoriesAutomatic)
+		AutoCategories=CategoriesAutomatic,
+		CategoryUncategorized=CategoriesUncategorized)
 
 	if FeedEntries != 0:
 		print("[I] Generating Feeds")
@@ -235,6 +247,8 @@ def Main(Args, FeedEntries):
 		MastodonPosts = []
 
 	for File, Content, Titles, Meta, ContentHTML, SlimHTML, Description, Image in Pages:
+		if IsLightRun(File, LimitFiles):
+			continue
 		File = f"{OutputDir}/{StripExt(File)}.html"
 		Content = ReadFile(File)
 		Post = ''
@@ -250,7 +264,7 @@ def Main(Args, FeedEntries):
 
 	if GemtextOutput:
 		print("[I] Generating Gemtext")
-		GemtextCompileList(OutputDir, Pages, GemtextHeader)
+		GemtextCompileList(OutputDir, Pages, LimitFiles, GemtextHeader)
 
 	print("[I] Cleaning Temporary Files")
 	DelTmp(OutputDir)
@@ -292,8 +306,8 @@ if __name__ == '__main__':
 	Parser.add_argument('--FeedCategoryFilter', type=str)
 	Parser.add_argument('--ActivityPubTypeFilter', type=str, help=argparse.SUPPRESS)
 	Parser.add_argument('--ActivityPubHoursLimit', type=int)
-	Parser.add_argument('--CategoriesUncategorized', type=str)
 	Parser.add_argument('--CategoriesAutomatic', type=str)
+	Parser.add_argument('--CategoriesUncategorized', type=str)
 	Args = Parser.parse_args()
 
 	try:

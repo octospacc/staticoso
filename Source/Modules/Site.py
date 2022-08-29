@@ -149,7 +149,7 @@ def TemplatePreprocessor(Text):
 			Meta.update({i:MetaDefault[i]})
 	return Meta
 
-def PagePreprocessor(Path, Type, SiteTemplate, SiteRoot, GlobalMacros, LightRun=False):
+def PagePreprocessor(Path, Type, SiteTemplate, SiteRoot, GlobalMacros, CategoryUncategorized, LightRun=False):
 	File = ReadFile(Path)
 	Path = Path.lower()
 	Content, Titles, DashyTitles, HTMLTitlesFound, Macros, Meta, MetaDefault = '', [], [], False, '', '', {
@@ -236,7 +236,7 @@ def PagePreprocessor(Path, Type, SiteTemplate, SiteRoot, GlobalMacros, LightRun=
 			Meta.update({i:MetaDefault[i]})
 	if Meta['Index'] in ('Default', 'Unspecified'):
 		if not Meta['Categories']:
-			Meta['Categories'] = ['Uncategorized']
+			Meta['Categories'] = [CategoryUncategorized]
 		if Meta['Type'] == 'Page':
 			Meta['Index'] = 'False'
 		elif Meta['Type'] == 'Post':
@@ -302,7 +302,7 @@ def CanIndex(Index, For):
 	else:
 		return True if Index == For else False
 
-def PatchHTML(File, HTML, StaticPartsText, DynamicParts, DynamicPartsText, HTMLPagesList, PagePath, Content, Titles, Meta, SiteRoot, SiteName, BlogName, FolderRoots, Categories, SiteLang, Locale):
+def PatchHTML(File, HTML, StaticPartsText, DynamicParts, DynamicPartsText, HTMLPagesList, PagePath, Content, Titles, Meta, SiteRoot, SiteName, BlogName, FolderRoots, Categories, SiteLang, Locale, LightRun):
 	HTMLTitles = FormatTitles(Titles)
 	BodyDescription, BodyImage = '', ''
 	if not File.lower().endswith('.txt'):
@@ -339,35 +339,42 @@ def PatchHTML(File, HTML, StaticPartsText, DynamicParts, DynamicPartsText, HTMLP
 
 	for e in StaticPartsText:
 		HTML = ReplWithEsc(HTML, f"[staticoso:StaticPart:{e}]", StaticPartsText[e])
-	HTML = DictReplWithEsc(
-		HTML, {
-			'[staticoso:Site:Menu]': HTMLPagesList,
-			'[staticoso:Page:Lang]': SiteLang,
-			'[staticoso:Page:Chapters]': HTMLTitles,
-			'[staticoso:Page:Title]': Title,
-			'[staticoso:Page:Description]': Description,
-			'[staticoso:Page:Image]': Image,
-			'[staticoso:Page:Path]': PagePath,
-			'[staticoso:Page:Style]': Meta['Style'],
-			'[staticoso:Page:Content]': Content,
-			'[staticoso:Page:ContentInfo]': MakeContentHeader(Meta, Locale, MakeCategoryLine(File, Meta)),
-			'[staticoso:BuildTime]': datetime.now().strftime('%Y-%m-%d %H:%M'),
-			'[staticoso:Site:Name]': SiteName,
-			'[staticoso:Site:AbsoluteRoot]': SiteRoot,
-			'[staticoso:Site:RelativeRoot]': GetPathLevels(PagePath)
-		})
-	for e in Meta['Macros']:
-		HTML = ReplWithEsc(HTML, f"[:{e}:]", Meta['Macros'][e])
-	for e in FolderRoots:
-		HTML = ReplWithEsc(HTML, f"[staticoso:Folder:{e}:AbsoluteRoot]", FolderRoots[e])
-	for e in Categories:
-		HTML = ReplWithEsc(HTML, f"<span>[staticoso:Category:{e}]</span>", Categories[e])
-		HTML = ReplWithEsc(HTML, f"[staticoso:Category:{e}]", Categories[e])
+
+	if LightRun:
+		HTML = None
+	else:
+		HTML = DictReplWithEsc(
+			HTML, {
+				'[staticoso:Site:Menu]': HTMLPagesList,
+				'[staticoso:Page:Lang]': SiteLang,
+				'[staticoso:Page:Chapters]': HTMLTitles,
+				'[staticoso:Page:Title]': Title,
+				'[staticoso:Page:Description]': Description,
+				'[staticoso:Page:Image]': Image,
+				'[staticoso:Page:Path]': PagePath,
+				'[staticoso:Page:Style]': Meta['Style'],
+				'[staticoso:Page:Content]': Content,
+				'[staticoso:Page:ContentInfo]': MakeContentHeader(Meta, Locale, MakeCategoryLine(File, Meta)),
+				'[staticoso:BuildTime]': datetime.now().strftime('%Y-%m-%d %H:%M'),
+				'[staticoso:Site:Name]': SiteName,
+				'[staticoso:Site:AbsoluteRoot]': SiteRoot,
+				'[staticoso:Site:RelativeRoot]': GetPathLevels(PagePath)
+			})
+		for e in Meta['Macros']:
+			HTML = ReplWithEsc(HTML, f"[:{e}:]", Meta['Macros'][e])
+		for e in FolderRoots:
+			HTML = ReplWithEsc(HTML, f"[staticoso:Folder:{e}:AbsoluteRoot]", FolderRoots[e])
+		for e in Categories:
+			HTML = ReplWithEsc(HTML, f"<span>[staticoso:Category:{e}]</span>", Categories[e])
+			HTML = ReplWithEsc(HTML, f"[staticoso:Category:{e}]", Categories[e])
 
 	# TODO: Clean this doubling?
 	ContentHTML = Content
 	ContentHTML = DictReplWithEsc(
 		ContentHTML, {
+			'[staticoso:Page:Title]': Title,
+			'[staticoso:Page:Description]': Description,
+			'[staticoso:Site:Name]': SiteName,
 			'[staticoso:Site:AbsoluteRoot]': SiteRoot,
 			'[staticoso:Site:RelativeRoot]': GetPathLevels(PagePath)
 		})
@@ -378,11 +385,10 @@ def PatchHTML(File, HTML, StaticPartsText, DynamicParts, DynamicPartsText, HTMLP
 	for e in Categories:
 		ContentHTML = ReplWithEsc(ContentHTML, f"<span>[staticoso:Category:{e}]</span>", Categories[e])
 		ContentHTML = ReplWithEsc(ContentHTML, f"[staticoso:Category:{e}]", Categories[e])
-	SlimHTML = HTMLPagesList + ContentHTML
 
-	return HTML, ContentHTML, SlimHTML, Description, Image
+	return HTML, ContentHTML, Description, Image
 
-def MakeSite(OutputDir, LimitFiles, TemplatesText, StaticPartsText, DynamicParts, DynamicPartsText, ConfMenu, GlobalMacros, SiteName, BlogName, SiteTagline, SiteTemplate, SiteDomain, SiteRoot, FolderRoots, SiteLang, Locale, Minify, MinifyKeepComments, NoScripts, ImgAltToTitle, ImgTitleToAlt, Sorting, MarkdownExts, AutoCategories):
+def MakeSite(OutputDir, LimitFiles, TemplatesText, StaticPartsText, DynamicParts, DynamicPartsText, ConfMenu, GlobalMacros, SiteName, BlogName, SiteTagline, SiteTemplate, SiteDomain, SiteRoot, FolderRoots, SiteLang, Locale, Minify, MinifyKeepComments, NoScripts, ImgAltToTitle, ImgTitleToAlt, Sorting, MarkdownExts, AutoCategories, CategoryUncategorized):
 	PagesPaths, PostsPaths, Pages, MadePages, Categories = [], [], [], [], {}
 	for Ext in FileExtensions['Pages']:
 		for File in Path('Pages').rglob(f"*.{Ext}"):
@@ -408,7 +414,7 @@ def MakeSite(OutputDir, LimitFiles, TemplatesText, StaticPartsText, DynamicParts
 		for File in Files:
 			TempPath = f"{PathPrefix}{File}"
 			LightRun = False if LimitFiles == False or TempPath in LimitFiles else True
-			Content, Titles, Meta = PagePreprocessor(f"{Type}s/{File}", Type, SiteTemplate, SiteRoot, GlobalMacros, LightRun=LightRun)
+			Content, Titles, Meta = PagePreprocessor(f"{Type}s/{File}", Type, SiteTemplate, SiteRoot, GlobalMacros, CategoryUncategorized, LightRun=LightRun)
 			Pages += [[TempPath, Content, Titles, Meta]]
 			for Cat in Meta['Categories']:
 				Categories.update({Cat:''})
@@ -440,7 +446,7 @@ def MakeSite(OutputDir, LimitFiles, TemplatesText, StaticPartsText, DynamicParts
 				File = f"Categories/{Cat}.md"
 				FilePath = f"{OutputDir}/{File}"
 				WriteFile(FilePath, CategoryPageTemplate.format(Title=Cat))
-				Content, Titles, Meta = PagePreprocessor(FilePath, SiteRoot)
+				Content, Titles, Meta = PagePreprocessor(FilePath, 'Page', SiteTemplate, SiteRoot, GlobalMacros, CategoryUncategorized, LightRun=LightRun)
 				Pages += [[File, Content, Titles, Meta]]
 
 	for i,e in enumerate(ConfMenu):
@@ -451,6 +457,8 @@ def MakeSite(OutputDir, LimitFiles, TemplatesText, StaticPartsText, DynamicParts
 
 	print("[I] Writing Pages")
 	for File, Content, Titles, Meta in Pages:
+		LightRun = False if LimitFiles == False or File in LimitFiles else True
+
 		PagePath = f"{OutputDir}/{StripExt(File)}.html"
 		if File.lower().endswith(FileExtensions['Markdown']):
 			Content = markdown(PagePostprocessor('md', Content, Meta), extensions=MarkdownExts)
@@ -461,19 +469,22 @@ def MakeSite(OutputDir, LimitFiles, TemplatesText, StaticPartsText, DynamicParts
 		elif File.lower().endswith(FileExtensions['HTML']):
 			Content = ReadFile(PagePath)
 
-		TemplateMeta = TemplatePreprocessor(TemplatesText[Meta['Template']])
-		HTMLPagesList = GetHTMLPagesList(
-			Pages=Pages,
-			BlogName=BlogName,
-			SiteRoot=SiteRoot,
-			PathPrefix=GetPathLevels(File),
-			Unite=ConfMenu,
-			Type='Page',
-			For='Menu',
-			MarkdownExts=MarkdownExts,
-			MenuStyle=TemplateMeta['MenuStyle'])
+		if LightRun:
+			HTMLPagesList = None
+		else:
+			TemplateMeta = TemplatePreprocessor(TemplatesText[Meta['Template']])
+			HTMLPagesList = GetHTMLPagesList(
+				Pages=Pages,
+				BlogName=BlogName,
+				SiteRoot=SiteRoot,
+				PathPrefix=GetPathLevels(File),
+				Unite=ConfMenu,
+				Type='Page',
+				For='Menu',
+				MarkdownExts=MarkdownExts,
+				MenuStyle=TemplateMeta['MenuStyle'])
 
-		HTML, ContentHTML, SlimHTML, Description, Image = PatchHTML(
+		HTML, ContentHTML, Description, Image = PatchHTML(
 			File=File,
 			HTML=TemplatesText[Meta['Template']],
 			StaticPartsText=StaticPartsText,
@@ -490,16 +501,30 @@ def MakeSite(OutputDir, LimitFiles, TemplatesText, StaticPartsText, DynamicParts
 			FolderRoots=FolderRoots,
 			Categories=Categories,
 			SiteLang=SiteLang,
-			Locale=Locale)
+			Locale=Locale,
+			LightRun=LightRun)
 
 		if Minify:
-			HTML = DoMinifyHTML(HTML, MinifyKeepComments)
+			if not LightRun:
+				HTML = DoMinifyHTML(HTML, MinifyKeepComments)
+			ContentHTML = DoMinifyHTML(ContentHTML, MinifyKeepComments)
 		if NoScripts:
-			HTML = StripTags(HTML, ['script'])
+			if not LightRun:
+				HTML = StripTags(HTML, ['script'])
+			ContentHTML = StripTags(ContentHTML, ['script'])
 		if ImgAltToTitle or ImgTitleToAlt:
-			HTML = WriteImgAltAndTitle(HTML, ImgAltToTitle, ImgTitleToAlt)
+			if not LightRun:
+				HTML = WriteImgAltAndTitle(HTML, ImgAltToTitle, ImgTitleToAlt)
+			ContentHTML = WriteImgAltAndTitle(ContentHTML, ImgAltToTitle, ImgTitleToAlt)
 
-		WriteFile(PagePath, HTML)
+		if LightRun:
+			SlimHTML = None
+		else:
+			SlimHTML = HTMLPagesList + ContentHTML
+
+		if not LightRun:
+			WriteFile(PagePath, HTML)
+
 		MadePages += [[File, Content, Titles, Meta, ContentHTML, SlimHTML, Description, Image]]
 
 	return MadePages

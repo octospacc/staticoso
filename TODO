@@ -1,9 +1,8 @@
 - Check if external tools (pug-cli, html2gmi) are installed
 - Fix and optimize differential building
 - Static code syntax highlighing
-- Override internal HTML snippets (with config file in Templates/NAME.ini)
+- Override internal HTML snippets (meta lines, page lists, ...) with config file in Templates/NAME.ini
 - Specify input folder(s)
-- Customize HTML source code for Meta lines / page lists
 - Show page size/words/time in meta line
 - Add feed support for diary-like pages
 - Fix excess whitespace in some section/menu titles

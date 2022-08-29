@@ -71,7 +71,7 @@ Needed for Gemtext output support:
 - [x] Generation of global website menu as a tree or as a line
 - [x] Generation of page (titles) menu as a tree
 - [x] Auto-detection of titles in a page
-- [x] _HTML_, TXT, _Extended Markdown_, and _Pug_ supported for input page files
+- [x] **HTML**, **TXT**, **Extended Markdown**, and **Pug** supported as input page files
 - [ ] Out of heavy-WIP state
 
 ## Known issues (might need further investigation)

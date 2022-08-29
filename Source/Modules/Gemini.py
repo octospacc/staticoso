@@ -22,9 +22,11 @@ def FixGemlogDateLine(Line):
 			Line = Words[0] + '\n' + Words[1][1:] + ' ' + ' '.join(Words[2:])
 	return Line
 
-def GemtextCompileList(OutputDir, Pages, Header=''):
+def GemtextCompileList(OutputDir, Pages, LimitFiles, Header=''):
 	Cmd = ''
 	for File, Content, Titles, Meta, ContentHTML, SlimHTML, Description, Image in Pages:
+		if IsLightRun(File, LimitFiles):
+			continue
 		Src = f"{OutputDir}.gmi/{StripExt(File)}.html.tmp"
 		Dst = f"{OutputDir}.gmi/{StripExt(File)}.gmi"
 		SlimHTML = StripAttrs(SlimHTML)
@@ -33,8 +35,11 @@ def GemtextCompileList(OutputDir, Pages, Header=''):
 				SlimHTML = SlimHTML.replace(j, '')
 		WriteFile(Src, SlimHTML.replace('</a>', '</a><br>').replace('.html', '.gmi')) # TODO: Adjust links properly..
 		Cmd += f'cat "{Src}" | html2gmi > "{Dst}"; '
-	os.system(Cmd)
+	if Cmd:
+		os.system(Cmd)
 	for File, Content, Titles, Meta, ContentHTML, SlimHTML, Description, Image in Pages:
+		if IsLightRun(File, LimitFiles):
+			continue
 		Dst = f"{OutputDir}.gmi/{StripExt(File)}.gmi"
 		Gemtext = ''
 		for Line in ReadFile(Dst).splitlines():

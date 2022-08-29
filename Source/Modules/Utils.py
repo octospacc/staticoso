@@ -154,3 +154,6 @@ def LoadLocale(Lang):
 		return json.loads(File)
 	else:
 		return json.loads(ReadFile(Folder + 'en.json'))
+
+def IsLightRun(File, LimitFiles):
+	return False if LimitFiles == False or File in LimitFiles else True
