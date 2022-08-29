@@ -70,16 +70,16 @@ def MakeContentHeader(Meta, Locale, Categories=''):
 	Header = ''
 	for i in ['CreatedOn', 'EditedOn']:
 		if Meta[i]:
-			Header += f"{Locale[i]}: {Meta[i]}  \n"
+			Header += f'{Locale[i]}: {Meta[i]}<br>'
 	if Categories:
-		Header += f"{Locale['Categories']}: {Categories}  \n"
-	return markdown(Header.rstrip())
+		Header += f"{Locale['Categories']}:{Categories.removesuffix(' ')}<br>"
+	return f'<p>{Header}</p>'
 
 def MakeCategoryLine(File, Meta):
 	Categories = ''
 	if Meta['Categories']:
-		for i in Meta['Categories']:
-			Categories += f" [{i}]({GetPathLevels(File)}Categories/{i}.html) "
+		for Cat in Meta['Categories']:
+			Categories += f' <a href="{GetPathLevels(File)}Categories/{Cat}.html">{html.escape(Cat)}</a> '
 	return Categories
 
 def GetHTMLPagesList(Pages, BlogName, SiteRoot, PathPrefix, Unite=[], Type='Page', Category=None, For='Menu', MarkdownExts=(), MenuStyle='Default'):
@@ -265,16 +265,16 @@ def MakeListTitle(File, Meta, Titles, Prefer, SiteRoot, BlogName, PathPrefix='')
 
 def FormatTitles(Titles, Flatten=False):
 	# TODO: Somehow titles written in Pug can end up here and don't work, they should be handled
-	MDTitles, DashyTitles = '', []
+	HTMLTitles, DashyTitles = '', []
 	for t in Titles:
-		n = t.split(' ')[0].count('#')
-		Heading = '- ' * (n if not Flatten else 1)
+		n = 0 if Flatten else t.split(' ')[0].count('#')
 		Title = MkSoup(t.lstrip('#')).get_text()
 		DashyTitle = DashifyTitle(Title, DashyTitles)
 		DashyTitles += [DashyTitle]
-		Title = f"[{Title}](#{DashyTitle})"
-		MDTitles += Heading + Title + '\n'
-	return markdown(MDTitles)
+		Start = '<ul><li>' * (n - 1)
+		End = '</li></ul>' * (n - 1)
+		HTMLTitles += f'<li>{Start}<a href="#{DashyTitle}">{html.escape(Title)}</a>{End}</li>'
+	return f'<ul>{HTMLTitles}</ul>'
 
 def OrderPages(Old):
 	New, NoOrder, Max = [], [], 0
@@ -314,7 +314,8 @@ def PatchHTML(File, HTML, StaticPartsText, DynamicParts, DynamicPartsText, HTMLP
 			BodyImage = Soup.img['src']
 
 		#Content = SquareFnrefs(Content)
-		Content = AddToTagStartEnd(Content, '<a class="footnote-ref"', '</a>', '[', ']')
+		if '<a class="footnote-ref"' in Content:
+			Content = AddToTagStartEnd(Content, '<a class="footnote-ref"', '</a>', '[', ']')
 
 	Title = GetTitle(File.split('/')[-1], Meta, Titles, 'MetaTitle', BlogName)
 	Description = GetDescription(Meta, BodyDescription, 'MetaDescription')
