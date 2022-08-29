@@ -37,8 +37,8 @@ def EvalOpt(Opt):
 	else:
 		return None
 
-def OptionChoose(Default, Primary, Secondary):
-	return Primary if Primary != None else Secondary if Secondary != None else Default
+def OptionChoose(Default, Primary, Secondary, Tertiary=None):
+	return Primary if Primary != None else Secondary if Secondary != None else Tertiary if Tertiary != None else Default
 
 def StringBoolChoose(Default, Primary, Secondary):
 	Var = Default

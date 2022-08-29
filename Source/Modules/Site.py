@@ -8,7 +8,6 @@
 | ================================= """
 
 from datetime import datetime
-from Libs import htmlmin
 from Libs.bs4 import BeautifulSoup
 from Modules.Config import *
 from Modules.HTML import *
@@ -18,6 +17,15 @@ from Modules.Utils import *
 
 HTMLSectionTitleLine = '<h{Index} class="SectionHeading"><span class="SectionLink"><a href="#{DashTitle}"><span>»</span></a> </span><span class="SectionTitle" id="{DashTitle}">{Title}</span></h{Index}>'
 #PugSectionTitleLine = "{Line[:Index]}{Line[Index:Index+2]}.SectionHeading #[span.SectionLink #[a(href='#{DashTitle}') #[span »]] ]#[span#{DashTitle}.SectionTitle {Line[Index+2:]}]"
+CategoryPageTemplate = """\
+// Title: {Name}
+// Type: Page
+// Index: True
+
+# {Name}
+
+<div>[staticoso:Category:{Name}]</div>
+"""
 
 def DashifyTitle(Title, Done=[]):
 	return UndupeStr(DashifyStr(Title.lstrip(' ').rstrip(' ')), Done, '-')
@@ -331,54 +339,50 @@ def PatchHTML(File, HTML, StaticPartsText, DynamicParts, DynamicPartsText, HTMLP
 
 	for e in StaticPartsText:
 		HTML = ReplWithEsc(HTML, f"[staticoso:StaticPart:{e}]", StaticPartsText[e])
-	HTML = ReplWithEsc(HTML, '[staticoso:Site:Menu]', HTMLPagesList)
-	HTML = ReplWithEsc(HTML, '[staticoso:Page:Lang]', SiteLang)
-	HTML = ReplWithEsc(HTML, '[staticoso:Page:Chapters]', HTMLTitles)
-	HTML = ReplWithEsc(HTML, '[staticoso:Page:Title]', Title)
-	HTML = ReplWithEsc(HTML, '[staticoso:Page:Description]', Description)
-	HTML = ReplWithEsc(HTML, '[staticoso:Page:Image]', Image)
-	HTML = ReplWithEsc(HTML, '[staticoso:Page:Path]', PagePath)
-	HTML = ReplWithEsc(HTML, '[staticoso:Page:Style]', Meta['Style'])
-	HTML = ReplWithEsc(HTML, '[staticoso:Page:Content]', Content)
-	HTML = ReplWithEsc(HTML, '[staticoso:Page:ContentInfo]', MakeContentHeader(Meta, Locale, MakeCategoryLine(File, Meta)))
-	HTML = ReplWithEsc(HTML, '[staticoso:BuildTime]', datetime.now().strftime('%Y-%m-%d %H:%M'))
-	HTML = ReplWithEsc(HTML, '[staticoso:Site:Name]', SiteName)
-	HTML = ReplWithEsc(HTML, '[staticoso:Site:AbsoluteRoot]', SiteRoot)
-	HTML = ReplWithEsc(HTML, '[staticoso:Site:RelativeRoot]', GetPathLevels(PagePath))
+	HTML = DictReplWithEsc(
+		HTML, {
+			'[staticoso:Site:Menu]': HTMLPagesList,
+			'[staticoso:Page:Lang]': SiteLang,
+			'[staticoso:Page:Chapters]': HTMLTitles,
+			'[staticoso:Page:Title]': Title,
+			'[staticoso:Page:Description]': Description,
+			'[staticoso:Page:Image]': Image,
+			'[staticoso:Page:Path]': PagePath,
+			'[staticoso:Page:Style]': Meta['Style'],
+			'[staticoso:Page:Content]': Content,
+			'[staticoso:Page:ContentInfo]': MakeContentHeader(Meta, Locale, MakeCategoryLine(File, Meta)),
+			'[staticoso:BuildTime]': datetime.now().strftime('%Y-%m-%d %H:%M'),
+			'[staticoso:Site:Name]': SiteName,
+			'[staticoso:Site:AbsoluteRoot]': SiteRoot,
+			'[staticoso:Site:RelativeRoot]': GetPathLevels(PagePath)
+		})
 	for e in Meta['Macros']:
 		HTML = ReplWithEsc(HTML, f"[:{e}:]", Meta['Macros'][e])
 	for e in FolderRoots:
 		HTML = ReplWithEsc(HTML, f"[staticoso:Folder:{e}:AbsoluteRoot]", FolderRoots[e])
 	for e in Categories:
 		HTML = ReplWithEsc(HTML, f"<span>[staticoso:Category:{e}]</span>", Categories[e])
+		HTML = ReplWithEsc(HTML, f"[staticoso:Category:{e}]", Categories[e])
 
 	# TODO: Clean this doubling?
 	ContentHTML = Content
-	ContentHTML = ReplWithEsc(ContentHTML, '[staticoso:Site:AbsoluteRoot]', SiteRoot)
-	ContentHTML = ReplWithEsc(ContentHTML, '[staticoso:Site:RelativeRoot]', GetPathLevels(PagePath))
+	ContentHTML = DictReplWithEsc(
+		ContentHTML, {
+			'[staticoso:Site:AbsoluteRoot]': SiteRoot,
+			'[staticoso:Site:RelativeRoot]': GetPathLevels(PagePath)
+		})
 	for e in Meta['Macros']:
 		ContentHTML = ReplWithEsc(ContentHTML, f"[:{e}:]", Meta['Macros'][e])
 	for e in FolderRoots:
 		ContentHTML = ReplWithEsc(ContentHTML, f"[staticoso:Folder:{e}:AbsoluteRoot]", FolderRoots[e])
 	for e in Categories:
 		ContentHTML = ReplWithEsc(ContentHTML, f"<span>[staticoso:Category:{e}]</span>", Categories[e])
+		ContentHTML = ReplWithEsc(ContentHTML, f"[staticoso:Category:{e}]", Categories[e])
 	SlimHTML = HTMLPagesList + ContentHTML
 
 	return HTML, ContentHTML, SlimHTML, Description, Image
 
-def DoMinifyHTML(HTML):
-	return htmlmin.minify(
-		input=HTML,
-		remove_comments=True,
-		remove_empty_space=True,
-		remove_all_empty_space=False,
-		reduce_empty_attributes=True,
-		reduce_boolean_attributes=True,
-		remove_optional_attribute_quotes=True,
-		convert_charrefs=True,
-		keep_pre=True)
-
-def MakeSite(OutputDir, LimitFiles, TemplatesText, StaticPartsText, DynamicParts, DynamicPartsText, ConfMenu, GlobalMacros, SiteName, BlogName, SiteTagline, SiteTemplate, SiteDomain, SiteRoot, FolderRoots, SiteLang, Locale, Minify, NoScripts, ImgAltToTitle, ImgTitleToAlt, Sorting, MarkdownExts, AutoCategories):
+def MakeSite(OutputDir, LimitFiles, TemplatesText, StaticPartsText, DynamicParts, DynamicPartsText, ConfMenu, GlobalMacros, SiteName, BlogName, SiteTagline, SiteTemplate, SiteDomain, SiteRoot, FolderRoots, SiteLang, Locale, Minify, MinifyKeepComments, NoScripts, ImgAltToTitle, ImgTitleToAlt, Sorting, MarkdownExts, AutoCategories):
 	PagesPaths, PostsPaths, Pages, MadePages, Categories = [], [], [], [], {}
 	for Ext in FileExtensions['Pages']:
 		for File in Path('Pages').rglob(f"*.{Ext}"):
@@ -435,15 +439,7 @@ def MakeSite(OutputDir, LimitFiles, TemplatesText, StaticPartsText, DynamicParts
 			if not Exists:
 				File = f"Categories/{Cat}.md"
 				FilePath = f"{OutputDir}/{File}"
-				WriteFile(FilePath, f"""\
-// Title: {Cat}
-// Type: Page
-// Index: True
-
-# {Cat}
-
-<div><span>[staticoso:Category:{Cat}]</span></div>
-""")
+				WriteFile(FilePath, CategoryPageTemplate.format(Title=Cat))
 				Content, Titles, Meta = PagePreprocessor(FilePath, SiteRoot)
 				Pages += [[File, Content, Titles, Meta]]
 
@@ -497,7 +493,7 @@ def MakeSite(OutputDir, LimitFiles, TemplatesText, StaticPartsText, DynamicParts
 			Locale=Locale)
 
 		if Minify:
-			HTML = DoMinifyHTML(HTML)
+			HTML = DoMinifyHTML(HTML, MinifyKeepComments)
 		if NoScripts:
 			HTML = StripTags(HTML, ['script'])
 		if ImgAltToTitle or ImgTitleToAlt:

@@ -9,6 +9,7 @@
 
 import html
 import warnings
+from Libs import htmlmin
 from Libs.bs4 import BeautifulSoup
 from Modules.Utils import *
 
@@ -70,3 +71,15 @@ def SquareFnrefs(HTML): # Different combinations of formatting for Soup .prettif
 			s = t.find('a')
 			s.replace_with(f'[{t}]')
 	return str(Soup.prettify(formatter=None))
+
+def DoMinifyHTML(HTML, KeepComments):
+	return htmlmin.minify(
+		input=HTML,
+		remove_comments=not KeepComments,
+		remove_empty_space=True,
+		remove_all_empty_space=False,
+		reduce_empty_attributes=True,
+		reduce_boolean_attributes=True,
+		remove_optional_attribute_quotes=True,
+		convert_charrefs=True,
+		keep_pre=True)

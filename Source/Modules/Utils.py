@@ -84,6 +84,7 @@ def FindAllIndex(Str, Sub):
 		yield i
 		i = Str.find(Sub, i+1)
 
+# Replace substrings in a string, except when an escape char is prepended
 def ReplWithEsc(Str, Find, Repl, Esc='\\'):
 	New = ''
 	Sects = Str.split(Find)
@@ -100,6 +101,11 @@ def ReplWithEsc(Str, Find, Repl, Esc='\\'):
 			else:
 				New += Repl + e
 	return New
+
+def DictReplWithEsc(Str, Dict, Esc='\\'):
+	for Item in Dict:
+		Str = ReplWithEsc(Str, Item, Dict[Item], Esc='\\')
+	return Str
 
 def NumsFromFileName(Path):
 	Name = Path.split('/')[-1]

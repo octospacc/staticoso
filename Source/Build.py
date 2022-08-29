@@ -135,14 +135,16 @@ def Main(Args, FeedEntries):
 	ActivityPubTypeFilter = OptionChoose('Post', Args.ActivityPubTypeFilter, ReadConf(SiteConf, 'ActivityPub', 'TypeFilter'))
 	ActivityPubHoursLimit = OptionChoose(168, Args.ActivityPubHoursLimit, ReadConf(SiteConf, 'ActivityPub', 'HoursLimit'))
 	FeedCategoryFilter = OptionChoose('Blog', Args.FeedCategoryFilter, ReadConf(SiteConf, 'Feed', 'CategoryFilter'))
-	Minify = StringBoolChoose(False, Args.Minify, ReadConf(SiteConf, 'Site', 'Minify'))
+	Minify = StringBoolChoose(False, Args.Minify, ReadConf(SiteConf, 'Minify', 'Minify'))
+	MinifyKeepComments = StringBoolChoose(False, Args.MinifyKeepComments, ReadConf(SiteConf, 'Minify', 'KeepComments'))
 	NoScripts = StringBoolChoose(False, Args.NoScripts, ReadConf(SiteConf, 'Site', 'NoScripts'))
 	ImgAltToTitle = StringBoolChoose(True, Args.ImgAltToTitle, ReadConf(SiteConf, 'Site', 'ImgAltToTitle'))
 	ImgTitleToAlt = StringBoolChoose(False, Args.ImgTitleToAlt, ReadConf(SiteConf, 'Site', 'ImgTitleToAlt'))
-	AutoCategories = StringBoolChoose(False, Args.AutoCategories, ReadConf(SiteConf, 'Site', 'AutoCategories'))
-	GemtextOut = StringBoolChoose(False, Args.GemtextOut, ReadConf(SiteConf, 'Site', 'GemtextOut'))
+	CategoriesAutomatic = StringBoolChoose(False, Args.CategoriesAutomatic, ReadConf(SiteConf, 'Categories', 'Automatic'))
+	CategoriesUncategorized = OptionChoose('Uncategorized', Args.CategoriesUncategorized, ReadConf(SiteConf, 'Categories', 'Uncategorized'))
+	GemtextOutput = StringBoolChoose(False, Args.GemtextOutput, ReadConf(SiteConf, 'Gemtext', 'Output'))
 	GemtextHeader = Args.GemtextHeader if Args.GemtextHeader else ReadConf(SiteConf, 'Gemtext', 'Header') if ReadConf(SiteConf, 'Gemtext', 'Header') else f"# {SiteName}\n\n" if SiteName else ''
-	SitemapOut = StringBoolChoose(True, Args.SitemapOut, ReadConf(SiteConf, 'Site', 'SitemapOut'))
+	SitemapOutput = StringBoolChoose(True, Args.SitemapOutput, ReadConf(SiteConf, 'Sitemap', 'Output'))
 	FeedEntries = int(FeedEntries) if (FeedEntries or FeedEntries == 0) and FeedEntries != 'Default' else int(ReadConf(SiteConf, 'Site', 'FeedEntries')) if ReadConf(SiteConf, 'Site', 'FeedEntries') else 10
 	Sorting = literal_eval(OptionChoose('{}', Args.Sorting, ReadConf(SiteConf, 'Site', 'Sorting')))
 
@@ -163,12 +165,12 @@ def Main(Args, FeedEntries):
 	if os.path.isdir('Pages'):
 		HavePages = True
 		shutil.copytree('Pages', OutputDir, dirs_exist_ok=True)
-		if GemtextOut:
+		if GemtextOutput:
 			shutil.copytree('Pages', f"{OutputDir}.gmi", ignore=IgnoreFiles, dirs_exist_ok=True)
 	if os.path.isdir('Posts'):
 		HavePosts = True
 		shutil.copytree('Posts', f"{OutputDir}/Posts", dirs_exist_ok=True)
-		if GemtextOut:
+		if GemtextOutput:
 			shutil.copytree('Posts', f"{OutputDir}.gmi/Posts", ignore=IgnoreFiles, dirs_exist_ok=True)
 
 	if not (HavePages or HavePosts):
@@ -195,11 +197,12 @@ def Main(Args, FeedEntries):
 		SiteLang=SiteLang,
 		Locale=Locale,
 		Minify=Minify,
+		MinifyKeepComments=MinifyKeepComments,
 		NoScripts=NoScripts,
 		ImgAltToTitle=ImgAltToTitle, ImgTitleToAlt=ImgTitleToAlt,
 		Sorting=SetSorting(Sorting),
 		MarkdownExts=MarkdownExts,
-		AutoCategories=AutoCategories)
+		AutoCategories=CategoriesAutomatic)
 
 	if FeedEntries != 0:
 		print("[I] Generating Feeds")
@@ -245,14 +248,14 @@ def Main(Args, FeedEntries):
 		Content = ReplWithEsc(Content, '[staticoso:Comments]', Post)
 		WriteFile(File, Content)
 
-	if GemtextOut:
+	if GemtextOutput:
 		print("[I] Generating Gemtext")
 		GemtextCompileList(OutputDir, Pages, GemtextHeader)
 
 	print("[I] Cleaning Temporary Files")
 	DelTmp(OutputDir)
 
-	if SitemapOut:
+	if SitemapOutput:
 		print("[I] Generating Sitemap")
 		MakeSitemap(OutputDir, Pages, SiteDomain)
 
@@ -261,7 +264,7 @@ def Main(Args, FeedEntries):
 
 if __name__ == '__main__':
 	Parser = argparse.ArgumentParser()
-	Parser.add_argument('--DiffBuild', action='store_true')
+	Parser.add_argument('--DiffBuild', type=str)
 	Parser.add_argument('--OutputDir', type=str)
 	#Parser.add_argument('--InputDir', type=str)
 	Parser.add_argument('--Sorting', type=str)
@@ -272,13 +275,14 @@ if __name__ == '__main__':
 	Parser.add_argument('--SiteTemplate', type=str)
 	Parser.add_argument('--SiteDomain', type=str)
 	Parser.add_argument('--Minify', type=str)
+	Parser.add_argument('--MinifyKeepComments', type=str)
 	Parser.add_argument('--NoScripts', type=str)
 	Parser.add_argument('--ImgAltToTitle', type=str)
 	Parser.add_argument('--ImgTitleToAlt', type=str)
-	Parser.add_argument('--GemtextOut', type=str)
+	Parser.add_argument('--GemtextOutput', type=str)
 	Parser.add_argument('--GemtextHeader', type=str)
 	Parser.add_argument('--SiteTagline', type=str)
-	Parser.add_argument('--SitemapOut', type=str)
+	Parser.add_argument('--SitemapOutput', type=str)
 	Parser.add_argument('--FeedEntries', type=str)
 	Parser.add_argument('--FolderRoots', type=str)
 	Parser.add_argument('--DynamicParts', type=str)
@@ -288,7 +292,8 @@ if __name__ == '__main__':
 	Parser.add_argument('--FeedCategoryFilter', type=str)
 	Parser.add_argument('--ActivityPubTypeFilter', type=str, help=argparse.SUPPRESS)
 	Parser.add_argument('--ActivityPubHoursLimit', type=int)
-	Parser.add_argument('--AutoCategories', type=str)
+	Parser.add_argument('--CategoriesUncategorized', type=str)
+	Parser.add_argument('--CategoriesAutomatic', type=str)
 	Args = Parser.parse_args()
 
 	try:

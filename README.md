@@ -17,11 +17,13 @@ Obviously, it's built with staticoso itself 😁️. Its source repo can be foun
 Keep in mind that, currently, it's still very incomplete. **Any help**, from writing the documentation to creating a decent HTML+CSS template for its site, **is more than welcome**.
 
 ## Dependencies
-- [Python == 3.10.4](https://python.org)
+
+- [Python >= 3.10](https://python.org)
 - (Included) [Python Markdown == 3.3.7](https://pypi.org/project/Markdown)
   - (Included) Third-Party Extensions for Python Markdown: [markdown_del_ins](https://github.com/honzajavorek/markdown-del-ins), [mdx_subscript](https://github.com/jambonrose/markdown_subscript_extension), [mdx_superscript](https://github.com/jambonrose/markdown_superscript_extension)
 - (Included) [Beautiful Soup == 4.11.1](https://pypi.org/project/beautifulsoup4)
 - (Included) [feedgen == 0.9.0](https://pypi.org/project/feedgen)
+  - [lxml == 4.9.1](https://pypi.org/project/lxml)
 - (Included) [htmlmin == 0.1.12](https://pypi.org/project/htmlmin)
 
 ### Optional dependencies
@@ -29,7 +31,7 @@ Keep in mind that, currently, it's still very incomplete. **Any help**, from wri
 Needed for Pug input support:
 
 - [node == 12.22.5](https://nodejs.org) - [npm == 7.5.2](https://www.npmjs.com)
-- (Included) [pug-cli == 1.0.0-alpha6](https://npmjs.com/package/pug-cli)
+- (Included, must be manually installed in system $PATH) [pug-cli == 1.0.0-alpha6](https://npmjs.com/package/pug-cli)
 
 Needed for Gemtext output support:
 
@@ -37,14 +39,17 @@ Needed for Gemtext output support:
 - [html2gmi](https://github.com/LukeEmmet/html2gmi)
 
 ## Features roadmap
+
+- [ ] Overriding internal HTML snippets for template-specific ones
+- [ ] Static syntax highlighing for code blocks in any page
 - [x] File name used as a title for pages without one
 - [ ] Custom category names in header links
 - [ ] Choosing custom name for Blog and Uncategorized categories
 - [ ] Choosing to use a template for all pages in a folder
-- [ ] Configuration with both INI files and CLI arguments
+- [x] Configuration with both INI files and CLI arguments
 - [ ] Category-based feeds
 - [ ] Support for multi-language sites
-- [x] The `title` attribute is added to images which only have `alt` (for desktop accessibility)
+- [x] The `title` attribute is added to images which only have `alt` (for desktop accessibility), or viceversa
 - [x] Local (per-page) and global (per-site) macros
 - [x] ActivityPub (Mastodon) support (Feed + embedded comments)
 - [ ] Polished Gemtext generation
@@ -68,3 +73,9 @@ Needed for Gemtext output support:
 - [x] Auto-detection of titles in a page
 - [x] _HTML_, TXT, _Extended Markdown_, and _Pug_ supported for input page files
 - [ ] Out of heavy-WIP state
+
+## Known issues (might need further investigation)
+
+- Bad HTML included in Markdown files can cause a build to fail entirely.
+- The program currently takes about 2 seconds to build a smallish site. While by itself that's not a long time, problems could arise for bigger sites.
+- Ordering pages in the global menu with external configuration flags (outside the pages' source) yields broken and unpredictable results.
