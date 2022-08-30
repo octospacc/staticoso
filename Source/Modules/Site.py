@@ -84,7 +84,7 @@ def TemplatePreprocessor(Text):
 			Meta.update({i:MetaDefault[i]})
 	return Meta
 
-def PagePreprocessor(Path, Type, SiteTemplate, SiteRoot, GlobalMacros, CategoryUncategorized, LightRun=False):
+def PagePreprocessor(Path, TempPath, Type, SiteTemplate, SiteRoot, GlobalMacros, CategoryUncategorized, LightRun=False):
 	File = ReadFile(Path)
 	Path = Path.lower()
 	Content, Titles, DashyTitles, HTMLTitlesFound, Macros, Meta, MetaDefault = '', [], [], False, '', '', {
@@ -179,7 +179,8 @@ def PagePreprocessor(Path, Type, SiteTemplate, SiteRoot, GlobalMacros, CategoryU
 	if GlobalMacros:
 		Meta['Macros'].update(GlobalMacros)
 	Meta['Macros'].update(ReadConf(LoadConfStr('[Macros]\n' + Macros), 'Macros'))
-	return Content, Titles, Meta
+	#PrintPercentDots(ProcPercent)
+	return [TempPath, Content, Titles, Meta]
 
 def PagePostprocessor(FileType, Text, Meta):
 	for e in Meta['Macros']:
@@ -336,7 +337,7 @@ def HandlePage(Flags, Page, Pages, Categories, LimitFiles, Snippets, ConfMenu, L
 			For='Menu',
 			MarkdownExts=MarkdownExts,
 			MenuStyle=TemplateMeta['MenuStyle'])
-	
+
 	HTML, ContentHTML, Description, Image = PatchHTML(
 		File=File,
 		HTML=TemplatesText[Meta['Template']],
@@ -369,21 +370,26 @@ def HandlePage(Flags, Page, Pages, Categories, LimitFiles, Snippets, ConfMenu, L
 		if not LightRun:
 			HTML = WriteImgAltAndTitle(HTML, ImgAltToTitle, ImgTitleToAlt)
 		ContentHTML = WriteImgAltAndTitle(ContentHTML, ImgAltToTitle, ImgTitleToAlt)
-	
+
 	if LightRun:
 		SlimHTML = None
 	else:
 		SlimHTML = HTMLPagesList + ContentHTML
 	if not LightRun:
 		WriteFile(PagePath, HTML)
-	
+
+	#PrintPercentDots(ProcPercent)
 	return [File, Content, Titles, Meta, ContentHTML, SlimHTML, Description, Image]
 
-#def MultiprocHandlePage(Data):
-#	pass
+def MultiprocHandlePage(d):
+	return HandlePage(d['Flags'], d['Page'], d['Pages'], d['Categories'], d['LimitFiles'], d['Snippets'], d['ConfMenu'], d['Locale'])
+
+def MultiprocPagePreprocessor(d):
+	return PagePreprocessor(d['Path'], d['TempPath'], d['Type'], d['Template'], d['SiteRoot'], d['GlobalMacros'], d['CategoryUncategorized'], d['LightRun'])
 
 def MakeSite(Flags, LimitFiles, Snippets, ConfMenu, GlobalMacros, Locale):
-	PagesPaths, PostsPaths, Pages, MadePages, MultiprocPages, Categories = [], [], [], [], [], {}
+	PagesPaths, PostsPaths, Pages, MadePages, Categories = [], [], [], [], {}
+	PoolSize = cpu_count()
 	OutDir, MarkdownExts, Sorting, MinifyKeepComments = Flags['OutDir'], Flags['MarkdownExts'], Flags['Sorting'], Flags['MinifyKeepComments']
 	SiteName, BlogName, SiteTagline = Flags['SiteName'], Flags['BlogName'], Flags['SiteTagline']
 	SiteTemplate, SiteLang = Flags['SiteTemplate'], Flags['SiteLang']
@@ -406,6 +412,7 @@ def MakeSite(Flags, LimitFiles, Snippets, ConfMenu, GlobalMacros, Locale):
 		PostsPaths.reverse()
 
 	print("[I] Preprocessing Source Pages")
+	MultiprocPages = []
 	for Type in ['Page', 'Post']:
 		if Type == 'Page':
 			Files = PagesPaths
@@ -416,10 +423,13 @@ def MakeSite(Flags, LimitFiles, Snippets, ConfMenu, GlobalMacros, Locale):
 		for File in Files:
 			TempPath = f"{PathPrefix}{File}"
 			LightRun = False if LimitFiles == False or TempPath in LimitFiles else True
-			Content, Titles, Meta = PagePreprocessor(f"{Type}s/{File}", Type, SiteTemplate, SiteRoot, GlobalMacros, CategoryUncategorized, LightRun=LightRun)
-			Pages += [[TempPath, Content, Titles, Meta]]
-			for Cat in Meta['Categories']:
-				Categories.update({Cat:''})
+			MultiprocPages += [{'Path':f"{Type}s/{File}", 'TempPath':TempPath, 'Type':Type, 'Template':SiteTemplate, 'SiteRoot':SiteRoot, 'GlobalMacros':GlobalMacros, 'CategoryUncategorized':CategoryUncategorized, 'LightRun':LightRun}]
+	with Pool(PoolSize) as MultiprocPool:
+		Pages = MultiprocPool.map(MultiprocPagePreprocessor, MultiprocPages)
+	#print() # Make newline after percentage dots
+	for File, Content, Titles, Meta in Pages:
+		for Cat in Meta['Categories']:
+			Categories.update({Cat:''})
 	PugCompileList(OutDir, Pages, LimitFiles)
 
 	if Categories:
@@ -458,11 +468,11 @@ def MakeSite(Flags, LimitFiles, Snippets, ConfMenu, GlobalMacros, Locale):
 				ConfMenu[i] = None
 
 	print("[I] Writing Pages")
+	MultiprocPages = []
 	for Page in Pages:
-		#print(f'-> {File}')
-		MadePages += [HandlePage(Flags, Page, Pages, Categories, LimitFiles, Snippets, ConfMenu, Locale)]
-		#MultiprocPages += [{'Flags':Flags, 'Page':Page, 'Pages':Pages, 'Categories':Categories, 'LimitFiles':LimitFiles, 'Snippets':Snippets, 'ConfMenu':ConfMenu, 'Locale':Locale}]
-	#with Pool(cpu_count()) as MultiprocPool:
-		#MadePages = MultiprocPool.map(HandlePage, MultiprocPages)
+		MultiprocPages += [{'Flags':Flags, 'Page':Page, 'Pages':Pages, 'Categories':Categories, 'LimitFiles':LimitFiles, 'Snippets':Snippets, 'ConfMenu':ConfMenu, 'Locale':Locale}]
+	with Pool(PoolSize) as MultiprocPool:
+		MadePages = MultiprocPool.map(MultiprocHandlePage, MultiprocPages)
+	#print() # Make newline after percentage dots
 
 	return MadePages

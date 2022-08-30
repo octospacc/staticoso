@@ -40,7 +40,9 @@ Needed for Gemtext output support:
 
 ## Features roadmap
 
-- [ ] Multithreading
+- [ ] Showing percentage of build process
+- [x] Multithreading
+- [x] Differential building
 - [ ] Overriding internal HTML snippets for template-specific ones
 - [ ] Static syntax highlighing for code blocks in any page
 - [x] File name used as a title for pages without one
@@ -65,7 +67,6 @@ Needed for Gemtext output support:
 - [x] Custom and automatic page sorting
 - [ ] SCSS compilation support for CSS templates
 - [ ] Pug support for base templates and page side parts
-- [ ] Differential recompile (to optimize resource waste on non-ephemeral servers)
 - [ ] Hot-recompile (for website development)
 - [x] TXT sitemap generation
 - [x] Atom + RSS feed generation

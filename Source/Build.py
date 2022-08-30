@@ -120,6 +120,10 @@ def Main(Args, FeedEntries):
 	CheckSafeOutDir(OutDir)
 	print(f"[I] Outputting to: {OutDir}/")
 
+	Logging = Args.Logging
+	Threads = Args.Threads
+	DiffBuild = Args.DiffBuild
+
 	BlogName = Flags['BlogName'] = OptionChoose('', Args.BlogName, ReadConf(SiteConf, 'Site', 'BlogName'))
 	SiteTagline = Flags['SiteTagline'] = OptionChoose('', Args.SiteTagline, ReadConf(SiteConf, 'Site', 'Tagline'))
 	SiteTemplate = Flags['SiteTemplate'] = OptionChoose('Default.html', Args.SiteTemplate, ReadConf(SiteConf, 'Site', 'Template'))
@@ -132,7 +136,6 @@ def Main(Args, FeedEntries):
 
 	NoScripts = Flags['NoScripts'] = StringBoolChoose(False, Args.NoScripts, ReadConf(SiteConf, 'Site', 'NoScripts'))
 	FolderRoots = Flags['FolderRoots'] = literal_eval(Args.FolderRoots) if Args.FolderRoots else {}
-	DiffBuild = Args.DiffBuild
 
 	ActivityPubTypeFilter = Flags['ActivityPubTypeFilter'] = OptionChoose('Post', Args.ActivityPubTypeFilter, ReadConf(SiteConf, 'ActivityPub', 'TypeFilter'))
 	ActivityPubHoursLimit = Flags['ActivityPubHoursLimit'] = OptionChoose(168, Args.ActivityPubHoursLimit, ReadConf(SiteConf, 'ActivityPub', 'HoursLimit'))
@@ -250,6 +253,7 @@ if __name__ == '__main__':
 
 	Parser = argparse.ArgumentParser()
 	Parser.add_argument('--Logging', type=str) # Levels: Debug, Verbose, Info, Warning, Error.
+	Parser.add_argument('--Threads', type=str)
 	Parser.add_argument('--DiffBuild', type=str)
 	Parser.add_argument('--OutputDir', type=str)
 	#Parser.add_argument('--InputDir', type=str)
@@ -293,4 +297,4 @@ if __name__ == '__main__':
 	Main(
 		Args=Args,
 		FeedEntries=FeedEntries)
-	print(f"[I] ✅ Done! ({round(time.process_time(),3)} / {round(time.time()-StartTime,3)} s)")
+	print(f"[I] ✅ Done! ({round(time.time()-StartTime,3)}s)")

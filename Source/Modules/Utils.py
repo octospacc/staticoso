@@ -157,3 +157,11 @@ def LoadLocale(Lang):
 
 def IsLightRun(File, LimitFiles):
 	return False if LimitFiles == False or File in LimitFiles else True
+
+def PrintPercentDots(Percent):
+	Cur, Tot = Percent
+	CalcCur = int((Cur/Tot)*100)
+	if CalcCur % 10 == 0:
+		CalcPrev = int((Cur-1/Tot)*100)
+		if CalcPrev % 10 != 0:
+			print('.', end='')
