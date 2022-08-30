@@ -8,80 +8,14 @@
 | ================================= """
 
 from datetime import datetime
-from multiprocessing import Pool
+from multiprocessing import Pool, cpu_count
 from Libs.bs4 import BeautifulSoup
 from Modules.Config import *
+from Modules.Elements import *
 from Modules.HTML import *
 from Modules.Markdown import *
 from Modules.Pug import *
 from Modules.Utils import *
-
-HTMLSectionTitleLine = '<h{Index} class="SectionHeading"><span class="SectionLink"><a href="#{DashTitle}"><span>»</span></a> </span><span class="SectionTitle" id="{DashTitle}">{Title}</span></h{Index}>'
-#PugSectionTitleLine = "{Line[:Index]}{Line[Index:Index+2]}.SectionHeading #[span.SectionLink #[a(href='#{DashTitle}') #[span »]] ]#[span#{DashTitle}.SectionTitle {Line[Index+2:]}]"
-CategoryPageTemplate = """\
-// Title: {Name}
-// Type: Page
-// Index: True
-
-# {Name}
-
-<div>[staticoso:Category:{Name}]</div>
-"""
-
-def DashifyTitle(Title, Done=[]):
-	return UndupeStr(DashifyStr(Title.lstrip(' ').rstrip(' ')), Done, '-')
-
-def MakeLinkableTitle(Line, Title, DashTitle, Type):
-	if Type == 'md':
-		Index = Title.split(' ')[0].count('#')
-		return HTMLSectionTitleLine.format(
-			Index=Index,
-			DashTitle=DashTitle,
-			Title=Title[Index+1:])
-	elif Type == 'pug':
-		Index = Line.find('h')
-		return f"{Line[:Index]}{Line[Index:Index+2]}.SectionHeading #[span.SectionLink #[a(href='#{DashTitle}') #[span »]] ]#[span#{DashTitle}.SectionTitle {Line[Index+2:]}]"
-
-def GetTitle(FileName, Meta, Titles, Prefer='MetaTitle', BlogName=None):
-	if Prefer == 'BodyTitle':
-		Title = Titles[0].lstrip('#') if Titles else Meta['Title'] if Meta['Title'] else FileName
-	elif Prefer == 'MetaTitle':
-		Title = Meta['Title'] if Meta['Title'] else Titles[0].lstrip('#') if Titles else FileName
-	elif Prefer == 'HTMLTitle':
-		Title = Meta['HTMLTitle'] if Meta['HTMLTitle'] else Meta['Title'] if Meta['Title'] else Titles[0].lstrip('#') if Titles else FileName
-	if BlogName and 'Blog' in Meta['Categories']:
-		Title += ' - ' + BlogName
-	return Title
-
-def GetDescription(Meta, BodyDescription, Prefer='MetaDescription'):
-	if Prefer == 'BodyDescription':
-		Description = BodyDescription if BodyDescription else Meta['Description'] if Meta['Description'] else ''
-	elif Prefer == 'MetaDescription':
-		Description = Meta['Description'] if Meta['Description'] else BodyDescription if BodyDescription else ''
-	return Description
-
-def GetImage(Meta, BodyImage, Prefer='MetaImage'):
-	if Prefer == 'BodyImage':
-		Image = BodyImage if BodyImage else Meta['Image'] if Meta['Image'] else ''
-	elif Prefer == 'MetaImage':
-		Image = Meta['Image'] if Meta['Image'] else BodyImage if BodyImage else ''
-	return Image
-
-def MakeContentHeader(Meta, Locale, Categories=''):
-	Header = ''
-	for i in ['CreatedOn', 'EditedOn']:
-		if Meta[i]:
-			Header += f'{Locale[i]}: {Meta[i]}<br>'
-	if Categories:
-		Header += f"{Locale['Categories']}:{Categories.removesuffix(' ')}<br>"
-	return f'<p>{Header}</p>'
-
-def MakeCategoryLine(File, Meta):
-	Categories = ''
-	if Meta['Categories']:
-		for Cat in Meta['Categories']:
-			Categories += f' <a href="{GetPathLevels(File)}Categories/{Cat}.html">{html.escape(Cat)}</a> '
-	return Categories
 
 def GetHTMLPagesList(Pages, BlogName, SiteRoot, PathPrefix, Unite=[], Type='Page', Category=None, For='Menu', MarkdownExts=(), MenuStyle='Default'):
 	ShowPaths, Flatten, SingleLine = True, False, False
@@ -252,31 +186,6 @@ def PagePostprocessor(FileType, Text, Meta):
 		Text = ReplWithEsc(Text, f"[: {e} :]", f"[:{e}:]")
 	return Text
 
-def MakeListTitle(File, Meta, Titles, Prefer, SiteRoot, BlogName, PathPrefix=''):
-	Title = GetTitle(File.split('/')[-1], Meta, Titles, Prefer, BlogName)
-	Link = False if Meta['Index'] == 'Unlinked' else True
-	if Link:
-		Title = '[{}]({})'.format(
-			Title,
-			'{}{}.html'.format(PathPrefix, StripExt(File)))
-	if Meta['Type'] == 'Post':
-		CreatedOn = Meta['CreatedOn'] if Meta['CreatedOn'] else '?'
-		Title = f"[{CreatedOn}] {Title}"
-	return Title
-
-def FormatTitles(Titles, Flatten=False):
-	# TODO: Somehow titles written in Pug can end up here and don't work, they should be handled
-	HTMLTitles, DashyTitles = '', []
-	for t in Titles:
-		n = 0 if Flatten else t.split(' ')[0].count('#')
-		Title = MkSoup(t.lstrip('#')).get_text()
-		DashyTitle = DashifyTitle(Title, DashyTitles)
-		DashyTitles += [DashyTitle]
-		Start = '<ul><li>' * (n - 1)
-		End = '</li></ul>' * (n - 1)
-		HTMLTitles += f'<li>{Start}<a href="#{DashyTitle}">{html.escape(Title)}</a>{End}</li>'
-	return f'<ul>{HTMLTitles}</ul>'
-
 def OrderPages(Old):
 	New, NoOrder, Max = [], [], 0
 	for i,e in enumerate(Old):
@@ -390,11 +299,98 @@ def PatchHTML(File, HTML, StaticPartsText, DynamicParts, DynamicPartsText, HTMLP
 
 	return HTML, ContentHTML, Description, Image
 
-def MakeSite(Flags, OutputDir, LimitFiles, TemplatesText, StaticPartsText, DynamicParts, DynamicPartsText, ConfMenu, GlobalMacros, SiteName, BlogName, SiteTagline, SiteTemplate, SiteDomain, SiteRoot, FolderRoots, SiteLang, Locale, Sorting, MarkdownExts):
-	PagesPaths, PostsPaths, Pages, MadePages, Categories = [], [], [], [], {}
+def HandlePage(Flags, Page, Pages, Categories, LimitFiles, Snippets, ConfMenu, Locale):
+	File, Content, Titles, Meta = Page
+	OutDir, MarkdownExts, Sorting, MinifyKeepComments = Flags['OutDir'], Flags['MarkdownExts'], Flags['Sorting'], Flags['MinifyKeepComments']
+	SiteName, BlogName, SiteTagline = Flags['SiteName'], Flags['BlogName'], Flags['SiteTagline']
+	SiteTemplate, SiteLang = Flags['SiteTemplate'], Flags['SiteLang']
+	SiteDomain, SiteRoot, FolderRoots = Flags['SiteDomain'], Flags['SiteRoot'], Flags['FolderRoots']
 	AutoCategories, CategoryUncategorized = Flags['CategoriesAutomatic'], Flags['CategoriesUncategorized']
 	ImgAltToTitle, ImgTitleToAlt = Flags['ImgAltToTitle'], Flags['ImgTitleToAlt']
-	MinifyKeepComments = Flags['MinifyKeepComments']
+	DynamicParts, DynamicPartsText, StaticPartsText, TemplatesText = Flags['DynamicParts'], Snippets['DynamicParts'], Snippets['StaticParts'], Snippets['Templates']
+
+	FileLower = File.lower()
+	PagePath = f"{OutDir}/{StripExt(File)}.html"
+	LightRun = False if LimitFiles == False or File in LimitFiles else True
+
+	if FileLower.endswith(FileExtensions['Markdown']):
+		Content = markdown(PagePostprocessor('md', Content, Meta), extensions=MarkdownExts)
+	elif FileLower.endswith(('.pug')):
+		Content = PagePostprocessor('pug', ReadFile(PagePath), Meta)
+	elif FileLower.endswith(('.txt')):
+		Content = '<pre>' + html.escape(Content) + '</pre>'
+	elif FileLower.endswith(FileExtensions['HTML']):
+		Content = ReadFile(PagePath)
+
+	if LightRun:
+		HTMLPagesList = None
+	else:
+		TemplateMeta = TemplatePreprocessor(TemplatesText[Meta['Template']])
+		HTMLPagesList = GetHTMLPagesList(
+			Pages=Pages,
+			BlogName=BlogName,
+			SiteRoot=SiteRoot,
+			PathPrefix=GetPathLevels(File),
+			Unite=ConfMenu,
+			Type='Page',
+			For='Menu',
+			MarkdownExts=MarkdownExts,
+			MenuStyle=TemplateMeta['MenuStyle'])
+	
+	HTML, ContentHTML, Description, Image = PatchHTML(
+		File=File,
+		HTML=TemplatesText[Meta['Template']],
+		StaticPartsText=StaticPartsText,
+		DynamicParts=DynamicParts,
+		DynamicPartsText=DynamicPartsText,
+		HTMLPagesList=HTMLPagesList,
+		PagePath=PagePath[len(f"{OutDir}/"):],
+		Content=Content,
+		Titles=Titles,
+		Meta=Meta,
+		SiteRoot=SiteRoot,
+		SiteName=SiteName,
+		BlogName=BlogName,
+		FolderRoots=FolderRoots,
+		Categories=Categories,
+		SiteLang=SiteLang,
+		Locale=Locale,
+		LightRun=LightRun)
+
+	if Flags['Minify']:
+		if not LightRun:
+			HTML = DoMinifyHTML(HTML, MinifyKeepComments)
+		ContentHTML = DoMinifyHTML(ContentHTML, MinifyKeepComments)
+	if Flags['NoScripts']:
+		if not LightRun:
+			HTML = StripTags(HTML, ['script'])
+		ContentHTML = StripTags(ContentHTML, ['script'])
+	if ImgAltToTitle or ImgTitleToAlt:
+		if not LightRun:
+			HTML = WriteImgAltAndTitle(HTML, ImgAltToTitle, ImgTitleToAlt)
+		ContentHTML = WriteImgAltAndTitle(ContentHTML, ImgAltToTitle, ImgTitleToAlt)
+	
+	if LightRun:
+		SlimHTML = None
+	else:
+		SlimHTML = HTMLPagesList + ContentHTML
+	if not LightRun:
+		WriteFile(PagePath, HTML)
+	
+	return [File, Content, Titles, Meta, ContentHTML, SlimHTML, Description, Image]
+
+#def MultiprocHandlePage(Data):
+#	pass
+
+def MakeSite(Flags, LimitFiles, Snippets, ConfMenu, GlobalMacros, Locale):
+	PagesPaths, PostsPaths, Pages, MadePages, MultiprocPages, Categories = [], [], [], [], [], {}
+	OutDir, MarkdownExts, Sorting, MinifyKeepComments = Flags['OutDir'], Flags['MarkdownExts'], Flags['Sorting'], Flags['MinifyKeepComments']
+	SiteName, BlogName, SiteTagline = Flags['SiteName'], Flags['BlogName'], Flags['SiteTagline']
+	SiteTemplate, SiteLang = Flags['SiteTemplate'], Flags['SiteLang']
+	SiteDomain, SiteRoot, FolderRoots = Flags['SiteDomain'], Flags['SiteRoot'], Flags['FolderRoots']
+	AutoCategories, CategoryUncategorized = Flags['CategoriesAutomatic'], Flags['CategoriesUncategorized']
+	ImgAltToTitle, ImgTitleToAlt = Flags['ImgAltToTitle'], Flags['ImgTitleToAlt']
+	DynamicParts, DynamicPartsText, StaticPartsText, TemplatesText = Flags['DynamicParts'], Snippets['DynamicParts'], Snippets['StaticParts'], Snippets['Templates']
 
 	for Ext in FileExtensions['Pages']:
 		for File in Path('Pages').rglob(f"*.{Ext}"):
@@ -424,7 +420,7 @@ def MakeSite(Flags, OutputDir, LimitFiles, TemplatesText, StaticPartsText, Dynam
 			Pages += [[TempPath, Content, Titles, Meta]]
 			for Cat in Meta['Categories']:
 				Categories.update({Cat:''})
-	PugCompileList(OutputDir, Pages, LimitFiles)
+	PugCompileList(OutDir, Pages, LimitFiles)
 
 	if Categories:
 		print("[I] Generating Category Lists")
@@ -442,7 +438,7 @@ def MakeSite(Flags, OutputDir, LimitFiles, TemplatesText, StaticPartsText, Dynam
 					MenuStyle='Flat')
 
 	if AutoCategories:
-		Dir = f"{OutputDir}/Categories"
+		Dir = f"{OutDir}/Categories"
 		for Cat in Categories:
 			Exists = False
 			for File in Path(Dir).rglob(str(Cat)+'.*'):
@@ -450,7 +446,7 @@ def MakeSite(Flags, OutputDir, LimitFiles, TemplatesText, StaticPartsText, Dynam
 				break
 			if not Exists:
 				File = f"Categories/{Cat}.md"
-				FilePath = f"{OutputDir}/{File}"
+				FilePath = f"{OutDir}/{File}"
 				WriteFile(FilePath, CategoryPageTemplate.format(Title=Cat))
 				Content, Titles, Meta = PagePreprocessor(FilePath, 'Page', SiteTemplate, SiteRoot, GlobalMacros, CategoryUncategorized, LightRun=LightRun)
 				Pages += [[File, Content, Titles, Meta]]
@@ -462,75 +458,11 @@ def MakeSite(Flags, OutputDir, LimitFiles, TemplatesText, StaticPartsText, Dynam
 				ConfMenu[i] = None
 
 	print("[I] Writing Pages")
-	for File, Content, Titles, Meta in Pages:
+	for Page in Pages:
 		#print(f'-> {File}')
-		LightRun = False if LimitFiles == False or File in LimitFiles else True
-		PagePath = f"{OutputDir}/{StripExt(File)}.html"
-
-		if File.lower().endswith(FileExtensions['Markdown']):
-			Content = markdown(PagePostprocessor('md', Content, Meta), extensions=MarkdownExts)
-		elif File.lower().endswith(('.pug')):
-			Content = PagePostprocessor('pug', ReadFile(PagePath), Meta)
-		elif File.lower().endswith(('.txt')):
-			Content = '<pre>' + html.escape(Content) + '</pre>'
-		elif File.lower().endswith(FileExtensions['HTML']):
-			Content = ReadFile(PagePath)
-
-		if LightRun:
-			HTMLPagesList = None
-		else:
-			TemplateMeta = TemplatePreprocessor(TemplatesText[Meta['Template']])
-			HTMLPagesList = GetHTMLPagesList(
-				Pages=Pages,
-				BlogName=BlogName,
-				SiteRoot=SiteRoot,
-				PathPrefix=GetPathLevels(File),
-				Unite=ConfMenu,
-				Type='Page',
-				For='Menu',
-				MarkdownExts=MarkdownExts,
-				MenuStyle=TemplateMeta['MenuStyle'])
-
-		HTML, ContentHTML, Description, Image = PatchHTML(
-			File=File,
-			HTML=TemplatesText[Meta['Template']],
-			StaticPartsText=StaticPartsText,
-			DynamicParts=DynamicParts,
-			DynamicPartsText=DynamicPartsText,
-			HTMLPagesList=HTMLPagesList,
-			PagePath=PagePath[len(f"{OutputDir}/"):],
-			Content=Content,
-			Titles=Titles,
-			Meta=Meta,
-			SiteRoot=SiteRoot,
-			SiteName=SiteName,
-			BlogName=BlogName,
-			FolderRoots=FolderRoots,
-			Categories=Categories,
-			SiteLang=SiteLang,
-			Locale=Locale,
-			LightRun=LightRun)
-
-		if Flags['Minify']:
-			if not LightRun:
-				HTML = DoMinifyHTML(HTML, MinifyKeepComments)
-			ContentHTML = DoMinifyHTML(ContentHTML, MinifyKeepComments)
-		if Flags['NoScripts']:
-			if not LightRun:
-				HTML = StripTags(HTML, ['script'])
-			ContentHTML = StripTags(ContentHTML, ['script'])
-		if ImgAltToTitle or ImgTitleToAlt:
-			if not LightRun:
-				HTML = WriteImgAltAndTitle(HTML, ImgAltToTitle, ImgTitleToAlt)
-			ContentHTML = WriteImgAltAndTitle(ContentHTML, ImgAltToTitle, ImgTitleToAlt)
-
-		if LightRun:
-			SlimHTML = None
-		else:
-			SlimHTML = HTMLPagesList + ContentHTML
-		if not LightRun:
-			WriteFile(PagePath, HTML)
-
-		MadePages += [[File, Content, Titles, Meta, ContentHTML, SlimHTML, Description, Image]]
+		MadePages += [HandlePage(Flags, Page, Pages, Categories, LimitFiles, Snippets, ConfMenu, Locale)]
+		#MultiprocPages += [{'Flags':Flags, 'Page':Page, 'Pages':Pages, 'Categories':Categories, 'LimitFiles':LimitFiles, 'Snippets':Snippets, 'ConfMenu':ConfMenu, 'Locale':Locale}]
+	#with Pool(cpu_count()) as MultiprocPool:
+		#MadePages = MultiprocPool.map(HandlePage, MultiprocPages)
 
 	return MadePages

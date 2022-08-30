@@ -103,7 +103,7 @@ def GetModifiedFiles(OutDir):
 	return Mod
 
 def Main(Args, FeedEntries):
-	Flags = {}
+	Flags, Snippets = {}, {}
 	HavePages, HavePosts = False, False
 	SiteConf = LoadConfFile('Site.ini')
 
@@ -120,8 +120,6 @@ def Main(Args, FeedEntries):
 	CheckSafeOutDir(OutDir)
 	print(f"[I] Outputting to: {OutDir}/")
 
-	DiffBuild = Args.DiffBuild
-
 	BlogName = Flags['BlogName'] = OptionChoose('', Args.BlogName, ReadConf(SiteConf, 'Site', 'BlogName'))
 	SiteTagline = Flags['SiteTagline'] = OptionChoose('', Args.SiteTagline, ReadConf(SiteConf, 'Site', 'Tagline'))
 	SiteTemplate = Flags['SiteTemplate'] = OptionChoose('Default.html', Args.SiteTemplate, ReadConf(SiteConf, 'Site', 'Template'))
@@ -130,8 +128,11 @@ def Main(Args, FeedEntries):
 	SiteLang = Flags['SiteLang'] = OptionChoose('en', Args.SiteLang, ReadConf(SiteConf, 'Site', 'Lang'))
 
 	Sorting = Flags['Sorting'] = literal_eval(OptionChoose('{}', Args.Sorting, ReadConf(SiteConf, 'Site', 'Sorting')))
-	DynamicParts = Flags['DynamicParts'] = literal_eval(OptionChoose('{}', Args.DynamicParts, ReadConf(SiteConf, 'Site', 'DynamicParts'))) 
+	Sorting = Flags['Sorting'] = SetSorting(Sorting)
+
 	NoScripts = Flags['NoScripts'] = StringBoolChoose(False, Args.NoScripts, ReadConf(SiteConf, 'Site', 'NoScripts'))
+	FolderRoots = Flags['FolderRoots'] = literal_eval(Args.FolderRoots) if Args.FolderRoots else {}
+	DiffBuild = Args.DiffBuild
 
 	ActivityPubTypeFilter = Flags['ActivityPubTypeFilter'] = OptionChoose('Post', Args.ActivityPubTypeFilter, ReadConf(SiteConf, 'ActivityPub', 'TypeFilter'))
 	ActivityPubHoursLimit = Flags['ActivityPubHoursLimit'] = OptionChoose(168, Args.ActivityPubHoursLimit, ReadConf(SiteConf, 'ActivityPub', 'HoursLimit'))
@@ -156,6 +157,11 @@ def Main(Args, FeedEntries):
 
 	FeedCategoryFilter = Flags['FeedCategoryFilter'] = OptionChoose('Blog', Args.FeedCategoryFilter, ReadConf(SiteConf, 'Feed', 'CategoryFilter'))
 	FeedEntries = Flags['FeedEntries'] = int(FeedEntries) if (FeedEntries or FeedEntries == 0) and FeedEntries != 'Default' else int(ReadConf(SiteConf, 'Feed', 'Entries')) if ReadConf(SiteConf, 'Feed', 'Entries') else 10
+
+	DynamicParts = Flags['DynamicParts'] = literal_eval(OptionChoose('{}', Args.DynamicParts, ReadConf(SiteConf, 'Site', 'DynamicParts')))
+	DynamicPartsText = Snippets['DynamicParts'] = LoadFromDir('DynamicParts', ['*.htm', '*.html'])
+	StaticPartsText = Snippets['StaticParts'] = LoadFromDir('StaticParts', ['*.htm', '*.html'])
+	TemplatesText = Snippets['Templates'] = LoadFromDir('Templates', ['*.htm', '*.html'])
 
 	MenuEntries = ReadConf(SiteConf, 'Menu')
 	if MenuEntries:
@@ -192,25 +198,11 @@ def Main(Args, FeedEntries):
 	print("[I] Generating HTML")
 	Pages = MakeSite(
 		Flags=Flags,
-		OutputDir=OutDir,
 		LimitFiles=LimitFiles,
-		TemplatesText=LoadFromDir('Templates', ['*.htm', '*.html']),
-		StaticPartsText=LoadFromDir('StaticParts', ['*.htm', '*.html']),
-		DynamicParts=DynamicParts,
-		DynamicPartsText=LoadFromDir('DynamicParts', ['*.htm', '*.html']),
+		Snippets=Snippets,
 		ConfMenu=ConfMenu,
 		GlobalMacros=ReadConf(SiteConf, 'Macros'),
-		SiteName=SiteName,
-		BlogName=BlogName,
-		SiteTagline=SiteTagline,
-		SiteTemplate=SiteTemplate,
-		SiteDomain=SiteDomain,
-		SiteRoot=SiteRoot,
-		FolderRoots=literal_eval(Args.FolderRoots) if Args.FolderRoots else {},
-		SiteLang=SiteLang,
-		Locale=Locale,
-		Sorting=SetSorting(Sorting),
-		MarkdownExts=MarkdownExts)
+		Locale=Locale)
 
 	if FeedEntries != 0:
 		print("[I] Generating Feeds")
