@@ -1,3 +1,4 @@
+- Posts in draft state (will not be compiled)
 - Check if external tools (pug-cli, html2gmi) are installed
 - Fix and optimize differential building
 - Static code syntax highlighing

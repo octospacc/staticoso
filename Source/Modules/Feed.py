@@ -12,16 +12,19 @@
 from Libs.feedgen.feed import FeedGenerator
 from Modules.Utils import *
 
-def MakeFeed(OutputDir, CategoryFilter, Pages, SiteName, SiteTagline, SiteDomain, MaxEntries, Lang, FullSite=False, Minify=False):
+def MakeFeed(Flags, Pages, FullSite=False):
+	CategoryFilter = Flags['FeedCategoryFilter']
+	MaxEntries = Flags['FeedEntries']
+
 	Feed = FeedGenerator()
-	Link = SiteDomain if SiteDomain else ' '
+	Link = Flags['SiteDomain'] if Flags['SiteDomain'] else ' '
 	Feed.id(Link)
-	Feed.title(SiteName if SiteName else 'Untitled Site')
+	Feed.title(Flags['SiteName'] if Flags['SiteName'] else 'Untitled Site')
 	Feed.link(href=Link, rel='alternate')
-	Feed.description(SiteTagline if SiteTagline else ' ')
-	if SiteDomain:
-		Feed.logo(SiteDomain + '/favicon.png')
-	Feed.language(Lang)
+	Feed.description(Flags['SiteTagline'] if Flags['SiteTagline'] else ' ')
+	if Flags['SiteDomain']:
+		Feed.logo(Flags['SiteDomain'] + '/favicon.png')
+	Feed.language(Flags['SiteLang'])
 
 	DoPages = []
 	for e in Pages:
@@ -35,8 +38,8 @@ def MakeFeed(OutputDir, CategoryFilter, Pages, SiteName, SiteTagline, SiteDomain
 			Entry = Feed.add_entry()
 			FileName = File.split('/')[-1]
 			File = f"{StripExt(File)}.html"
-			Content = ReadFile(f"{OutputDir}/{File}")
-			Link = SiteDomain + '/' + File if SiteDomain else ' '
+			Content = ReadFile(f"{Flags['OutDir']}/{File}")
+			Link = Flags['SiteDomain'] + '/' + File if Flags['SiteDomain'] else ' '
 			CreatedOn = GetFullDate(Meta['CreatedOn'])
 			EditedOn = GetFullDate(Meta['EditedOn'])
 			Entry.id(Link)
@@ -51,8 +54,8 @@ def MakeFeed(OutputDir, CategoryFilter, Pages, SiteName, SiteTagline, SiteDomain
 			EditedOn = EditedOn if EditedOn else CreatedOn if CreatedOn and not EditedOn else '1970-01-01T00:00+00:00'
 			Entry.updated(EditedOn)
 
-	if not os.path.exists(f"{OutputDir}/feed"):
-		os.mkdir(f"{OutputDir}/feed")
+	if not os.path.exists(f"{Flags['OutDir']}/feed"):
+		os.mkdir(f"{Flags['OutDir']}/feed")
 	FeedType = 'site.' if FullSite else ''
-	Feed.atom_file(f"{OutputDir}/feed/{FeedType}atom.xml", pretty=(not Minify))
-	Feed.rss_file(f"{OutputDir}/feed/{FeedType}rss.xml", pretty=(not Minify))
+	Feed.atom_file(f"{Flags['OutDir']}/feed/{FeedType}atom.xml", pretty=(not Flags['Minify']))
+	Feed.rss_file(f"{Flags['OutDir']}/feed/{FeedType}rss.xml", pretty=(not Flags['Minify']))

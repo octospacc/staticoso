@@ -8,6 +8,7 @@
 | ================================= """
 
 from datetime import datetime
+from multiprocessing import Pool
 from Libs.bs4 import BeautifulSoup
 from Modules.Config import *
 from Modules.HTML import *
@@ -389,8 +390,12 @@ def PatchHTML(File, HTML, StaticPartsText, DynamicParts, DynamicPartsText, HTMLP
 
 	return HTML, ContentHTML, Description, Image
 
-def MakeSite(OutputDir, LimitFiles, TemplatesText, StaticPartsText, DynamicParts, DynamicPartsText, ConfMenu, GlobalMacros, SiteName, BlogName, SiteTagline, SiteTemplate, SiteDomain, SiteRoot, FolderRoots, SiteLang, Locale, Minify, MinifyKeepComments, NoScripts, ImgAltToTitle, ImgTitleToAlt, Sorting, MarkdownExts, AutoCategories, CategoryUncategorized):
+def MakeSite(Flags, OutputDir, LimitFiles, TemplatesText, StaticPartsText, DynamicParts, DynamicPartsText, ConfMenu, GlobalMacros, SiteName, BlogName, SiteTagline, SiteTemplate, SiteDomain, SiteRoot, FolderRoots, SiteLang, Locale, Sorting, MarkdownExts):
 	PagesPaths, PostsPaths, Pages, MadePages, Categories = [], [], [], [], {}
+	AutoCategories, CategoryUncategorized = Flags['CategoriesAutomatic'], Flags['CategoriesUncategorized']
+	ImgAltToTitle, ImgTitleToAlt = Flags['ImgAltToTitle'], Flags['ImgTitleToAlt']
+	MinifyKeepComments = Flags['MinifyKeepComments']
+
 	for Ext in FileExtensions['Pages']:
 		for File in Path('Pages').rglob(f"*.{Ext}"):
 			PagesPaths += [FileToStr(File, 'Pages/')]
@@ -458,9 +463,10 @@ def MakeSite(OutputDir, LimitFiles, TemplatesText, StaticPartsText, DynamicParts
 
 	print("[I] Writing Pages")
 	for File, Content, Titles, Meta in Pages:
+		#print(f'-> {File}')
 		LightRun = False if LimitFiles == False or File in LimitFiles else True
-
 		PagePath = f"{OutputDir}/{StripExt(File)}.html"
+
 		if File.lower().endswith(FileExtensions['Markdown']):
 			Content = markdown(PagePostprocessor('md', Content, Meta), extensions=MarkdownExts)
 		elif File.lower().endswith(('.pug')):
@@ -505,11 +511,11 @@ def MakeSite(OutputDir, LimitFiles, TemplatesText, StaticPartsText, DynamicParts
 			Locale=Locale,
 			LightRun=LightRun)
 
-		if Minify:
+		if Flags['Minify']:
 			if not LightRun:
 				HTML = DoMinifyHTML(HTML, MinifyKeepComments)
 			ContentHTML = DoMinifyHTML(ContentHTML, MinifyKeepComments)
-		if NoScripts:
+		if Flags['NoScripts']:
 			if not LightRun:
 				HTML = StripTags(HTML, ['script'])
 			ContentHTML = StripTags(ContentHTML, ['script'])
@@ -522,7 +528,6 @@ def MakeSite(OutputDir, LimitFiles, TemplatesText, StaticPartsText, DynamicParts
 			SlimHTML = None
 		else:
 			SlimHTML = HTMLPagesList + ContentHTML
-
 		if not LightRun:
 			WriteFile(PagePath, HTML)
 

@@ -12,13 +12,13 @@ from ast import literal_eval
 
 def LoadConfFile(File):
 	Conf = configparser.ConfigParser()
-	Conf.optionxform = lambda option: option
+	Conf.optionxform = str
 	Conf.read(File)
 	return Conf
 
 def LoadConfStr(Str):
 	Conf = configparser.ConfigParser()
-	Conf.optionxform = lambda option: option
+	Conf.optionxform = str
 	Conf.read_string(Str)
 	return Conf
 

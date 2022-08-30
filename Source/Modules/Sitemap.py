@@ -10,10 +10,10 @@
 from urllib.parse import quote as URLEncode
 from Modules.Utils import *
 
-def MakeSitemap(OutputDir, Pages, SiteDomain=''):
+def MakeSitemap(Flags, Pages):
 	Map = ''
-	Domain = SiteDomain + '/' if SiteDomain else ''
+	Domain = Flags['SiteDomain'] + '/' if Flags['SiteDomain'] else ''
 	for File, Content, Titles, Meta, ContentHTML, SlimHTML, Description, Image in Pages:
 		File = f"{StripExt(File)}.html"
 		Map += Domain + URLEncode(File) + '\n'
-	WriteFile(f"{OutputDir}/sitemap.txt", Map)
+	WriteFile(f"{Flags['OutDir']}/sitemap.txt", Map)

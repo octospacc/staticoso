@@ -22,13 +22,13 @@ def FixGemlogDateLine(Line):
 			Line = Words[0] + '\n' + Words[1][1:] + ' ' + ' '.join(Words[2:])
 	return Line
 
-def GemtextCompileList(OutputDir, Pages, LimitFiles, Header=''):
+def GemtextCompileList(Flags, Pages, LimitFiles):
 	Cmd = ''
 	for File, Content, Titles, Meta, ContentHTML, SlimHTML, Description, Image in Pages:
 		if IsLightRun(File, LimitFiles):
 			continue
-		Src = f"{OutputDir}.gmi/{StripExt(File)}.html.tmp"
-		Dst = f"{OutputDir}.gmi/{StripExt(File)}.gmi"
+		Src = f"{Flags['OutDir']}.gmi/{StripExt(File)}.html.tmp"
+		Dst = f"{Flags['OutDir']}.gmi/{StripExt(File)}.gmi"
 		SlimHTML = StripAttrs(SlimHTML)
 		for i in ('ol', 'ul', 'li'):
 			for j in ('<'+i+'>', '</'+i+'>'):
@@ -40,12 +40,12 @@ def GemtextCompileList(OutputDir, Pages, LimitFiles, Header=''):
 	for File, Content, Titles, Meta, ContentHTML, SlimHTML, Description, Image in Pages:
 		if IsLightRun(File, LimitFiles):
 			continue
-		Dst = f"{OutputDir}.gmi/{StripExt(File)}.gmi"
+		Dst = f"{Flags['OutDir']}.gmi/{StripExt(File)}.gmi"
 		Gemtext = ''
 		for Line in ReadFile(Dst).splitlines():
 			Line = FixGemlogDateLine(Line)
 			Gemtext += Line + '\n'
-		WriteFile(Dst, Header + Gemtext)
+		WriteFile(Dst, Flags['GemtextHeader'] + Gemtext)
 
 def FindEarliest(Str, Items):
 	Pos, Item = 0, ''

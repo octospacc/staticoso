@@ -40,6 +40,7 @@ Needed for Gemtext output support:
 
 ## Features roadmap
 
+- [ ] Multithreading
 - [ ] Overriding internal HTML snippets for template-specific ones
 - [ ] Static syntax highlighing for code blocks in any page
 - [x] File name used as a title for pages without one

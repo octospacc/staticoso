@@ -51,8 +51,11 @@ def MastodonGetAllLinkPosts(Session, Domain=None):
 			Posts += [Post]
 	return Posts
 
-def MastodonShare(InstanceURL, Token, TypeFilter, CategoryFilter, HoursLimit, Pages, SiteDomain, SiteLang, Locale):
+def MastodonShare(Flags, Pages, Locale):
 	SaidPosting = False
+	SiteDomain, SiteLang = Flags['SiteDomain'], Flags['SiteLang']
+	InstanceURL, Token = Flags['MastodonURL'], Flags['MastodonToken']
+	TypeFilter, HoursLimit, CategoryFilter = Flags['ActivityPubTypeFilter'], Flags['ActivityPubHoursLimit'], Flags['FeedCategoryFilter']
 	Session = MastodonGetSession(InstanceURL, Token)
 	Posts = MastodonGetAllLinkPosts(Session, SiteDomain)
 	Pages.sort()
