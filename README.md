@@ -79,5 +79,5 @@ Needed for Gemtext output support:
 ## Known issues (might need further investigation)
 
 - Bad HTML included in Markdown files can cause a build to fail entirely.
-- The program currently takes about 2 seconds to build a smallish site. While by itself that's not a long time, problems could arise for bigger sites.
+- Despite differential building and multithreading, the program still needs some more optimizations.
 - Ordering pages in the global menu with external configuration flags (outside the pages' source) yields broken and unpredictable results.

@@ -234,7 +234,7 @@ def PatchHTML(File, HTML, StaticPartsText, DynamicParts, DynamicPartsText, HTMLP
 
 	for Line in HTML.splitlines():
 		Line = Line.lstrip().rstrip()
-		if Line.startswith('[staticoso:DynamicPart:') and Line.endswith(']'):
+		if (Line.startswith('[staticoso:DynamicPart:') and Line.endswith(']')) or (Line.startswith('<staticoso:DynamicPart:') and Line.endswith('>')):
 			Path =  Line[len('[staticoso:DynamicPart:'):-1]
 			Section = Path.split('/')[-1]
 			if Section in DynamicParts:
@@ -248,9 +248,11 @@ def PatchHTML(File, HTML, StaticPartsText, DynamicParts, DynamicPartsText, HTMLP
 			else:
 				Text = ''
 			HTML = ReplWithEsc(HTML, f"[staticoso:DynamicPart:{Path}]", Text)
+			HTML = ReplWithEsc(HTML, f"<staticoso:DynamicPart:{Path}>", Text)
 
 	for e in StaticPartsText:
 		HTML = ReplWithEsc(HTML, f"[staticoso:StaticPart:{e}]", StaticPartsText[e])
+		HTML = ReplWithEsc(HTML, f"<staticoso:StaticPart:{e}>", StaticPartsText[e])
 
 	if LightRun:
 		HTML = None
@@ -258,17 +260,29 @@ def PatchHTML(File, HTML, StaticPartsText, DynamicParts, DynamicPartsText, HTMLP
 		HTML = DictReplWithEsc(
 			HTML, {
 				'[staticoso:Site:Menu]': HTMLPagesList,
+				'<staticoso:SiteMenu>': HTMLPagesList,
 				'[staticoso:Page:Lang]': SiteLang,
+				'<staticoso:PageLang>': SiteLang,
 				'[staticoso:Page:Chapters]': HTMLTitles,
+				'<staticoso:PageSections>': HTMLTitles,
 				'[staticoso:Page:Title]': Title,
+				'<staticoso:PageTitle>': Title,
 				'[staticoso:Page:Description]': Description,
+				'<staticoso:PageDescription>': Description,
 				'[staticoso:Page:Image]': Image,
+				'<staticoso:PageImage>': Image,
 				'[staticoso:Page:Path]': PagePath,
+				'<staticoso:PagePath>': PagePath,
 				'[staticoso:Page:Style]': Meta['Style'],
+				'<staticoso:PageStyle>': Meta['Style'],
 				'[staticoso:Page:Content]': Content,
+				'<staticoso:PageContent>': Content,
 				'[staticoso:Page:ContentInfo]': MakeContentHeader(Meta, Locale, MakeCategoryLine(File, Meta)),
+				'<staticoso:PageContentInfo>': MakeContentHeader(Meta, Locale, MakeCategoryLine(File, Meta)),
 				'[staticoso:BuildTime]': datetime.now().strftime('%Y-%m-%d %H:%M'),
+				'<staticoso:BuildTime>': datetime.now().strftime('%Y-%m-%d %H:%M'),
 				'[staticoso:Site:Name]': SiteName,
+				'<staticoso:SiteName>': SiteName,
 				'[staticoso:Site:AbsoluteRoot]': SiteRoot,
 				'[staticoso:Site:RelativeRoot]': GetPathLevels(PagePath)
 			})
@@ -276,17 +290,22 @@ def PatchHTML(File, HTML, StaticPartsText, DynamicParts, DynamicPartsText, HTMLP
 			HTML = ReplWithEsc(HTML, f"[:{e}:]", Meta['Macros'][e])
 		for e in FolderRoots:
 			HTML = ReplWithEsc(HTML, f"[staticoso:Folder:{e}:AbsoluteRoot]", FolderRoots[e])
+			HTML = ReplWithEsc(HTML, f"<staticoso:Folder:{e}:AbsoluteRoot>", FolderRoots[e])
 		for e in Categories:
 			HTML = ReplWithEsc(HTML, f"<span>[staticoso:Category:{e}]</span>", Categories[e])
 			HTML = ReplWithEsc(HTML, f"[staticoso:Category:{e}]", Categories[e])
+			HTML = ReplWithEsc(HTML, f"<staticoso:Category:{e}>", Categories[e])
 
 	# TODO: Clean this doubling?
 	ContentHTML = Content
 	ContentHTML = DictReplWithEsc(
 		ContentHTML, {
 			'[staticoso:Page:Title]': Title,
+			'<staticoso:PageTitle>': Title,
 			'[staticoso:Page:Description]': Description,
+			'<staticoso:PageDescription>': Description,
 			'[staticoso:Site:Name]': SiteName,
+			'<staticoso:SiteName>': SiteName,
 			'[staticoso:Site:AbsoluteRoot]': SiteRoot,
 			'[staticoso:Site:RelativeRoot]': GetPathLevels(PagePath)
 		})
@@ -294,9 +313,11 @@ def PatchHTML(File, HTML, StaticPartsText, DynamicParts, DynamicPartsText, HTMLP
 		ContentHTML = ReplWithEsc(ContentHTML, f"[:{e}:]", Meta['Macros'][e])
 	for e in FolderRoots:
 		ContentHTML = ReplWithEsc(ContentHTML, f"[staticoso:Folder:{e}:AbsoluteRoot]", FolderRoots[e])
+		ContentHTML = ReplWithEsc(ContentHTML, f"<staticoso:Folder:{e}:AbsoluteRoot>", FolderRoots[e])
 	for e in Categories:
 		ContentHTML = ReplWithEsc(ContentHTML, f"<span>[staticoso:Category:{e}]</span>", Categories[e])
 		ContentHTML = ReplWithEsc(ContentHTML, f"[staticoso:Category:{e}]", Categories[e])
+		ContentHTML = ReplWithEsc(ContentHTML, f"<staticoso:Category:{e}>", Categories[e])
 
 	return HTML, ContentHTML, Description, Image
 
