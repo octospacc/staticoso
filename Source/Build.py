@@ -20,11 +20,12 @@ try:
 	from Modules.ActivityPub import *
 	ActivityPub = True
 except:
-	print("[W] ⚠ Can't load the ActivityPub module. Its use is disabled. Make sure the 'requests' library is installed.")
+	logging.warning("⚠ Can't load the ActivityPub module. Its use is disabled. Make sure the 'requests' library is installed.")
 	ActivityPub = False
 
 from Modules.Config import *
 from Modules.Gemini import *
+from Modules.Logging import *
 from Modules.Markdown import *
 from Modules.Site import *
 from Modules.Sitemap import *
@@ -74,10 +75,10 @@ def CheckSafeOutDir(OutDir):
 	OutDir = os.path.realpath(OutDir)
 	OutFolder = OutDir.split('/')[-1]
 	if InDir == OutDir:
-		print(f"[E] ⛔ Output and Input directories ({OutDir}) can't be the same. Exiting.")
+		logging.error(f"⛔ Output and Input directories ({OutDir}) can't be the same. Exiting.")
 		exit(1)
 	elif OutFolder in ReservedPaths and f"{InDir}/{OutFolder}" == OutDir:
-		print(f"[E] ⛔ Output directory {OutDir} can't be a reserved subdirectory of the Input. Exiting.")
+		logging.error(f"⛔ Output directory {OutDir} can't be a reserved subdirectory of the Input. Exiting.")
 		exit(1)
 
 def GetModifiedFiles(OutDir):
@@ -113,16 +114,15 @@ def Main(Args, FeedEntries):
 
 	SiteName = Flags['SiteName'] = OptionChoose('', Args.SiteName, ReadConf(SiteConf, 'Site', 'Name'))
 	if SiteName:
-		print(f"[I] Compiling: {SiteName}")
+		logging.info(f"Compiling: {SiteName}")
 
 	OutDir = Flags['OutDir'] = OptionChoose('public', Args.OutputDir, ReadConf(SiteConf, 'Site', 'OutputDir'))
 	OutDir = Flags['OutDir'] = OutDir.removesuffix('/')
 	CheckSafeOutDir(OutDir)
-	print(f"[I] Outputting to: {OutDir}/")
+	logging.info(f"Outputting to: {OutDir}/")
 
-	Logging = Args.Logging
-	Threads = Args.Threads
-	DiffBuild = Args.DiffBuild
+	Threads = Args.Threads if Args.Threads else 0
+	DiffBuild = Args.DiffBuild if Args.DiffBuild else False
 
 	BlogName = Flags['BlogName'] = OptionChoose('', Args.BlogName, ReadConf(SiteConf, 'Site', 'BlogName'))
 	SiteTagline = Flags['SiteTagline'] = OptionChoose('', Args.SiteTagline, ReadConf(SiteConf, 'Site', 'Tagline'))
@@ -151,6 +151,7 @@ def Main(Args, FeedEntries):
 
 	ImgAltToTitle = Flags['ImgAltToTitle'] = StringBoolChoose(True, Args.ImgAltToTitle, ReadConf(SiteConf, 'Site', 'ImgAltToTitle'))
 	ImgTitleToAlt = Flags['ImgTitleToAlt'] = StringBoolChoose(False, Args.ImgTitleToAlt, ReadConf(SiteConf, 'Site', 'ImgTitleToAlt'))
+	HTMLFixPre = Flags['HTMLFixPre'] = StringBoolChoose(False, Args.HTMLFixPre, ReadConf(SiteConf, 'Site', 'HTMLFixPre'))
 
 	CategoriesAutomatic = Flags['CategoriesAutomatic'] = StringBoolChoose(False, Args.CategoriesAutomatic, ReadConf(SiteConf, 'Categories', 'Automatic'))
 	CategoriesUncategorized = Flags['CategoriesUncategorized'] = OptionChoose('Uncategorized', Args.CategoriesUncategorized, ReadConf(SiteConf, 'Categories', 'Uncategorized'))
@@ -176,10 +177,10 @@ def Main(Args, FeedEntries):
 	Locale = LoadLocale(SiteLang)
 
 	if DiffBuild:
-		print("[I] Build mode: Differential")
+		logging.info("Build mode: Differential")
 		LimitFiles = GetModifiedFiles(OutDir)
 	else:
-		print("[I] Build mode: Clean")
+		logging.info("Build mode: Clean")
 		ResetOutDir(OutDir)
 		LimitFiles = False
 
@@ -195,25 +196,26 @@ def Main(Args, FeedEntries):
 			shutil.copytree('Posts', f"{OutDir}.gmi/Posts", ignore=IgnoreFiles, dirs_exist_ok=True)
 
 	if not (HavePages or HavePosts):
-		print("[E] No Pages or posts found. Nothing to do, exiting!")
+		logging.error("⛔ No Pages or posts found. Nothing to do, exiting!")
 		exit(1)
 
-	print("[I] Generating HTML")
+	logging.info("Generating HTML")
 	Pages = MakeSite(
 		Flags=Flags,
 		LimitFiles=LimitFiles,
 		Snippets=Snippets,
 		ConfMenu=ConfMenu,
 		GlobalMacros=ReadConf(SiteConf, 'Macros'),
-		Locale=Locale)
+		Locale=Locale,
+		Threads=Threads)
 
 	if FeedEntries != 0:
-		print("[I] Generating Feeds")
+		logging.info("Generating Feeds")
 		for FeedType in (True, False):
 			MakeFeed(Flags, Pages, FeedType)
 
 	if ActivityPub and MastodonURL and MastodonToken and SiteDomain:
-		print("[I] Mastodon Stuff")
+		logging.info("Mastodon Stuff")
 		MastodonPosts = MastodonShare(Flags, Pages, Locale)
 	else:
 		MastodonPosts = []
@@ -235,24 +237,24 @@ def Main(Args, FeedEntries):
 		WriteFile(File, Content)
 
 	if Flags['GemtextOutput']:
-		print("[I] Generating Gemtext")
+		logging.info("Generating Gemtext")
 		GemtextCompileList(Flags, Pages, LimitFiles)
 
-	print("[I] Cleaning Temporary Files")
+	logging.info("Cleaning Temporary Files")
 	DelTmp(OutDir)
 
 	if Flags['SitemapOutput']:
-		print("[I] Generating Sitemap")
+		logging.info("Generating Sitemap")
 		MakeSitemap(Flags, Pages)
 
-	print("[I] Copying Assets")
+	logging.info("Copying Assets")
 	os.system(f"cp -R Assets/* {OutDir}/")
 
 if __name__ == '__main__':
 	StartTime = time.time()
 
 	Parser = argparse.ArgumentParser()
-	Parser.add_argument('--Logging', type=str) # Levels: Debug, Verbose, Info, Warning, Error.
+	Parser.add_argument('--Logging', type=str) # Levels: Debug, Info, Warning, Error.
 	Parser.add_argument('--Threads', type=str)
 	Parser.add_argument('--DiffBuild', type=str)
 	Parser.add_argument('--OutputDir', type=str)
@@ -269,6 +271,7 @@ if __name__ == '__main__':
 	Parser.add_argument('--NoScripts', type=str)
 	Parser.add_argument('--ImgAltToTitle', type=str)
 	Parser.add_argument('--ImgTitleToAlt', type=str)
+	Parser.add_argument('--HTMLFixPre', type=str)
 	Parser.add_argument('--GemtextOutput', type=str)
 	Parser.add_argument('--GemtextHeader', type=str)
 	Parser.add_argument('--SiteTagline', type=str)
@@ -286,15 +289,17 @@ if __name__ == '__main__':
 	Parser.add_argument('--CategoriesUncategorized', type=str)
 	Args = Parser.parse_args()
 
+	ConfigLogging(Args.Logging)
+
 	try:
 		import lxml
 		from Modules.Feed import *
 		FeedEntries = Args.FeedEntries if Args.FeedEntries else 'Default'
 	except:
-		print("[W] ⚠ Can't load the XML libraries. XML Feeds Generation is Disabled. Make sure the 'lxml' library is installed.")
+		logging.warning("⚠ Can't load the XML libraries. XML Feeds Generation is Disabled. Make sure the 'lxml' library is installed.")
 		FeedEntries = 0
 
 	Main(
 		Args=Args,
 		FeedEntries=FeedEntries)
-	print(f"[I] ✅ Done! ({round(time.time()-StartTime,3)}s)")
+	logging.info(f"✅ Done! ({round(time.time()-StartTime,3)}s)")

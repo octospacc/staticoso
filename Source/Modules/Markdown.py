@@ -9,7 +9,7 @@
 
 from Libs.markdown import markdown
 
-MarkdownExtsDefault = ('attr_list', 'def_list', 'footnotes', 'md_in_html', 'tables')
+MarkdownExtsDefault = ('attr_list', 'def_list', 'fenced_code', 'footnotes', 'md_in_html', 'tables')
 
 def MarkdownHTMLEscape(Str, Extensions=()): # WIP
 	Text = ''

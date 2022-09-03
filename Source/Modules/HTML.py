@@ -35,6 +35,18 @@ def StripTags(HTML, ToStrip): # Remove desired tags from the HTML
 			t.replace_with('')
 	return str(Soup)
 
+def DoHTMLFixPre(HTML):
+	if not ("<pre>" in HTML or "<pre " in HTML):
+		return HTML
+	Soup = MkSoup(HTML)
+	Tags = Soup.find_all('pre')
+	for t in Tags:
+		FirstLine = str(t).splitlines()[0].lstrip().rstrip()
+		if FirstLine.endswith('>'):
+			New = MkSoup(str(t).replace('\n', '', 1))
+			t.replace_with(New.pre)
+	return str(Soup)
+
 def WriteImgAltAndTitle(HTML, AltToTitle, TitleToAlt): # Adds alt or title attr. to <img> which only have one of them
 	Soup = MkSoup(HTML)
 	Tags = Soup.find_all('img')

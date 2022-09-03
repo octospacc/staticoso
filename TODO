@@ -1,6 +1,9 @@
+- Custom path for Posts
+- Support for YAML header in Markdown
+- Support for HTML comment lines (<!-- -->) in any format
+- Support for rST and AsciiDoc (?)
 - Showing build percentage as dots
-- Custom thread number, 0 to disable multithreading
-- Posts in draft state (will not be compiled)
+- Posts in draft state (will not be compiled) / show unlisted status for posts with Index = False
 - Check if external tools (pug-cli, html2gmi) are installed
 - Static code syntax highlighing
 - Override internal HTML snippets (meta lines, page lists, ...) with config file in Templates/NAME.ini
@@ -8,7 +11,7 @@
 - Show page size/words/time in meta line
 - Add feed support for diary-like pages
 - Fix excess whitespace in some section/menu titles
-- Change staticoso service tag enclosure from [] to <>
+- Change all staticoso service tag enclosures from [] to <>
 - Investigate a strange bug with Macros
 - Handle file extensions with any case sensitivity, not just lowercase; currently the bulk of the issue is finding the files on disk
 - Test sorting by date for files not starting with date, and dated folders

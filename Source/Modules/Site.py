@@ -13,6 +13,7 @@ from Libs.bs4 import BeautifulSoup
 from Modules.Config import *
 from Modules.Elements import *
 from Modules.HTML import *
+from Modules.Logging import *
 from Modules.Markdown import *
 from Modules.Pug import *
 from Modules.Utils import *
@@ -128,10 +129,12 @@ def PagePreprocessor(Path, TempPath, Type, SiteTemplate, SiteRoot, GlobalMacros,
 				if ll.startswith('#') or (ll.startswith('<') and ll[1:].startswith(Headings)):
 					if ll.startswith('#'):
 						Title = ll
-						#Index = Title.split(' ')[0].count('#')
 					elif ll.startswith('<'):
-						#Index = int(ll[2])
-						Title = '#'*h + str(ll[3:])
+						if ll[3:].startswith((" class='NoTitle", ' class="NoTitle')):
+							Content += l + '\n'
+							continue
+						else:
+							Title = '#'*h + str(ll[3:])
 					DashTitle = DashifyTitle(MkSoup(Title.lstrip('#')).get_text(), DashyTitles)
 					DashyTitles += [DashTitle]
 					Titles += [Title]
@@ -213,7 +216,7 @@ def CanIndex(Index, For):
 	else:
 		return True if Index == For else False
 
-def PatchHTML(File, HTML, StaticPartsText, DynamicParts, DynamicPartsText, HTMLPagesList, PagePath, Content, Titles, Meta, SiteRoot, SiteName, BlogName, FolderRoots, Categories, SiteLang, Locale, LightRun):
+def PatchHTML(File, HTML, StaticPartsText, DynamicParts, DynamicPartsText, HTMLPagesList, PagePath, Content, Titles, Meta, SiteDomain, SiteRoot, SiteName, BlogName, FolderRoots, Categories, SiteLang, Locale, LightRun):
 	HTMLTitles = FormatTitles(Titles)
 	BodyDescription, BodyImage = '', ''
 	if not File.lower().endswith('.txt'):
@@ -227,6 +230,15 @@ def PatchHTML(File, HTML, StaticPartsText, DynamicParts, DynamicPartsText, HTMLP
 		#Content = SquareFnrefs(Content)
 		if '<a class="footnote-ref"' in Content:
 			Content = AddToTagStartEnd(Content, '<a class="footnote-ref"', '</a>', '[', ']')
+
+		if ("<!-- noprocess />" or "<!--noprocess/>") in Content and ("</ noprocess -->" or "</noprocess-->") in Content:
+			Content = DictReplWithEsc(
+				Content, {
+					"<!-- noprocess />": "",
+					"<!--noprocess/>": "",
+					"</ noprocess -->": "",
+					"</noprocess-->": ""
+				})
 
 	Title = GetTitle(File.split('/')[-1], Meta, Titles, 'MetaTitle', BlogName)
 	Description = GetDescription(Meta, BodyDescription, 'MetaDescription')
@@ -281,6 +293,7 @@ def PatchHTML(File, HTML, StaticPartsText, DynamicParts, DynamicPartsText, HTMLP
 				'<staticoso:PageContentInfo>': MakeContentHeader(Meta, Locale, MakeCategoryLine(File, Meta)),
 				'[staticoso:BuildTime]': datetime.now().strftime('%Y-%m-%d %H:%M'),
 				'<staticoso:BuildTime>': datetime.now().strftime('%Y-%m-%d %H:%M'),
+				'<staticoso:SiteDomain>': SiteDomain,
 				'[staticoso:Site:Name]': SiteName,
 				'<staticoso:SiteName>': SiteName,
 				'[staticoso:Site:AbsoluteRoot]': SiteRoot,
@@ -370,6 +383,7 @@ def HandlePage(Flags, Page, Pages, Categories, LimitFiles, Snippets, ConfMenu, L
 		Content=Content,
 		Titles=Titles,
 		Meta=Meta,
+		SiteDomain=SiteDomain,
 		SiteRoot=SiteRoot,
 		SiteName=SiteName,
 		BlogName=BlogName,
@@ -383,7 +397,7 @@ def HandlePage(Flags, Page, Pages, Categories, LimitFiles, Snippets, ConfMenu, L
 		if not LightRun:
 			HTML = DoMinifyHTML(HTML, MinifyKeepComments)
 		ContentHTML = DoMinifyHTML(ContentHTML, MinifyKeepComments)
-	if Flags['NoScripts']:
+	if Flags['NoScripts'] and ("<script" in ContentHTML or "<script" in HTML):
 		if not LightRun:
 			HTML = StripTags(HTML, ['script'])
 		ContentHTML = StripTags(ContentHTML, ['script'])
@@ -391,6 +405,10 @@ def HandlePage(Flags, Page, Pages, Categories, LimitFiles, Snippets, ConfMenu, L
 		if not LightRun:
 			HTML = WriteImgAltAndTitle(HTML, ImgAltToTitle, ImgTitleToAlt)
 		ContentHTML = WriteImgAltAndTitle(ContentHTML, ImgAltToTitle, ImgTitleToAlt)
+	if Flags['HTMLFixPre']:
+		if not LightRun:
+			HTML = DoHTMLFixPre(HTML)
+		ContentHTML = DoHTMLFixPre(ContentHTML)
 
 	if LightRun:
 		SlimHTML = None
@@ -408,9 +426,9 @@ def MultiprocHandlePage(d):
 def MultiprocPagePreprocessor(d):
 	return PagePreprocessor(d['Path'], d['TempPath'], d['Type'], d['Template'], d['SiteRoot'], d['GlobalMacros'], d['CategoryUncategorized'], d['LightRun'])
 
-def MakeSite(Flags, LimitFiles, Snippets, ConfMenu, GlobalMacros, Locale):
+def MakeSite(Flags, LimitFiles, Snippets, ConfMenu, GlobalMacros, Locale, Threads):
 	PagesPaths, PostsPaths, Pages, MadePages, Categories = [], [], [], [], {}
-	PoolSize = cpu_count()
+	PoolSize = cpu_count() if Threads <= 0 else Threads
 	OutDir, MarkdownExts, Sorting, MinifyKeepComments = Flags['OutDir'], Flags['MarkdownExts'], Flags['Sorting'], Flags['MinifyKeepComments']
 	SiteName, BlogName, SiteTagline = Flags['SiteName'], Flags['BlogName'], Flags['SiteTagline']
 	SiteTemplate, SiteLang = Flags['SiteTemplate'], Flags['SiteLang']
@@ -432,7 +450,7 @@ def MakeSite(Flags, LimitFiles, Snippets, ConfMenu, GlobalMacros, Locale):
 	if Sorting['Posts'] == 'Inverse':
 		PostsPaths.reverse()
 
-	print("[I] Preprocessing Source Pages")
+	logging.info("Preprocessing Source Pages")
 	MultiprocPages = []
 	for Type in ['Page', 'Post']:
 		if Type == 'Page':
@@ -454,7 +472,7 @@ def MakeSite(Flags, LimitFiles, Snippets, ConfMenu, GlobalMacros, Locale):
 	PugCompileList(OutDir, Pages, LimitFiles)
 
 	if Categories:
-		print("[I] Generating Category Lists")
+		logging.info("Generating Category Lists")
 		for Cat in Categories:
 			for Type in ('Page', 'Post'):
 				Categories[Cat] += GetHTMLPagesList(
@@ -488,7 +506,7 @@ def MakeSite(Flags, LimitFiles, Snippets, ConfMenu, GlobalMacros, Locale):
 			if e == File:
 				ConfMenu[i] = None
 
-	print("[I] Writing Pages")
+	logging.info("Writing Pages")
 	MultiprocPages = []
 	for Page in Pages:
 		MultiprocPages += [{'Flags':Flags, 'Page':Page, 'Pages':Pages, 'Categories':Categories, 'LimitFiles':LimitFiles, 'Snippets':Snippets, 'ConfMenu':ConfMenu, 'Locale':Locale}]
