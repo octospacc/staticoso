@@ -70,14 +70,21 @@ def GetHTMLPagesList(Pages, BlogName, SiteRoot, PathPrefix, Unite=[], Type='Page
 					List += Levels + Title + '\n'
 	return markdown(MarkdownHTMLEscape(List, MarkdownExts), extensions=MarkdownExts)
 
+def CheckHTMLCommentLine(Line):
+	if Line.startswith('<!--'):
+		Line = Line[4:].lstrip()
+		if Line.endswith('-->'):
+			return Line
+	return None
+
 def TemplatePreprocessor(Text):
 	Meta, MetaDefault = '', {
 		'MenuStyle': 'Default'}
 	for l in Text.splitlines():
-		ll = l.lstrip()
-		if ll.startswith('<!--'):
-			lll = ll[4:].lstrip().rstrip()
-			if lll.startswith('%') and lll.endswith('-->'):
+		ll = l.lstrip().rstrip()
+		lll = CheckHTMLCommentLine(ll)
+		if lll:
+			if lll.startswith('%'):
 				Meta += lll[1:-3].lstrip().rstrip() + '\n'
 	Meta = dict(ReadConf(LoadConfStr('[Meta]\n' + Meta), 'Meta'))
 	for i in MetaDefault:
@@ -103,15 +110,21 @@ def PagePreprocessor(Path, TempPath, Type, SiteTemplate, SiteRoot, GlobalMacros,
 		'CreatedOn': '',
 		'EditedOn': '',
 		'Order': None}
+	# Find all positions of '<!--', '-->', add them in a list=[[pos0,pos1,line0,line1],...]
 	for l in File.splitlines():
-		ll = l.lstrip()
-		if ll.startswith('//'):
+		ll = l.lstrip().rstrip()
+		lll = CheckHTMLCommentLine(ll)
+		if ll.startswith('//') or lll: # Find preprocessor lines
 			lll = ll[2:].lstrip()
 			if lll.startswith('%'):
 				Meta += lll[1:].lstrip() + '\n'
 			elif lll.startswith('$'):
 				Macros += lll[1:].lstrip() + '\n'
-		else:
+		#if ll.startswith('<!--') and not ll.endswith('-->'): # Find comment and code blocks
+		#	IgnoreBlocksStart += [l]
+		else: # Find headings
+			#if line in ignore block:
+			#	continue
 			Headings = ('h1', 'h2', 'h3', 'h4', 'h5', 'h6')
 			if Path.endswith(FileExtensions['HTML']) and not HTMLTitlesFound:
 				Soup = BeautifulSoup(File, 'html.parser')
@@ -126,6 +139,10 @@ def PagePreprocessor(Path, TempPath, Type, SiteTemplate, SiteRoot, GlobalMacros,
 				Content = str(Soup.prettify(formatter=None))
 				HTMLTitlesFound = True
 			elif Path.endswith(FileExtensions['Markdown']):
+				lsuffix = ''
+				if ll.startswith(('-', '+', '*')):
+					lsuffix += ll[0]
+					ll = ll[1:].lstrip()	
 				if ll.startswith('#') or (ll.startswith('<') and ll[1:].startswith(Headings)):
 					if ll.startswith('#'):
 						Title = ll
@@ -141,7 +158,7 @@ def PagePreprocessor(Path, TempPath, Type, SiteTemplate, SiteRoot, GlobalMacros,
 					Title = MakeLinkableTitle(None, Title, DashTitle, 'md')
 					Title = Title.replace('> </', '>  </')
 					Title = Title.replace(' </', '</')
-					Content += Title + '\n'
+					Content += lsuffix + Title + '\n'
 				else:
 					Content += l + '\n'
 			elif Path.endswith('.pug'):
@@ -172,11 +189,11 @@ def PagePreprocessor(Path, TempPath, Type, SiteTemplate, SiteRoot, GlobalMacros,
 					Meta['Categories'] += [j]
 		else:
 			Meta.update({i:MetaDefault[i]})
-	if Meta['Index'] in ('Default', 'Unspecified'):
+	if Meta['Index'] in ('Default', 'Unspecified', 'Categories'):
 		if not Meta['Categories']:
 			Meta['Categories'] = [CategoryUncategorized]
 		if Meta['Type'] == 'Page':
-			Meta['Index'] = 'False'
+			Meta['Index'] = 'Categories'
 		elif Meta['Type'] == 'Post':
 			Meta['Index'] = 'True'
 	if GlobalMacros:

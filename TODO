@@ -1,4 +1,7 @@
-- Custom path for Posts
+- Fix title detection:
+  - Don't consider titles in code/comment blocks
+  - Consider titles in lists (title marker preceded by chars)
+- Custom path for Posts and Categories
 - Support for YAML header in Markdown
 - Support for HTML comment lines (<!-- -->) in any format
 - Support for rST and AsciiDoc (?)

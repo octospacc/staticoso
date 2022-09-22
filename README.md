@@ -48,7 +48,7 @@ Needed for Gemtext output support:
 - [x] File name used as a title for pages without one
 - [ ] Custom category names in header links
 - [ ] Choosing custom name for Blog and Uncategorized categories
-- [ ] Choosing to use a template for all pages in a folder
+- [ ] Choosing to use a template for all pages in a folder/category
 - [x] Configuration with both INI files and CLI arguments
 - [ ] Category-based feeds
 - [ ] Support for multi-language sites
