@@ -104,9 +104,11 @@ def GetModifiedFiles(OutDir):
 	return Mod
 
 def Main(Args, FeedEntries):
-	Flags, Snippets = {}, {}
+	Flags, Snippets, FinalPaths = {}, {}, []
 	HavePages, HavePosts = False, False
 	SiteConf = LoadConfFile('Site.ini')
+
+	ConfigLogging(OptionChoose(None, Args.Logging, ReadConf(SiteConf, 'Main', 'Logging')))
 
 	#if Args.InputDir:
 	#	os.chdir(Args.InputDir)
@@ -228,13 +230,29 @@ def Main(Args, FeedEntries):
 		Post = ''
 		for p in MastodonPosts:
 			if p['Link'] == SiteDomain + '/' + File[len(f"{OutDir}/"):]:
-				Post = '<br><h3>{StrComments}</h3><a href="{URL}" rel="noopener" target="_blank">{StrOpen} ↗️</a>'.format(
+				Post = HTMLCommentsBlock.format(
 					StrComments=Locale['Comments'],
 					StrOpen=Locale['OpenInNewTab'],
 					URL=p['Post'])
 				break
 		Content = ReplWithEsc(Content, '[staticoso:Comments]', Post)
+		Content = ReplWithEsc(Content, '<staticoso:Comments>', Post)
 		WriteFile(File, Content)
+		FinalPaths += [File]
+
+	logging.info("Creating Redirects")
+	for File, Content, Titles, Meta, ContentHTML, SlimHTML, Description, Image in Pages:
+		for URL in Meta['URLs']:
+			DestFile = f"{OutDir}/{URL}"
+			if DestFile not in FinalPaths:
+				DestURL = f"{GetPathLevels(URL)}{StripExt(File)}.html"
+				WriteFile(
+					DestFile,
+					RedirectPageTemplate.format(
+						DestURL=DestURL,
+						TitlePrefix=f"{SiteName} - " if SiteName else '',
+						StrClick=Locale["ClickHere"],
+						StrRedirect=Locale["IfNotRedirected"]))
 
 	if Flags['GemtextOutput']:
 		logging.info("Generating Gemtext")
@@ -302,4 +320,4 @@ if __name__ == '__main__':
 	Main(
 		Args=Args,
 		FeedEntries=FeedEntries)
-	logging.info(f"✅ Done! ({round(time.time()-StartTime,3)}s)")
+	logging.info(f"✅ Done! ({round(time.time()-StartTime, 3)}s)")

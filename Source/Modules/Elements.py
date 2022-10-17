@@ -19,8 +19,21 @@ CategoryPageTemplate = """\
 
 # {Name}
 
-<div>[staticoso:Category:{Name}]</div>
+<div><staticoso:Category:{Name}></div>
 """
+RedirectPageTemplate = """\
+<!DOCTYPE html>
+<html>
+<head>
+<title>{TitlePrefix}Redirect</title>
+<meta http-equiv="refresh" content="0; url='{DestURL}'" />
+</head>
+<body>
+<p><a href="{DestURL}">{StrClick}</a> {StrRedirect}.</p>
+</body>
+</html>
+"""
+HTMLCommentsBlock = '<br><h3>{StrComments}</h3><a href="{URL}" rel="noopener" target="_blank">{StrOpen} ↗️</a>'
 
 def DashifyTitle(Title, Done=[]):
 	return UndupeStr(DashifyStr(Title.lstrip(' ').rstrip(' ')), Done, '-')

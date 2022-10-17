@@ -158,10 +158,8 @@ def LoadLocale(Lang):
 def IsLightRun(File, LimitFiles):
 	return False if LimitFiles == False or File in LimitFiles else True
 
-def PrintPercentDots(Percent):
-	Cur, Tot = Percent
-	CalcCur = int((Cur/Tot)*100)
-	if CalcCur % 10 == 0:
-		CalcPrev = int((Cur-1/Tot)*100)
-		if CalcPrev % 10 != 0:
-			print('.', end='')
+def PrintProcPercentDots(Proc, DivMult=1):
+	Div = 5 * DivMult # 100/5 = 20 chars
+	Num, Count = Proc['Num'], Proc['Count']
+	if int(((Num/Count)*100)/Div) != int((((Num+1)/Count)*100)/Div):
+		os.system('printf "="') # For some reason print() without newline breaks here (doesn't print everytime)
