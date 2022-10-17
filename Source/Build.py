@@ -16,13 +16,6 @@ from ast import literal_eval
 from datetime import datetime
 from pathlib import Path
 
-try:
-	from Modules.ActivityPub import *
-	ActivityPub = True
-except:
-	logging.warning("⚠ Can't load the ActivityPub module. Its use is disabled. Make sure the 'requests' library is installed.")
-	ActivityPub = False
-
 from Modules.Config import *
 from Modules.Gemini import *
 from Modules.Logging import *
@@ -30,7 +23,14 @@ from Modules.Markdown import *
 from Modules.Site import *
 from Modules.Sitemap import *
 from Modules.Utils import *
-	
+
+try:
+	from Modules.ActivityPub import *
+	ActivityPub = True
+except:
+	logging.warning("⚠ Can't load the ActivityPub module. Its use is disabled. Make sure the 'requests' library is installed.")
+	ActivityPub = False
+
 def ResetOutDir(OutDir):
 	for e in (OutDir, f"{OutDir}.gmi"):
 		try:
