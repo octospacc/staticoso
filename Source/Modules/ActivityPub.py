@@ -61,28 +61,30 @@ def MastodonShare(Flags, Pages, Locale):
 	Pages.sort()
 	for File, Content, Titles, Meta, ContentHTML, SlimHTML, Description, Image in Pages:
 		if (not TypeFilter or (TypeFilter and (Meta['Type'] == TypeFilter or TypeFilter == '*'))) and (not CategoryFilter or (CategoryFilter and (CategoryFilter in Meta['Categories'] or CategoryFilter == '*'))):
-			Desc = ''
-			Parse = BeautifulSoup(ContentHTML, 'html.parser')
-			Paragraphs = Parse.p.get_text().split('\n')
-			Read = '...' + Locale['ReadFullPost'] + ':\n'
 			URL = f"{SiteDomain}/{StripExt(File)}.html"
-			for p in Paragraphs:
-				if p and len(Read+Desc+p)+25 < 500:
-					Desc += p + '\n\n'
-				else:
-					if Desc:
-						break
-					else:
-						Desc = p[:500-25-5-len(Read)] + '...'
 			DoPost = True
 			for p in Posts:
-				if p['Link'] == URL:
+				if p['Link'] in [URL]+Meta['URL']:
 					DoPost = False
 					break
+
 			if DoPost and Meta['Feed'] == 'True' and (not HoursLimit or (Meta['CreatedOn'] and time.time() - time.mktime(date_parse(Meta['CreatedOn']).timetuple()) < 60*60*HoursLimit)):
+				Desc = ''
+				Paragraphs = MkSoup(ContentHTML).p.get_text().split('\n')
+				Read = '...' + Locale['ReadFullPost'] + ':\n'
+				for p in Paragraphs:
+					if p and len(Read+Desc+p)+25 < 500:
+						Desc += p + '\n\n'
+					else:
+						if Desc:
+							break
+						else:
+							Desc = p[:500-25-5-len(Read)] + '...'
+
 				if not SaidPosting:
 					print("[I] Posting to Mastodon")
 					SaidPosting = True
+
 				time.sleep(5) # Prevent flooding
 				Post = MastodonGetLinkFromPost(
 					Post=MastodonDoPost(
@@ -92,4 +94,5 @@ def MastodonShare(Flags, Pages, Locale):
 					Domain=SiteDomain)
 				if Post:
 					Posts += [Post]
+
 	return Posts

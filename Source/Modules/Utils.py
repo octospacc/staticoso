@@ -53,6 +53,9 @@ def LoadFromDir(Dir, Matchs):
 			Contents.update({File: ReadFile(f"{Dir}/{File}")})
 	return Contents
 
+def mkdirps(Dir):
+	return Path(Dir).mkdir(parents=True, exist_ok=True)
+
 def StripExt(Path):
 	return ".".join(Path.split('.')[:-1])
 
@@ -162,4 +165,6 @@ def PrintProcPercentDots(Proc, DivMult=1):
 	Div = 5 * DivMult # 100/5 = 20 chars
 	Num, Count = Proc['Num'], Proc['Count']
 	if int(((Num/Count)*100)/Div) != int((((Num+1)/Count)*100)/Div):
-		os.system('printf "="') # For some reason print() without newline breaks here (doesn't print everytime)
+		os.system('printf "="') # Using sys shell since for some reason print() without newline breaks here (doesn't print everytime)
+		return True
+	return False

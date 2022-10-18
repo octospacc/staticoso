@@ -40,7 +40,8 @@ Needed for Gemtext output support:
 
 ## Features roadmap
 
-- [ ] Showing percentage of build process
+- [ ] Page redirects / Alt URLs (+ ActivityPub URL overrides) 
+- [x] Progress bars for the build process!
 - [x] Multithreading
 - [x] Differential building
 - [ ] Overriding internal HTML snippets for template-specific ones

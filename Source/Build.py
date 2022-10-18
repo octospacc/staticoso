@@ -246,13 +246,14 @@ def Main(Args, FeedEntries):
 			DestFile = f"{OutDir}/{URL}"
 			if DestFile not in FinalPaths:
 				DestURL = f"{GetPathLevels(URL)}{StripExt(File)}.html"
+				mkdirps(os.path.dirname(DestFile))
 				WriteFile(
 					DestFile,
 					RedirectPageTemplate.format(
 						DestURL=DestURL,
 						TitlePrefix=f"{SiteName} - " if SiteName else '',
-						StrClick=Locale["ClickHere"],
-						StrRedirect=Locale["IfNotRedirected"]))
+						StrClick=Locale['ClickHere'],
+						StrRedirect=Locale['IfNotRedirected']))
 
 	if Flags['GemtextOutput']:
 		logging.info("Generating Gemtext")
