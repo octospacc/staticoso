@@ -471,6 +471,7 @@ def MakeSite(Flags, LimitFiles, Snippets, ConfMenu, GlobalMacros, Locale, Thread
 			PagesPaths += [FileToStr(File, 'Pages/')]
 		for File in Path('Posts').rglob(f"*.{Ext}"):
 			PostsPaths += [FileToStr(File, 'Posts/')]
+	logging.info(f"Pages Found: {len(PagesPaths+PostsPaths)}")
 
 	PagesPaths = FileNameDateSort(PagesPaths)
 	if Sorting['Pages'] == 'Inverse':

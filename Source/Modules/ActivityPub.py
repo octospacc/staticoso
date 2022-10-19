@@ -64,7 +64,7 @@ def MastodonShare(Flags, Pages, Locale):
 			URL = f"{SiteDomain}/{StripExt(File)}.html"
 			DoPost = True
 			for p in Posts:
-				if p['Link'] in [URL]+Meta['URL']:
+				if p['Link'] in [URL]+Meta['URLs']:
 					DoPost = False
 					break
 
