@@ -9,6 +9,7 @@
 
 import logging
 import sys
+from Modules.Config import *
 
 LoggingFormat = '[%(levelname)s] %(message)s'
 LoggingLevels = {
@@ -25,11 +26,11 @@ def SetupLogging(Level):
 	logging.addLevelName(40, 'E')
 
 def ConfigLogging(Level):
-	Num = 20
+	Num = DefConf['Logging']
 	if Level:
-		if Level.isdecimal():
-			Num = int(Level)
-		else:
-			if Level.lower() in LoggingLevels:
-				Num = LoggingLevels['Level']['Num']
+	    if Level.isdecimal():
+		    Num = int(Level)
+	    else:
+		    if Level.lower() in LoggingLevels:
+			    Num = LoggingLevels['Level']['Num']
 	SetupLogging(Num)

@@ -10,6 +10,18 @@
 import configparser
 from ast import literal_eval
 
+DefConf = {
+	'Logging': 20,
+	'OutDir': 'public',
+	'SiteLang': 'en',
+	'SiteTemplate': 'Default.html',
+	'ActivityPubTypeFilter': 'Post',
+	'ActivityPubHoursLimit': 168,
+	'CategoriesUncategorized': 'Uncategorized',
+	'FeedCategoryFilter': 'Blog',
+	'FeedEntries': 10
+}
+
 def LoadConfFile(File):
 	Conf = configparser.ConfigParser()
 	Conf.optionxform = str
@@ -37,8 +49,15 @@ def EvalOpt(Opt):
 	else:
 		return None
 
+# TODO: Cleaning
+
 def OptionChoose(Default, Primary, Secondary, Tertiary=None):
 	return Primary if Primary != None else Secondary if Secondary != None else Tertiary if Tertiary != None else Default
+def OptChoose(Default, Primary, Secondary, Tertiary=None):
+	return OptionChoose(Default, Primary, Secondary, Tertiary=None)
+
+def DefConfOptChoose(Key, Primary, Secondary):
+	return OptChoose(DefConf[Key], Primary, Secondary)
 
 def StringBoolChoose(Default, Primary, Secondary):
 	Var = Default
@@ -51,3 +70,5 @@ def StringBoolChoose(Default, Primary, Secondary):
 		elif Check in ('False', 'None'):
 			Var = False
 	return Var
+def StrBoolChoose(Default, Primary, Secondary):
+	return StringBoolChoose(Default, Primary, Secondary)

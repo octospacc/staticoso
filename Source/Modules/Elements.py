@@ -76,11 +76,11 @@ def GetImage(Meta, BodyImage, Prefer='MetaImage'):
 
 def MakeContentHeader(Meta, Locale, Categories=''):
 	Header = ''
-	for i in ['CreatedOn', 'EditedOn']:
-		if Meta[i]:
-			Header += f'{Locale[i]}: {Meta[i]}<br>'
+	for e in ['CreatedOn', 'EditedOn']:
+		if Meta[e]:
+			Header += f'<span class="staticoso-ContentHeader-{e}"><span class="staticoso-Label">{Locale[e]}</span>: <span class="staticoso-Value">{Meta[e]}</span></span><br>'
 	if Categories:
-		Header += f"{Locale['Categories']}:{Categories.removesuffix(' ')}<br>"
+		Header += f'<span class="staticoso-ContentHeader-Categories"><span class="staticoso-Label">{Locale["Categories"]}</span>:<span class="staticoso-Value">{Categories.removesuffix(" ")}</span></span><br>'
 	return f'<p>{Header}</p>'
 
 def MakeCategoryLine(File, Meta):

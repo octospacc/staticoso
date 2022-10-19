@@ -1,3 +1,5 @@
+- Set categories for all files in a folder and subfolder
+- Pages with lists of all posts and all pages (? the folder categories thing might make it redundant?)
 - Fix title detection:
   - Don't consider titles in code/comment blocks
   - Consider titles in lists (title marker preceded by chars)
@@ -8,7 +10,7 @@
 - Posts in draft state (will not be compiled) / show unlisted status for posts with Index = False
 - Check if external tools (pug-cli, html2gmi) are installed
 - Static code syntax highlighing
-- Override internal HTML snippets (meta lines, page lists, ...) with config file in Templates/NAME.ini
+- Override internal HTML snippets (meta lines, page lists, redirects, ...) with config file in Templates/NAME.ini
 - Specify input folder(s)
 - Show page size/words/time in meta line
 - Add feed support for diary-like pages
@@ -18,10 +20,9 @@
 - Handle file extensions with any case sensitivity, not just lowercase; currently the bulk of the issue is finding the files on disk
 - Test sorting by date for files not starting with date, and dated folders
 - Fix arguments - some are only callable from CLI and not Site.ini - make them coherent with INI categories
-- Accept Macros as CLI arguments
-- Deprecate FolderRoots (Macros make it redundant)
+- Accept Macros as CLI arguments + Deprecate FolderRoots (Macros make it redundant)
 - Fix ordering menu in Site.ini (not working for inner pages)
-- Feed generation without native libraries
+- Feed generation optionally without native libraries
 - JSON feeds
 - Full XML sitemap
 - SCSS support
@@ -32,6 +33,6 @@
 - Exporting the entire site text as JSON for full-text search tools
 - Automatic guessing of .htm/.html extension for declarations of templates and stuff
 - Exporting sites to different formats (?) (single-page HTML, PDF, EPUB, ...)
-- Disable only ActivityPub feed for a page
+- Disable ActivityPub feed for a specific page
+- Symlinks and direct copies as option instead of redirect pages
 - Automatic redirects/symlinks for making pages work without .html suffix
-- Override URL for a page / Add custom redirects for it

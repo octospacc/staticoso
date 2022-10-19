@@ -269,6 +269,8 @@ def PatchHTML(File, HTML, StaticPartsText, DynamicParts, DynamicPartsText, HTMLP
 	Title = GetTitle(File.split('/')[-1], Meta, Titles, 'MetaTitle', BlogName)
 	Description = GetDescription(Meta, BodyDescription, 'MetaDescription')
 	Image = GetImage(Meta, BodyImage, 'MetaImage')
+	ContentHeader = MakeContentHeader(Meta, Locale, MakeCategoryLine(File, Meta))
+	TimeNow = datetime.now().strftime('%Y-%m-%d %H:%M')
 
 	for Line in HTML.splitlines():
 		Line = Line.lstrip().rstrip()
@@ -315,10 +317,10 @@ def PatchHTML(File, HTML, StaticPartsText, DynamicParts, DynamicPartsText, HTMLP
 				'<staticoso:PageStyle>': Meta['Style'],
 				'[staticoso:Page:Content]': Content,
 				'<staticoso:PageContent>': Content,
-				'[staticoso:Page:ContentInfo]': MakeContentHeader(Meta, Locale, MakeCategoryLine(File, Meta)),
-				'<staticoso:PageContentInfo>': MakeContentHeader(Meta, Locale, MakeCategoryLine(File, Meta)),
-				'[staticoso:BuildTime]': datetime.now().strftime('%Y-%m-%d %H:%M'),
-				'<staticoso:BuildTime>': datetime.now().strftime('%Y-%m-%d %H:%M'),
+				'[staticoso:Page:ContentInfo]': ContentHeader,
+				'<staticoso:PageContentInfo>': ContentHeader,
+				'[staticoso:BuildTime]': TimeNow,
+				'<staticoso:BuildTime>': TimeNow,
 				'<staticoso:SiteDomain>': SiteDomain,
 				'[staticoso:Site:Name]': SiteName,
 				'<staticoso:SiteName>': SiteName,

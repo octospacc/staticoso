@@ -108,17 +108,17 @@ def Main(Args, FeedEntries):
 	HavePages, HavePosts = False, False
 	SiteConf = LoadConfFile('Site.ini')
 
-	ConfigLogging(OptionChoose(None, Args.Logging, ReadConf(SiteConf, 'Main', 'Logging')))
+	ConfigLogging(DefConfOptChoose('Logging', Args.Logging, ReadConf(SiteConf, 'Main', 'Logging')))
 
 	#if Args.InputDir:
 	#	os.chdir(Args.InputDir)
 	#	print(f"[I] Current directory: {Args.InputDir}")
 
-	SiteName = Flags['SiteName'] = OptionChoose('', Args.SiteName, ReadConf(SiteConf, 'Site', 'Name'))
+	SiteName = Flags['SiteName'] = OptChoose('', Args.SiteName, ReadConf(SiteConf, 'Site', 'Name'))
 	if SiteName:
 		logging.info(f"Compiling: {SiteName}")
 
-	OutDir = Flags['OutDir'] = OptionChoose('public', Args.OutputDir, ReadConf(SiteConf, 'Site', 'OutputDir'))
+	OutDir = Flags['OutDir'] = DefConfOptChoose('OutDir', Args.OutputDir, ReadConf(SiteConf, 'Site', 'OutputDir'))
 	OutDir = Flags['OutDir'] = OutDir.removesuffix('/')
 	CheckSafeOutDir(OutDir)
 	logging.info(f"Outputting to: {OutDir}/")
@@ -126,43 +126,43 @@ def Main(Args, FeedEntries):
 	Threads = Args.Threads if Args.Threads else 0
 	DiffBuild = Args.DiffBuild if Args.DiffBuild else False
 
-	BlogName = Flags['BlogName'] = OptionChoose('', Args.BlogName, ReadConf(SiteConf, 'Site', 'BlogName'))
-	SiteTagline = Flags['SiteTagline'] = OptionChoose('', Args.SiteTagline, ReadConf(SiteConf, 'Site', 'Tagline'))
-	SiteTemplate = Flags['SiteTemplate'] = OptionChoose('Default.html', Args.SiteTemplate, ReadConf(SiteConf, 'Site', 'Template'))
-	SiteDomain = Flags['SiteDomain'] = OptionChoose('', Args.SiteDomain, ReadConf(SiteConf, 'Site', 'Domain'))
-	SiteRoot = Flags['SiteRoot'] = OptionChoose('/', Args.SiteRoot, ReadConf(SiteConf, 'Site', 'Root'))
-	SiteLang = Flags['SiteLang'] = OptionChoose('en', Args.SiteLang, ReadConf(SiteConf, 'Site', 'Lang'))
+	BlogName = Flags['BlogName'] = OptChoose('', Args.BlogName, ReadConf(SiteConf, 'Site', 'BlogName'))
+	SiteTagline = Flags['SiteTagline'] = OptChoose('', Args.SiteTagline, ReadConf(SiteConf, 'Site', 'Tagline'))
+	SiteTemplate = Flags['SiteTemplate'] = DefConfOptChoose('SiteTemplate', Args.SiteTemplate, ReadConf(SiteConf, 'Site', 'Template'))
+	SiteDomain = Flags['SiteDomain'] = OptChoose('', Args.SiteDomain, ReadConf(SiteConf, 'Site', 'Domain'))
+	SiteRoot = Flags['SiteRoot'] = OptChoose('/', Args.SiteRoot, ReadConf(SiteConf, 'Site', 'Root'))
+	SiteLang = Flags['SiteLang'] = DefConfOptChoose('SiteLang', Args.SiteLang, ReadConf(SiteConf, 'Site', 'Lang'))
 
-	Sorting = Flags['Sorting'] = literal_eval(OptionChoose('{}', Args.Sorting, ReadConf(SiteConf, 'Site', 'Sorting')))
+	Sorting = Flags['Sorting'] = literal_eval(OptChoose('{}', Args.Sorting, ReadConf(SiteConf, 'Site', 'Sorting')))
 	Sorting = Flags['Sorting'] = SetSorting(Sorting)
 
-	NoScripts = Flags['NoScripts'] = StringBoolChoose(False, Args.NoScripts, ReadConf(SiteConf, 'Site', 'NoScripts'))
+	NoScripts = Flags['NoScripts'] = StrBoolChoose(False, Args.NoScripts, ReadConf(SiteConf, 'Site', 'NoScripts'))
 	FolderRoots = Flags['FolderRoots'] = literal_eval(Args.FolderRoots) if Args.FolderRoots else {}
 
-	ActivityPubTypeFilter = Flags['ActivityPubTypeFilter'] = OptionChoose('Post', Args.ActivityPubTypeFilter, ReadConf(SiteConf, 'ActivityPub', 'TypeFilter'))
-	ActivityPubHoursLimit = Flags['ActivityPubHoursLimit'] = OptionChoose(168, Args.ActivityPubHoursLimit, ReadConf(SiteConf, 'ActivityPub', 'HoursLimit'))
+	ActivityPubTypeFilter = Flags['ActivityPubTypeFilter'] = DefConfOptChoose('ActivityPubTypeFilter', Args.ActivityPubTypeFilter, ReadConf(SiteConf, 'ActivityPub', 'TypeFilter'))
+	ActivityPubHoursLimit = Flags['ActivityPubHoursLimit'] = DefConfOptChoose('ActivityPubHoursLimit', Args.ActivityPubHoursLimit, ReadConf(SiteConf, 'ActivityPub', 'HoursLimit'))
 
-	MastodonURL = Flags['MastodonURL'] = OptionChoose('', Args.MastodonURL, ReadConf(SiteConf, 'Mastodon', 'URL'))
-	MastodonToken = Flags['MastodonToken'] = OptionChoose('', Args.MastodonToken, ReadConf(SiteConf, 'Mastodon', 'Token'))
+	MastodonURL = Flags['MastodonURL'] = OptChoose('', Args.MastodonURL, ReadConf(SiteConf, 'Mastodon', 'URL'))
+	MastodonToken = Flags['MastodonToken'] = OptChoose('', Args.MastodonToken, ReadConf(SiteConf, 'Mastodon', 'Token'))
 
 	MarkdownExts = Flags['MarkdownExts'] = literal_eval(OptionChoose(str(MarkdownExtsDefault), Args.MarkdownExts, ReadConf(SiteConf, 'Markdown', 'Exts')))
-	SitemapOutput = Flags['SitemapOutput'] = StringBoolChoose(True, Args.SitemapOutput, ReadConf(SiteConf, 'Sitemap', 'Output'))
+	SitemapOutput = Flags['SitemapOutput'] = StrBoolChoose(True, Args.SitemapOutput, ReadConf(SiteConf, 'Sitemap', 'Output'))
 
-	Minify = Flags['Minify'] = StringBoolChoose(False, Args.Minify, ReadConf(SiteConf, 'Minify', 'Minify'))
-	MinifyKeepComments = Flags['MinifyKeepComments'] = StringBoolChoose(False, Args.MinifyKeepComments, ReadConf(SiteConf, 'Minify', 'KeepComments'))
+	Minify = Flags['Minify'] = StrBoolChoose(False, Args.Minify, ReadConf(SiteConf, 'Minify', 'Minify'))
+	MinifyKeepComments = Flags['MinifyKeepComments'] = StrBoolChoose(False, Args.MinifyKeepComments, ReadConf(SiteConf, 'Minify', 'KeepComments'))
 
-	ImgAltToTitle = Flags['ImgAltToTitle'] = StringBoolChoose(True, Args.ImgAltToTitle, ReadConf(SiteConf, 'Site', 'ImgAltToTitle'))
-	ImgTitleToAlt = Flags['ImgTitleToAlt'] = StringBoolChoose(False, Args.ImgTitleToAlt, ReadConf(SiteConf, 'Site', 'ImgTitleToAlt'))
-	HTMLFixPre = Flags['HTMLFixPre'] = StringBoolChoose(False, Args.HTMLFixPre, ReadConf(SiteConf, 'Site', 'HTMLFixPre'))
+	ImgAltToTitle = Flags['ImgAltToTitle'] = StrBoolChoose(True, Args.ImgAltToTitle, ReadConf(SiteConf, 'Site', 'ImgAltToTitle'))
+	ImgTitleToAlt = Flags['ImgTitleToAlt'] = StrBoolChoose(False, Args.ImgTitleToAlt, ReadConf(SiteConf, 'Site', 'ImgTitleToAlt'))
+	HTMLFixPre = Flags['HTMLFixPre'] = StrBoolChoose(False, Args.HTMLFixPre, ReadConf(SiteConf, 'Site', 'HTMLFixPre'))
 
-	CategoriesAutomatic = Flags['CategoriesAutomatic'] = StringBoolChoose(False, Args.CategoriesAutomatic, ReadConf(SiteConf, 'Categories', 'Automatic'))
-	CategoriesUncategorized = Flags['CategoriesUncategorized'] = OptionChoose('Uncategorized', Args.CategoriesUncategorized, ReadConf(SiteConf, 'Categories', 'Uncategorized'))
+	CategoriesAutomatic = Flags['CategoriesAutomatic'] = StrBoolChoose(False, Args.CategoriesAutomatic, ReadConf(SiteConf, 'Categories', 'Automatic'))
+	CategoriesUncategorized = Flags['CategoriesUncategorized'] = DefConfOptChoose('CategoriesUncategorized', Args.CategoriesUncategorized, ReadConf(SiteConf, 'Categories', 'Uncategorized'))
 
-	GemtextOutput = Flags['GemtextOutput'] = StringBoolChoose(False, Args.GemtextOutput, ReadConf(SiteConf, 'Gemtext', 'Output'))
+	GemtextOutput = Flags['GemtextOutput'] = StrBoolChoose(False, Args.GemtextOutput, ReadConf(SiteConf, 'Gemtext', 'Output'))
 	GemtextHeader = Flags['GemtextHeader'] = Args.GemtextHeader if Args.GemtextHeader else ReadConf(SiteConf, 'Gemtext', 'Header') if ReadConf(SiteConf, 'Gemtext', 'Header') else f"# {SiteName}\n\n" if SiteName else ''
 
-	FeedCategoryFilter = Flags['FeedCategoryFilter'] = OptionChoose('Blog', Args.FeedCategoryFilter, ReadConf(SiteConf, 'Feed', 'CategoryFilter'))
-	FeedEntries = Flags['FeedEntries'] = int(FeedEntries) if (FeedEntries or FeedEntries == 0) and FeedEntries != 'Default' else int(ReadConf(SiteConf, 'Feed', 'Entries')) if ReadConf(SiteConf, 'Feed', 'Entries') else 10
+	FeedCategoryFilter = Flags['FeedCategoryFilter'] = DefConfOptChoose('FeedCategoryFilter', Args.FeedCategoryFilter, ReadConf(SiteConf, 'Feed', 'CategoryFilter'))
+	FeedEntries = Flags['FeedEntries'] = int(FeedEntries) if (FeedEntries or FeedEntries == 0) and FeedEntries != 'Default' else int(ReadConf(SiteConf, 'Feed', 'Entries')) if ReadConf(SiteConf, 'Feed', 'Entries') else DefConf['FeedEntries']
 
 	DynamicParts = Flags['DynamicParts'] = literal_eval(OptionChoose('{}', Args.DynamicParts, ReadConf(SiteConf, 'Site', 'DynamicParts')))
 	DynamicPartsText = Snippets['DynamicParts'] = LoadFromDir('DynamicParts', ['*.htm', '*.html'])
