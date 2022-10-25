@@ -40,7 +40,9 @@ Needed for Gemtext output support:
 
 ## Features roadmap
 
-- [ ] Page redirects / Alt URLs (+ ActivityPub URL overrides) 
+- [ ] HTML feeds (pages with list of N most recent posts)
+- [x] Lists of all pages in a site directory
+- [x] Page redirects / Alt URLs (+ ActivityPub URL overrides) 
 - [x] Progress bars for the build process!
 - [x] Multithreading
 - [x] Differential building

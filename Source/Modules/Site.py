@@ -18,7 +18,7 @@ from Modules.Markdown import *
 from Modules.Pug import *
 from Modules.Utils import *
 
-def GetHTMLPagesList(Pages, BlogName, SiteRoot, PathPrefix, Unite=[], Type=None, PathFilter='', Category=None, For='Menu', MarkdownExts=(), MenuStyle='Default'):
+def GetHTMLPagesList(Pages, BlogName, SiteRoot, PathPrefix, CallbackFile=None, Unite=[], Type=None, PathFilter='', Category=None, For='Menu', MarkdownExts=(), MenuStyle='Default'):
 	ShowPaths, Flatten, SingleLine = True, False, False
 	if MenuStyle == 'Flat':
 		Flatten = True
@@ -41,7 +41,12 @@ def GetHTMLPagesList(Pages, BlogName, SiteRoot, PathPrefix, Unite=[], Type=None,
 		if e:
 			IndexPages.insert(i,[e,None,None,{'Type':Type,'Index':'True','Order':'Unite'}])
 	for File, Content, Titles, Meta in IndexPages:
-		if (not Type or (Meta['Type'] == Type and CanIndex(Meta['Index'], For))) and (not Category or Category in Meta['Categories']) and File.startswith(PathFilter):
+		TmpPathFilter = PathFilter
+		if TmpPathFilter.startswith('Pages/'):
+			TmpPathFilter = TmpPathFilter[len('Pages/'):]
+			if File.startswith('Posts/'):
+				continue
+		if (not Type or (Meta['Type'] == Type and CanIndex(Meta['Index'], For))) and (not Category or Category in Meta['Categories']) and File.startswith(TmpPathFilter) and File != CallbackFile:
 			Depth = (File.count('/') + 1) if Meta['Order'] != 'Unite' else 1
 			if Depth > 1 and Meta['Order'] != 'Unite': # Folder names are handled here
 				CurParent = File.split('/')[:-1]
@@ -429,6 +434,7 @@ def HandlePage(Flags, Page, Pages, Categories, LimitFiles, Snippets, ConfMenu, L
 			if Line.startswith('<staticoso:DirectoryList:') and Line.endswith('>'):
 				Path = Line[len('<staticoso:DirectoryList:'):-1]
 				DirectoryList = GetHTMLPagesList(
+					CallbackFile=File,
 					Pages=Pages,
 					BlogName=BlogName,
 					SiteRoot=SiteRoot,
