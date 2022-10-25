@@ -18,7 +18,7 @@ from Modules.Markdown import *
 from Modules.Pug import *
 from Modules.Utils import *
 
-def GetHTMLPagesList(Pages, BlogName, SiteRoot, PathPrefix, Unite=[], Type='Page', Category=None, For='Menu', MarkdownExts=(), MenuStyle='Default'):
+def GetHTMLPagesList(Pages, BlogName, SiteRoot, PathPrefix, Unite=[], Type=None, PathFilter='', Category=None, For='Menu', MarkdownExts=(), MenuStyle='Default'):
 	ShowPaths, Flatten, SingleLine = True, False, False
 	if MenuStyle == 'Flat':
 		Flatten = True
@@ -30,7 +30,7 @@ def GetHTMLPagesList(Pages, BlogName, SiteRoot, PathPrefix, Unite=[], Type='Page
 		if e[3]['Index'] == 'False' or e[3]['Index'] == 'None':
 			IndexPages.remove(e)
 	for i,e in enumerate(IndexPages):
-		if e[3]['Type'] != Type:
+		if Type and e[3]['Type'] != Type:
 			ToPop += [i]
 	ToPop = RevSort(ToPop)
 	for i in ToPop:
@@ -41,7 +41,7 @@ def GetHTMLPagesList(Pages, BlogName, SiteRoot, PathPrefix, Unite=[], Type='Page
 		if e:
 			IndexPages.insert(i,[e,None,None,{'Type':Type,'Index':'True','Order':'Unite'}])
 	for File, Content, Titles, Meta in IndexPages:
-		if Meta['Type'] == Type and CanIndex(Meta['Index'], For) and (not Category or Category in Meta['Categories']):
+		if (not Type or (Meta['Type'] == Type and CanIndex(Meta['Index'], For))) and (not Category or Category in Meta['Categories']) and File.startswith(PathFilter):
 			Depth = (File.count('/') + 1) if Meta['Order'] != 'Unite' else 1
 			if Depth > 1 and Meta['Order'] != 'Unite': # Folder names are handled here
 				CurParent = File.split('/')[:-1]
@@ -272,23 +272,24 @@ def PatchHTML(File, HTML, StaticPartsText, DynamicParts, DynamicPartsText, HTMLP
 	ContentHeader = MakeContentHeader(Meta, Locale, MakeCategoryLine(File, Meta))
 	TimeNow = datetime.now().strftime('%Y-%m-%d %H:%M')
 
-	for Line in HTML.splitlines():
-		Line = Line.lstrip().rstrip()
-		if (Line.startswith('[staticoso:DynamicPart:') and Line.endswith(']')) or (Line.startswith('<staticoso:DynamicPart:') and Line.endswith('>')):
-			Path =  Line[len('[staticoso:DynamicPart:'):-1]
-			Section = Path.split('/')[-1]
-			if Section in DynamicParts:
-				Part = DynamicParts[Section]
-				Text = ''
-				if type(Part) == list:
-					for e in Part:
-						Text += DynamicPartsText[f"{Path}/{e}"] + '\n'
-				elif type(Part) == str:
-					Text = DynamicPartsText[f"{Path}/{Part}"]
-			else:
-				Text = ''
-			HTML = ReplWithEsc(HTML, f"[staticoso:DynamicPart:{Path}]", Text)
-			HTML = ReplWithEsc(HTML, f"<staticoso:DynamicPart:{Path}>", Text)
+	if 'staticoso:DynamicPart:' in HTML: # Reduce risk of unnecessary cycles
+		for Line in HTML.splitlines():
+			Line = Line.lstrip().rstrip()
+			if (Line.startswith('[staticoso:DynamicPart:') and Line.endswith(']')) or (Line.startswith('<staticoso:DynamicPart:') and Line.endswith('>')):
+				Path =  Line[len('<staticoso:DynamicPart:'):-1]
+				Section = Path.split('/')[-1]
+				if Section in DynamicParts:
+					Part = DynamicParts[Section]
+					Text = ''
+					if type(Part) == list:
+						for e in Part:
+							Text += DynamicPartsText[f"{Path}/{e}"] + '\n'
+					elif type(Part) == str:
+						Text = DynamicPartsText[f"{Path}/{Part}"]
+				else:
+					Text = ''
+				HTML = ReplWithEsc(HTML, f"[staticoso:DynamicPart:{Path}]", Text)
+				HTML = ReplWithEsc(HTML, f"<staticoso:DynamicPart:{Path}>", Text)
 
 	for e in StaticPartsText:
 		HTML = ReplWithEsc(HTML, f"[staticoso:StaticPart:{e}]", StaticPartsText[e])
@@ -315,6 +316,7 @@ def PatchHTML(File, HTML, StaticPartsText, DynamicParts, DynamicPartsText, HTMLP
 				'<staticoso:PagePath>': PagePath,
 				'[staticoso:Page:Style]': Meta['Style'],
 				'<staticoso:PageStyle>': Meta['Style'],
+				# NOTE: Content is injected in page only at this point! Keep in mind for other substitutions
 				'[staticoso:Page:Content]': Content,
 				'<staticoso:PageContent>': Content,
 				'[staticoso:Page:ContentInfo]': ContentHeader,
@@ -420,6 +422,22 @@ def HandlePage(Flags, Page, Pages, Categories, LimitFiles, Snippets, ConfMenu, L
 		SiteLang=SiteLang,
 		Locale=Locale,
 		LightRun=LightRun)
+
+	if 'staticoso:DirectoryList:' in HTML: # Reduce risk of unnecessary cycles
+		for Line in HTML.splitlines():
+			Line = Line.lstrip().rstrip()
+			if Line.startswith('<staticoso:DirectoryList:') and Line.endswith('>'):
+				Path = Line[len('<staticoso:DirectoryList:'):-1]
+				DirectoryList = GetHTMLPagesList(
+					Pages=Pages,
+					BlogName=BlogName,
+					SiteRoot=SiteRoot,
+					PathPrefix=GetPathLevels(File),
+					PathFilter=Path,
+					For='Categories',
+					MarkdownExts=MarkdownExts,
+					MenuStyle='Flat')
+				HTML = ReplWithEsc(HTML, f"<staticoso:DirectoryList:{Path}>", DirectoryList)
 
 	if Flags['Minify']:
 		if not LightRun:
