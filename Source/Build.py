@@ -15,7 +15,6 @@ import time
 from ast import literal_eval
 from datetime import datetime
 from pathlib import Path
-
 from Modules.Config import *
 from Modules.Gemini import *
 from Modules.Logging import *
@@ -23,7 +22,6 @@ from Modules.Markdown import *
 from Modules.Site import *
 from Modules.Sitemap import *
 from Modules.Utils import *
-
 try:
 	from Modules.ActivityPub import *
 	ActivityPub = True
@@ -108,7 +106,7 @@ def Main(Args, FeedEntries):
 	HavePages, HavePosts = False, False
 	SiteConf = LoadConfFile('Site.ini')
 
-	ConfigLogging(DefConfOptChoose('Logging', Args.Logging, ReadConf(SiteConf, 'Main', 'Logging')))
+	ConfigLogging(DefConfOptChoose('Logging', Args.Logging, ReadConf(SiteConf, 'staticoso', 'Logging')))
 
 	#if Args.InputDir:
 	#	os.chdir(Args.InputDir)
@@ -123,8 +121,8 @@ def Main(Args, FeedEntries):
 	CheckSafeOutDir(OutDir)
 	logging.info(f"Outputting to: {OutDir}/")
 
-	Threads = Args.Threads if Args.Threads else 0
-	DiffBuild = Args.DiffBuild if Args.DiffBuild else False
+	Threads = Args.Threads if Args.Threads else DefConf['Threads']
+	DiffBuild = Args.DiffBuild if Args.DiffBuild else DefConf['DiffBuild']
 
 	BlogName = Flags['BlogName'] = OptChoose('', Args.BlogName, ReadConf(SiteConf, 'Site', 'BlogName'))
 	SiteTagline = Flags['SiteTagline'] = OptChoose('', Args.SiteTagline, ReadConf(SiteConf, 'Site', 'Tagline'))
@@ -274,7 +272,7 @@ if __name__ == '__main__':
 
 	Parser = argparse.ArgumentParser()
 	Parser.add_argument('--Logging', type=str) # Levels: Debug, Info, Warning, Error.
-	Parser.add_argument('--Threads', type=str)
+	Parser.add_argument('--Threads', type=str) # Set 0 to use all CPU cores
 	Parser.add_argument('--DiffBuild', type=str)
 	Parser.add_argument('--OutputDir', type=str)
 	#Parser.add_argument('--InputDir', type=str)

@@ -18,8 +18,8 @@ from Modules.Markdown import *
 from Modules.Pug import *
 from Modules.Utils import *
 
-def GetHTMLPagesList(Pages, BlogName, SiteRoot, PathPrefix, CallbackFile=None, Unite=[], Type=None, PathFilter='', Category=None, For='Menu', MarkdownExts=(), MenuStyle='Default'):
-	ShowPaths, Flatten, SingleLine = True, False, False
+def GetHTMLPagesList(Pages, BlogName, SiteRoot, PathPrefix, CallbackFile=None, Unite=[], Type=None, Limit=None, PathFilter='', Category=None, For='Menu', MarkdownExts=(), MenuStyle='Default'):
+	ShowPaths, Flatten, SingleLine, DoneCount = True, False, False, 0
 	if MenuStyle == 'Flat':
 		Flatten = True
 	elif MenuStyle == 'Line':
@@ -41,12 +41,14 @@ def GetHTMLPagesList(Pages, BlogName, SiteRoot, PathPrefix, CallbackFile=None, U
 		if e:
 			IndexPages.insert(i,[e,None,None,{'Type':Type,'Index':'True','Order':'Unite'}])
 	for File, Content, Titles, Meta in IndexPages:
+		# Allow for the virtual "Pages/" prefix to be used in path filtering
 		TmpPathFilter = PathFilter
 		if TmpPathFilter.startswith('Pages/'):
 			TmpPathFilter = TmpPathFilter[len('Pages/'):]
 			if File.startswith('Posts/'):
 				continue
-		if (not Type or (Meta['Type'] == Type and CanIndex(Meta['Index'], For))) and (not Category or Category in Meta['Categories']) and File.startswith(TmpPathFilter) and File != CallbackFile:
+
+		if (not Type or (Meta['Type'] == Type and CanIndex(Meta['Index'], For))) and (not Category or Category in Meta['Categories']) and File.startswith(TmpPathFilter) and File != CallbackFile and (not Limit or Limit > DoneCount):
 			Depth = (File.count('/') + 1) if Meta['Order'] != 'Unite' else 1
 			if Depth > 1 and Meta['Order'] != 'Unite': # Folder names are handled here
 				CurParent = File.split('/')[:-1]
@@ -54,17 +56,21 @@ def GetHTMLPagesList(Pages, BlogName, SiteRoot, PathPrefix, CallbackFile=None, U
 					if LastParent != CurParent and ShowPaths:
 						LastParent = CurParent
 						Levels = '- ' * ((Depth-1+i) if not Flatten else 1)
-						 # Folders with else without an index file
+						# If search node endswith index, it's a page; else, it's a folder
 						if StripExt(File).endswith('index'):
 							Title = MakeListTitle(File, Meta, Titles, 'HTMLTitle', SiteRoot, BlogName, PathPrefix)
+							DoneCount += 1
 						else:
 							Title = CurParent[Depth-2+i]
 						if SingleLine:
 							List += ' <span>' + Title + '</span> '
 						else:
 							List += Levels + Title + '\n'
+
+			# Pages with any other path
 			if not (Depth > 1 and StripExt(File).split('/')[-1] == 'index'):
 				Levels = '- ' * (Depth if not Flatten else 1)
+				DoneCount += 1
 				if Meta['Order'] == 'Unite':
 					Title = File
 				else:
@@ -73,6 +79,7 @@ def GetHTMLPagesList(Pages, BlogName, SiteRoot, PathPrefix, CallbackFile=None, U
 					List += ' <span>' + Title + '</span> '
 				else:
 					List += Levels + Title + '\n'
+
 	return markdown(MarkdownHTMLEscape(List, MarkdownExts), extensions=MarkdownExts)
 
 def CheckHTMLCommentLine(Line):
@@ -262,14 +269,15 @@ def PatchHTML(File, HTML, StaticPartsText, DynamicParts, DynamicPartsText, HTMLP
 		if '<a class="footnote-ref"' in Content:
 			Content = AddToTagStartEnd(Content, '<a class="footnote-ref"', '</a>', '[', ']')
 
-		if ("<!-- noprocess />" or "<!--noprocess/>") in Content and ("</ noprocess -->" or "</noprocess-->") in Content:
+		if any(_ in Content for _ in ('<!-- noprocess />', '<!--noprocess/>', '</ noprocess -->', '</ noprocess --->', '</noprocess-->', '</noprocess--->')):
 			Content = DictReplWithEsc(
 				Content, {
-					"<!-- noprocess />": "",
-					"<!--noprocess/>": "",
-					"</ noprocess -->": "",
-					"</noprocess-->": ""
-				})
+					'<!-- noprocess />': '',
+					'<!--noprocess/>': '',
+					'</ noprocess -->': '',
+					'</ noprocess --->': '',
+					'</noprocess-->': '',
+					'</noprocess--->': ''})
 
 	Title = GetTitle(File.split('/')[-1], Meta, Titles, 'MetaTitle', BlogName)
 	Description = GetDescription(Meta, BodyDescription, 'MetaDescription')
@@ -332,7 +340,9 @@ def PatchHTML(File, HTML, StaticPartsText, DynamicParts, DynamicPartsText, HTMLP
 				'[staticoso:Site:Name]': SiteName,
 				'<staticoso:SiteName>': SiteName,
 				'[staticoso:Site:AbsoluteRoot]': SiteRoot,
-				'[staticoso:Site:RelativeRoot]': GetPathLevels(PagePath)
+				'<staticoso:SiteAbsoluteRoot>': SiteRoot,
+				'[staticoso:Site:RelativeRoot]': GetPathLevels(PagePath),
+				'<staticoso:SiteRelativeRoot>': GetPathLevels(PagePath)
 			})
 		for e in Meta['Macros']:
 			HTML = ReplWithEsc(HTML, f"[:{e}:]", Meta['Macros'][e])
@@ -355,7 +365,9 @@ def PatchHTML(File, HTML, StaticPartsText, DynamicParts, DynamicPartsText, HTMLP
 			'[staticoso:Site:Name]': SiteName,
 			'<staticoso:SiteName>': SiteName,
 			'[staticoso:Site:AbsoluteRoot]': SiteRoot,
-			'[staticoso:Site:RelativeRoot]': GetPathLevels(PagePath)
+			'<staticoso:SiteAbsoluteRoot>': SiteRoot,
+			'[staticoso:Site:RelativeRoot]': GetPathLevels(PagePath),
+			'<staticoso:SiteRelativeRoot>': GetPathLevels(PagePath)
 		})
 	for e in Meta['Macros']:
 		ContentHTML = ReplWithEsc(ContentHTML, f"[:{e}:]", Meta['Macros'][e])
@@ -428,6 +440,17 @@ def HandlePage(Flags, Page, Pages, Categories, LimitFiles, Snippets, ConfMenu, L
 		Locale=Locale,
 		LightRun=LightRun)
 
+	HTML = ReplWithEsc(HTML, f"<staticoso:Feed>", GetHTMLPagesList(
+		Limit=Flags['FeedEntries'],
+		Type='Post',
+		Category=None if Flags['FeedCategoryFilter'] == '*' else Flags['FeedCategoryFilter'],
+		Pages=Pages,
+		BlogName=BlogName,
+		SiteRoot=SiteRoot,
+		PathPrefix=GetPathLevels(File),
+		For='Categories',
+		MarkdownExts=MarkdownExts,
+		MenuStyle='Flat'))
 	if 'staticoso:DirectoryList:' in HTML: # Reduce risk of unnecessary cycles
 		for Line in HTML.splitlines():
 			Line = Line.lstrip().rstrip()
@@ -520,7 +543,7 @@ def MakeSite(Flags, LimitFiles, Snippets, ConfMenu, GlobalMacros, Locale, Thread
 	os.system('printf "["')
 	with Pool(PoolSize) as MultiprocPool:
 		Pages = MultiprocPool.map(MultiprocPagePreprocessor, MultiprocPages)
-	os.system('printf "]\n"') #print("]") # Make newline after percentage dots
+	os.system('printf "]\n"') # Make newline after percentage dots
 
 	for File, Content, Titles, Meta in Pages:
 		for Cat in Meta['Categories']:
@@ -569,6 +592,6 @@ def MakeSite(Flags, LimitFiles, Snippets, ConfMenu, GlobalMacros, Locale, Thread
 	os.system('printf "["')
 	with Pool(PoolSize) as MultiprocPool:
 		MadePages = MultiprocPool.map(MultiprocHandlePage, MultiprocPages)
-	os.system('printf "]\n"') #print("]") # Make newline after percentage dots
+	os.system('printf "]\n"') # Make newline after percentage dots
 
 	return MadePages

@@ -91,7 +91,7 @@ def MakeCategoryLine(File, Meta):
 	return Categories
 
 def MakeListTitle(File, Meta, Titles, Prefer, SiteRoot, BlogName, PathPrefix=''):
-	Title = GetTitle(File.split('/')[-1], Meta, Titles, Prefer, BlogName)
+	Title = GetTitle(File.split('/')[-1], Meta, Titles, Prefer, BlogName).lstrip().rstrip()
 	Link = False if Meta['Index'] == 'Unlinked' else True
 	if Link:
 		Title = '[{}]({})'.format(

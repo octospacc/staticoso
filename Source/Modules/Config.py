@@ -12,6 +12,8 @@ from ast import literal_eval
 
 DefConf = {
 	'Logging': 20,
+	'Threads': 0,
+	'DiffBuild': False,
 	'OutDir': 'public',
 	'SiteLang': 'en',
 	'SiteTemplate': 'Default.html',
