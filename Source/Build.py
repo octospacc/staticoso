@@ -106,7 +106,7 @@ def Main(Args, FeedEntries):
 	HavePages, HavePosts = False, False
 	SiteConf = LoadConfFile('Site.ini')
 
-	ConfigLogging(DefConfOptChoose('Logging', Args.Logging, ReadConf(SiteConf, 'staticoso', 'Logging')))
+	#ConfigLogging(DefConfOptChoose('Logging', Args.Logging, ReadConf(SiteConf, 'staticoso', 'Logging')))
 
 	#if Args.InputDir:
 	#	os.chdir(Args.InputDir)

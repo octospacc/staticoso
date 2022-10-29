@@ -27,7 +27,7 @@ def SetupLogging(Level):
 
 def ConfigLogging(Level):
 	Num = DefConf['Logging']
-	if Level:
+	if type(Level) == str:
 	    if Level.isdecimal():
 		    Num = int(Level)
 	    else:
