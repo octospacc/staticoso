@@ -18,8 +18,8 @@ from Modules.Markdown import *
 from Modules.Pug import *
 from Modules.Utils import *
 
-def GetHTMLPagesList(Pages, BlogName, SiteRoot, PathPrefix, CallbackFile=None, Unite=[], Type=None, Limit=None, PathFilter='', Category=None, For='Menu', MarkdownExts=(), MenuStyle='Default'):
-	ShowPaths, Flatten, SingleLine, DoneCount = True, False, False, 0
+def GetHTMLPagesList(Pages, BlogName, SiteRoot, PathPrefix, CallbackFile=None, Unite=[], Type=None, Limit=None, PathFilter='', Category=None, For='Menu', MarkdownExts=(), MenuStyle='Default', ShowPaths=True):
+	Flatten, SingleLine, DoneCount = False, False, 0
 	if MenuStyle == 'Flat':
 		Flatten = True
 	elif MenuStyle == 'Line':
@@ -450,7 +450,8 @@ def HandlePage(Flags, Page, Pages, Categories, LimitFiles, Snippets, ConfMenu, L
 		PathPrefix=GetPathLevels(File),
 		For='Categories',
 		MarkdownExts=MarkdownExts,
-		MenuStyle='Flat'))
+		MenuStyle='Flat',
+		ShowPaths=False))
 	if 'staticoso:DirectoryList:' in HTML: # Reduce risk of unnecessary cycles
 		for Line in HTML.splitlines():
 			Line = Line.lstrip().rstrip()

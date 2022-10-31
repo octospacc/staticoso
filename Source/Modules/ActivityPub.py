@@ -8,9 +8,9 @@
 | ================================= """
 
 import time
-from Libs.bs4 import BeautifulSoup
 from Libs.dateutil.parser import parse as date_parse
 from Libs.mastodon import Mastodon
+from Modules.HTML import *
 from Modules.Utils import *
 
 def MastodonGetSession(InstanceURL, Token):
@@ -34,7 +34,7 @@ def MastodonDoPost(Session, Text, Lang=None, Visibility='public'):
 			visibility=Visibility)
 
 def MastodonGetLinkFromPost(Post, Domain=None):
-	Parse = BeautifulSoup(Post['content'], 'html.parser')
+	Parse = MkSoup(Post['content'])
 	if Parse.a:
 		Link = Parse.find_all('a')[-1]['href']
 		if not Domain or (Domain and Link.startswith(Domain)):
