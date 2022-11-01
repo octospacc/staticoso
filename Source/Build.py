@@ -248,6 +248,7 @@ def Main(Args, FeedEntries):
 				WriteFile(
 					DestFile,
 					RedirectPageTemplate.format(
+						SiteDomain=SiteDomain,
 						DestURL=DestURL,
 						TitlePrefix=f"{SiteName} - " if SiteName else '',
 						StrClick=Locale['ClickHere'],

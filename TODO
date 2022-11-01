@@ -1,5 +1,9 @@
+- Release on pip
+- Alert for deprecated features
+- WriteFreely/Wordpress/Blogger integration for reposting+comments
+- Fix comment box not appearing in pages with changed URL
 - Set categories for all files in a folder and subfolder
-- Pages with lists of all posts and all pages (? the folder categories thing might make it redundant?)
+- Pages with lists of all posts and all pages (? the folder lists thing might make it redundant?)
 - Fix title detection:
   - Don't consider titles in code/comment blocks
   - Consider titles in lists (title marker preceded by chars)

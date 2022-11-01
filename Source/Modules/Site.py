@@ -347,6 +347,7 @@ def PatchHTML(File, HTML, StaticPartsText, DynamicParts, DynamicPartsText, HTMLP
 		for e in Meta['Macros']:
 			HTML = ReplWithEsc(HTML, f"[:{e}:]", Meta['Macros'][e])
 		for e in FolderRoots:
+			HTML = ReplWithEsc(HTML, f"<staticoso:CustomPath:{e}>", FolderRoots[e])
 			HTML = ReplWithEsc(HTML, f"[staticoso:Folder:{e}:AbsoluteRoot]", FolderRoots[e])
 			HTML = ReplWithEsc(HTML, f"<staticoso:Folder:{e}:AbsoluteRoot>", FolderRoots[e])
 		for e in Categories:
@@ -362,6 +363,7 @@ def PatchHTML(File, HTML, StaticPartsText, DynamicParts, DynamicPartsText, HTMLP
 			'<staticoso:PageTitle>': Title,
 			'[staticoso:Page:Description]': Description,
 			'<staticoso:PageDescription>': Description,
+			'<staticoso:SiteDomain>': SiteDomain,
 			'[staticoso:Site:Name]': SiteName,
 			'<staticoso:SiteName>': SiteName,
 			'[staticoso:Site:AbsoluteRoot]': SiteRoot,
@@ -372,6 +374,7 @@ def PatchHTML(File, HTML, StaticPartsText, DynamicParts, DynamicPartsText, HTMLP
 	for e in Meta['Macros']:
 		ContentHTML = ReplWithEsc(ContentHTML, f"[:{e}:]", Meta['Macros'][e])
 	for e in FolderRoots:
+		ContentHTML = ReplWithEsc(ContentHTML, f"<staticoso:CustomPath:{e}>", FolderRoots[e])
 		ContentHTML = ReplWithEsc(ContentHTML, f"[staticoso:Folder:{e}:AbsoluteRoot]", FolderRoots[e])
 		ContentHTML = ReplWithEsc(ContentHTML, f"<staticoso:Folder:{e}:AbsoluteRoot>", FolderRoots[e])
 	for e in Categories:

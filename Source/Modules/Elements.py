@@ -25,11 +25,12 @@ RedirectPageTemplate = """\
 <!DOCTYPE html>
 <html>
 <head>
-<title>{TitlePrefix}Redirect</title>
-<meta http-equiv="refresh" content="0; url='{DestURL}'" />
+	<title>{TitlePrefix}Redirect</title>
+	<link rel="canonical" href="{SiteDomain}/{DestURL}">
+	<meta http-equiv="refresh" content="0; url='{DestURL}'">
 </head>
 <body>
-<p><a href="{DestURL}">{StrClick}</a> {StrRedirect}.</p>
+	<p><a href="{DestURL}">{StrClick}</a> {StrRedirect}.</p>
 </body>
 </html>
 """
