@@ -18,8 +18,33 @@ from Modules.Markdown import *
 from Modules.Pug import *
 from Modules.Utils import *
 
+# Generate HTML tree/nested list from our internal metaformat, such as:
+# :Item 1               \\  <li>Item 1<ul>
+# .:Item 2   ============\\     <li>Item 2<ul>
+# ..:Item 3  ============//         <li>Item 3</li></ul></li></ul></li>
+# :Item 4               //  <li>Item 4</li>
+def GenHTMLTreeList(MetaList:str, Type:str='ul'):
+	HTML = ''
+	Lines = MetaList.splitlines()
+	CurDepth, NextDepth, PrevDepth = 0, 0, 0
+	for i,e in enumerate(Lines):
+		CurDepth = e.find(':')
+		NextDepth = Lines[i+1].find(':') if i+1 < len(Lines) else 0
+		HTML += '\n<li>' + e[CurDepth+1:]
+		if NextDepth == CurDepth:
+			HTML += '</li>'
+		elif NextDepth > CurDepth:
+			HTML += f'\n<{Type}>' * (NextDepth - CurDepth)
+		elif NextDepth < CurDepth:
+			HTML += f'</li>\n</{Type}>' * (CurDepth - NextDepth) + '</li>'
+		PrevDepth = CurDepth
+	return f'<{Type}>{HTML}\n</{Type}>'
+
+# Menu styles:
+# - Simple: Default, Flat, Line
+# - Others: Excerpt, Image, Preview (Excerpt + Image), Full
 def GetHTMLPagesList(Pages, BlogName, SiteRoot, PathPrefix, CallbackFile=None, Unite=[], Type=None, Limit=None, PathFilter='', Category=None, For='Menu', MarkdownExts=(), MenuStyle='Default', ShowPaths=True):
-	Flatten, SingleLine, DoneCount = False, False, 0
+	Flatten, SingleLine, DoneCount, PrevDepth = False, False, 0, 0
 	if MenuStyle == 'Flat':
 		Flatten = True
 	elif MenuStyle == 'Line':
@@ -50,12 +75,13 @@ def GetHTMLPagesList(Pages, BlogName, SiteRoot, PathPrefix, CallbackFile=None, U
 
 		if (not Type or (Meta['Type'] == Type and CanIndex(Meta['Index'], For))) and (not Category or Category in Meta['Categories']) and File.startswith(TmpPathFilter) and File != CallbackFile and (not Limit or Limit > DoneCount):
 			Depth = (File.count('/') + 1) if Meta['Order'] != 'Unite' else 1
-			if Depth > 1 and Meta['Order'] != 'Unite': # Folder names are handled here
+			# Folder names are handled here
+			if Depth > 1 and Meta['Order'] != 'Unite':
 				CurParent = File.split('/')[:-1]
 				for i,s in enumerate(CurParent):
 					if LastParent != CurParent and ShowPaths:
 						LastParent = CurParent
-						Levels = '- ' * ((Depth-1+i) if not Flatten else 1)
+						Levels = '.' * ((Depth-2+i) if not Flatten else 0) + ':'
 						# If search node endswith index, it's a page; else, it's a folder
 						if StripExt(File).endswith('index'):
 							Title = MakeListTitle(File, Meta, Titles, 'HTMLTitle', SiteRoot, BlogName, PathPrefix)
@@ -69,10 +95,10 @@ def GetHTMLPagesList(Pages, BlogName, SiteRoot, PathPrefix, CallbackFile=None, U
 
 			# Pages with any other path
 			if not (Depth > 1 and StripExt(File).split('/')[-1] == 'index'):
-				Levels = '- ' * (Depth if not Flatten else 1)
+				Levels = '.' * ((Depth-1) if not Flatten else 0) + ':'
 				DoneCount += 1
 				if Meta['Order'] == 'Unite':
-					Title = File
+					Title = markdown(MarkdownHTMLEscape(File, MarkdownExts), extensions=MarkdownExts).removeprefix('<p>').removesuffix('<p>')
 				else:
 					Title = MakeListTitle(File, Meta, Titles, 'HTMLTitle', SiteRoot, BlogName, PathPrefix)
 				if SingleLine:
@@ -80,7 +106,10 @@ def GetHTMLPagesList(Pages, BlogName, SiteRoot, PathPrefix, CallbackFile=None, U
 				else:
 					List += Levels + Title + '\n'
 
-	return markdown(MarkdownHTMLEscape(List, MarkdownExts), extensions=MarkdownExts)
+	if MenuStyle in ('Default', 'Flat'):
+		return GenHTMLTreeList(List)
+	elif MenuStyle in ('Line', 'Excerpt', 'Image', 'Preview', 'Full'):
+		return List
 
 def CheckHTMLCommentLine(Line):
 	if Line.startswith('<!--'):
@@ -284,6 +313,7 @@ def PatchHTML(File, HTML, StaticPartsText, DynamicParts, DynamicPartsText, HTMLP
 	Image = GetImage(Meta, BodyImage, 'MetaImage')
 	ContentHeader = MakeContentHeader(Meta, Locale, MakeCategoryLine(File, Meta))
 	TimeNow = datetime.now().strftime('%Y-%m-%d %H:%M')
+	RelativeRoot = GetPathLevels(PagePath)
 
 	if 'staticoso:DynamicPart:' in HTML: # Reduce risk of unnecessary cycles
 		for Line in HTML.splitlines():
@@ -311,76 +341,80 @@ def PatchHTML(File, HTML, StaticPartsText, DynamicParts, DynamicPartsText, HTMLP
 	if LightRun:
 		HTML = None
 	else:
-		HTML = DictReplWithEsc(
-			HTML, {
-				'[staticoso:Site:Menu]': HTMLPagesList,
-				'<staticoso:SiteMenu>': HTMLPagesList,
-				'[staticoso:Page:Lang]': SiteLang,
-				'<staticoso:PageLang>': SiteLang,
-				'[staticoso:Page:Chapters]': HTMLTitles,
-				'<staticoso:PageSections>': HTMLTitles,
-				'[staticoso:Page:Title]': Title,
-				'<staticoso:PageTitle>': Title,
-				'[staticoso:Page:Description]': Description,
-				'<staticoso:PageDescription>': Description,
-				'[staticoso:Page:Image]': Image,
-				'<staticoso:PageImage>': Image,
-				'[staticoso:Page:Path]': PagePath,
-				'<staticoso:PagePath>': PagePath,
-				'[staticoso:Page:Style]': Meta['Style'],
-				'<staticoso:PageStyle>': Meta['Style'],
-				# NOTE: Content is injected in page only at this point! Keep in mind for other substitutions
-				'[staticoso:Page:Content]': Content,
-				'<staticoso:PageContent>': Content,
-				'[staticoso:Page:ContentInfo]': ContentHeader,
-				'<staticoso:PageContentInfo>': ContentHeader,
-				'[staticoso:BuildTime]': TimeNow,
-				'<staticoso:BuildTime>': TimeNow,
-				'<staticoso:SiteDomain>': SiteDomain,
-				'[staticoso:Site:Name]': SiteName,
-				'<staticoso:SiteName>': SiteName,
-				'[staticoso:Site:AbsoluteRoot]': SiteRoot,
-				'<staticoso:SiteAbsoluteRoot>': SiteRoot,
-				'[staticoso:Site:RelativeRoot]': GetPathLevels(PagePath),
-				'<staticoso:SiteRelativeRoot>': GetPathLevels(PagePath)
-			})
-		for e in Meta['Macros']:
-			HTML = ReplWithEsc(HTML, f"[:{e}:]", Meta['Macros'][e])
-		for e in FolderRoots:
-			HTML = ReplWithEsc(HTML, f"<staticoso:CustomPath:{e}>", FolderRoots[e])
-			HTML = ReplWithEsc(HTML, f"[staticoso:Folder:{e}:AbsoluteRoot]", FolderRoots[e])
-			HTML = ReplWithEsc(HTML, f"<staticoso:Folder:{e}:AbsoluteRoot>", FolderRoots[e])
-		for e in Categories:
-			HTML = ReplWithEsc(HTML, f"<span>[staticoso:Category:{e}]</span>", Categories[e])
-			HTML = ReplWithEsc(HTML, f"[staticoso:Category:{e}]", Categories[e])
-			HTML = ReplWithEsc(HTML, f"<staticoso:Category:{e}>", Categories[e])
-
-	# TODO: Clean this doubling?
-	ContentHTML = Content
-	ContentHTML = DictReplWithEsc(
-		ContentHTML, {
+		HTML = DictReplWithEsc(HTML, {
+			'[staticoso:Site:Menu]': HTMLPagesList,
+			'<staticoso:SiteMenu>': HTMLPagesList,
+			'[staticoso:Page:Lang]': SiteLang,
+			'<staticoso:PageLang>': SiteLang,
+			'[staticoso:Page:Chapters]': HTMLTitles,
+			'<staticoso:PageSections>': HTMLTitles,
 			'[staticoso:Page:Title]': Title,
 			'<staticoso:PageTitle>': Title,
 			'[staticoso:Page:Description]': Description,
 			'<staticoso:PageDescription>': Description,
+			'[staticoso:Page:Image]': Image,
+			'<staticoso:PageImage>': Image,
+			'[staticoso:Page:Path]': PagePath,
+			'<staticoso:PagePath>': PagePath,
+			'[staticoso:Page:Style]': Meta['Style'],
+			'<staticoso:PageStyle>': Meta['Style'],
+			# NOTE: Content is injected in page only at this point! Keep in mind for other substitutions
+			'[staticoso:Page:Content]': Content,
+			'<staticoso:PageContent>': Content,
+			'[staticoso:Page:ContentInfo]': ContentHeader,
+			'<staticoso:PageContentInfo>': ContentHeader,
+			'[staticoso:BuildTime]': TimeNow,
+			'<staticoso:BuildTime>': TimeNow,
 			'<staticoso:SiteDomain>': SiteDomain,
 			'[staticoso:Site:Name]': SiteName,
 			'<staticoso:SiteName>': SiteName,
 			'[staticoso:Site:AbsoluteRoot]': SiteRoot,
 			'<staticoso:SiteAbsoluteRoot>': SiteRoot,
-			'[staticoso:Site:RelativeRoot]': GetPathLevels(PagePath),
-			'<staticoso:SiteRelativeRoot>': GetPathLevels(PagePath)
-		})
+			'[staticoso:Site:RelativeRoot]': RelativeRoot,
+			'<staticoso:SiteRelativeRoot>': RelativeRoot})
+		for e in Meta['Macros']:
+			HTML = ReplWithEsc(HTML, f"[:{e}:]", Meta['Macros'][e])
+		for e in FolderRoots:
+			HTML = DictReplWithEsc(HTML, {
+				f"[staticoso:CustomPath:{e}]": FolderRoots[e],
+				f"<staticoso:CustomPath:{e}>": FolderRoots[e],
+				f"[staticoso:Folder:{e}:AbsoluteRoot]": FolderRoots[e],
+				f"<staticoso:Folder:{e}:AbsoluteRoot>": FolderRoots[e]})
+		for e in Categories:
+			HTML = DictReplWithEsc(HTML, {
+				f"<span>[staticoso:Category:{e}]</span>": Categories[e],
+				f"[staticoso:Category:{e}]": Categories[e],
+				f"<staticoso:Category:{e}>": Categories[e],
+				f"<staticoso:CategoryList:{e}>": Categories[e]})
+
+	# TODO: Clean this doubling?
+	ContentHTML = Content
+	ContentHTML = DictReplWithEsc(ContentHTML, {
+		'[staticoso:Page:Title]': Title,
+		'<staticoso:PageTitle>': Title,
+		'[staticoso:Page:Description]': Description,
+		'<staticoso:PageDescription>': Description,
+		'<staticoso:SiteDomain>': SiteDomain,
+		'[staticoso:Site:Name]': SiteName,
+		'<staticoso:SiteName>': SiteName,
+		'[staticoso:Site:AbsoluteRoot]': SiteRoot,
+		'<staticoso:SiteAbsoluteRoot>': SiteRoot,
+		'[staticoso:Site:RelativeRoot]': RelativeRoot,
+		'<staticoso:SiteRelativeRoot>': RelativeRoot})
 	for e in Meta['Macros']:
 		ContentHTML = ReplWithEsc(ContentHTML, f"[:{e}:]", Meta['Macros'][e])
 	for e in FolderRoots:
-		ContentHTML = ReplWithEsc(ContentHTML, f"<staticoso:CustomPath:{e}>", FolderRoots[e])
-		ContentHTML = ReplWithEsc(ContentHTML, f"[staticoso:Folder:{e}:AbsoluteRoot]", FolderRoots[e])
-		ContentHTML = ReplWithEsc(ContentHTML, f"<staticoso:Folder:{e}:AbsoluteRoot>", FolderRoots[e])
+		ContentHTML = DictReplWithEsc(ContentHTML, {
+			f"[staticoso:CustomPath:{e}]": FolderRoots[e],
+			f"<staticoso:CustomPath:{e}>": FolderRoots[e],
+			f"[staticoso:Folder:{e}:AbsoluteRoot]": FolderRoots[e],
+			f"<staticoso:Folder:{e}:AbsoluteRoot>": FolderRoots[e]})
 	for e in Categories:
-		ContentHTML = ReplWithEsc(ContentHTML, f"<span>[staticoso:Category:{e}]</span>", Categories[e])
-		ContentHTML = ReplWithEsc(ContentHTML, f"[staticoso:Category:{e}]", Categories[e])
-		ContentHTML = ReplWithEsc(ContentHTML, f"<staticoso:Category:{e}>", Categories[e])
+		ContentHTML = DictReplWithEsc(ContentHTML, {
+			f"<span>[staticoso:Category:{e}]</span>": Categories[e],
+			f"[staticoso:Category:{e}]": Categories[e],
+			f"<staticoso:Category:{e}>": Categories[e],
+			f"<staticoso:CategoryList:{e}>": Categories[e]})
 
 	return HTML, ContentHTML, Description, Image
 

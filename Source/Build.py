@@ -101,6 +101,21 @@ def GetModifiedFiles(OutDir):
 			Mod += [File['Tmp']]
 	return Mod
 
+def WriteRedirects(Flags, Pages, FinalPaths, Locale):
+	OutDir, SiteName, SiteDomain = Flags['OutDir'], Flags['SiteName'], Flags['SiteDomain']
+	for File, Content, Titles, Meta, ContentHTML, SlimHTML, Description, Image in Pages:
+		for URL in Meta['URLs']:
+			DestFile = f"{OutDir}/{URL}"
+			if DestFile not in FinalPaths:
+				DestURL = f"{GetPathLevels(URL)}{StripExt(File)}.html"
+				mkdirps(os.path.dirname(DestFile))
+				WriteFile(DestFile, RedirectPageTemplate.format(
+					SiteDomain=SiteDomain,
+					DestURL=DestURL,
+					TitlePrefix=f"{SiteName} - " if SiteName else '',
+					StrClick=Locale['ClickHere'],
+					StrRedirect=Locale['IfNotRedirected']))
+
 def Main(Args, FeedEntries):
 	Flags, Snippets, FinalPaths = {}, {}, []
 	HavePages, HavePosts = False, False
@@ -238,21 +253,8 @@ def Main(Args, FeedEntries):
 		WriteFile(File, Content)
 		FinalPaths += [File]
 
-	logging.info("Creating Redirects")
-	for File, Content, Titles, Meta, ContentHTML, SlimHTML, Description, Image in Pages:
-		for URL in Meta['URLs']:
-			DestFile = f"{OutDir}/{URL}"
-			if DestFile not in FinalPaths:
-				DestURL = f"{GetPathLevels(URL)}{StripExt(File)}.html"
-				mkdirps(os.path.dirname(DestFile))
-				WriteFile(
-					DestFile,
-					RedirectPageTemplate.format(
-						SiteDomain=SiteDomain,
-						DestURL=DestURL,
-						TitlePrefix=f"{SiteName} - " if SiteName else '',
-						StrClick=Locale['ClickHere'],
-						StrRedirect=Locale['IfNotRedirected']))
+	logging.debug("Creating Redirects")
+	WriteRedirects(Flags, Pages, FinalPaths, Locale)
 
 	if Flags['GemtextOutput']:
 		logging.info("Generating Gemtext")

@@ -10,8 +10,8 @@
 from Modules.HTML import *
 from Modules.Utils import *
 
-HTMLSectionTitleLine = '<h{Index} class="SectionHeading"><span class="SectionLink"><a href="#{DashTitle}"><span>»</span></a> </span><span class="SectionTitle" id="{DashTitle}">{Title}</span></h{Index}>'
-#PugSectionTitleLine = "{Line[:Index]}{Line[Index:Index+2]}.SectionHeading #[span.SectionLink #[a(href='#{DashTitle}') #[span »]] ]#[span#{DashTitle}.SectionTitle {Line[Index+2:]}]"
+HTMLSectionTitleLine = '<h{Index} class="SectionHeading staticoso-SectionHeading"><span class="SectionLink staticoso-SectionLink"><a href="#{DashTitle}"><span>»</span></a> </span><span class="SectionTitle staticoso-SectionTitle" id="{DashTitle}">{Title}</span></h{Index}>'
+PugSectionTitleLine = "{Start}{Heading}.SectionHeading.staticoso-SectionHeading #[span.SectionLink.staticoso-SectionLink #[a(href='#{DashTitle}') #[span »]] ]#[span#{DashTitle}.SectionTitle.staticoso-SectionTitle {Rest}]"
 CategoryPageTemplate = """\
 // Title: {Name}
 // Type: Page
@@ -48,7 +48,11 @@ def MakeLinkableTitle(Line, Title, DashTitle, Type):
 			Title=Title[Index+1:])
 	elif Type == 'pug':
 		Index = Line.find('h')
-		return f"{Line[:Index]}{Line[Index:Index+2]}.SectionHeading #[span.SectionLink #[a(href='#{DashTitle}') #[span »]] ]#[span#{DashTitle}.SectionTitle {Line[Index+2:]}]"
+		return PugSectionTitleLine.format(
+			Start=Line[:Index],
+			Heading=Line[Index:Index+2],
+			Rest=Line[Index+2:],
+			DashTitle=DashTitle)
 
 def GetTitle(FileName, Meta, Titles, Prefer='MetaTitle', BlogName=None):
 	if Prefer == 'BodyTitle':
@@ -86,18 +90,16 @@ def MakeContentHeader(Meta, Locale, Categories=''):
 
 def MakeCategoryLine(File, Meta):
 	Categories = ''
-	if Meta['Categories']:
-		for Cat in Meta['Categories']:
-			Categories += f' <a href="{GetPathLevels(File)}Categories/{Cat}.html">{html.escape(Cat)}</a> '
+	for Cat in Meta['Categories']:
+		Categories += f' <a href="{GetPathLevels(File)}Categories/{Cat}.html">{html.escape(Cat)}</a> '
 	return Categories
 
 def MakeListTitle(File, Meta, Titles, Prefer, SiteRoot, BlogName, PathPrefix=''):
 	Title = GetTitle(File.split('/')[-1], Meta, Titles, Prefer, BlogName).lstrip().rstrip()
 	Link = False if Meta['Index'] == 'Unlinked' else True
 	if Link:
-		Title = '[{}]({})'.format(
-			Title,
-			'{}{}.html'.format(PathPrefix, StripExt(File)))
+		Href = f'{PathPrefix}{StripExt(File)}.html'
+		Title = f'<a href="{Href}">{Title}</a>'
 	if Meta['Type'] == 'Post':
 		CreatedOn = Meta['CreatedOn'] if Meta['CreatedOn'] else '?'
 		Title = f"[{CreatedOn}] {Title}"
