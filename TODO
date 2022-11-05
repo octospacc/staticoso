@@ -24,6 +24,7 @@
 - Handle file extensions with any case sensitivity, not just lowercase; currently the bulk of the issue is finding the files on disk
 - Test sorting by date for files not starting with date, and dated folders
 - Fix arguments - some are only callable from CLI and not Site.ini - make them coherent with INI categories
+- Change FolderRoots arg name to CustomPaths
 - Accept Macros as CLI arguments + Deprecate FolderRoots (Macros make it redundant)
 - Fix ordering menu in Site.ini (not working for inner pages)
 - Feed generation optionally without native libraries

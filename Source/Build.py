@@ -28,6 +28,8 @@ try:
 except:
 	logging.warning("⚠ Can't load the ActivityPub module. Its use is disabled. Make sure the 'requests' library is installed.")
 	ActivityPub = False
+from Libs import rcssmin
+cssmin = rcssmin._make_cssmin(python_only=True)
 
 def ResetOutDir(OutDir):
 	for e in (OutDir, f"{OutDir}.gmi"):
@@ -161,7 +163,8 @@ def Main(Args, FeedEntries):
 	MarkdownExts = Flags['MarkdownExts'] = literal_eval(OptionChoose(str(MarkdownExtsDefault), Args.MarkdownExts, ReadConf(SiteConf, 'Markdown', 'Exts')))
 	SitemapOutput = Flags['SitemapOutput'] = StrBoolChoose(True, Args.SitemapOutput, ReadConf(SiteConf, 'Sitemap', 'Output'))
 
-	Minify = Flags['Minify'] = StrBoolChoose(False, Args.Minify, ReadConf(SiteConf, 'Minify', 'Minify'))
+	MinifyOutput = Flags['MinifyOutput'] = StrBoolChoose(False, Args.MinifyOutput, ReadConf(SiteConf, 'Minify', 'Output'))
+	MinifyAssets = Flags['MinifyAssets'] = StrBoolChoose(False, Args.MinifyAssets, ReadConf(SiteConf, 'Minify', 'Assets'))
 	MinifyKeepComments = Flags['MinifyKeepComments'] = StrBoolChoose(False, Args.MinifyKeepComments, ReadConf(SiteConf, 'Minify', 'KeepComments'))
 
 	ImgAltToTitle = Flags['ImgAltToTitle'] = StrBoolChoose(True, Args.ImgAltToTitle, ReadConf(SiteConf, 'Site', 'ImgAltToTitle'))
@@ -267,8 +270,21 @@ def Main(Args, FeedEntries):
 		logging.info("Generating Sitemap")
 		MakeSitemap(Flags, Pages)
 
-	logging.info("Copying Assets")
-	os.system(f"cp -R Assets/* {OutDir}/")
+	logging.info("Preparing Assets")
+	#os.system(f"cp -R Assets/* {OutDir}/")
+	if Flags['MinifyAssets']:
+		shutil.copytree('Assets', OutDir, ignore=IgnoreFiles, dirs_exist_ok=True)
+		for File in Path('Assets').rglob('*'):
+			if os.path.isfile(File):
+				Dest = f"{OutDir}/{str(File)[len('Assets')+1:]}"
+				if str(File).lower().endswith(FileExtensions['HTML']):
+					WriteFile(Dest, DoMinifyHTML(ReadFile(File), MinifyKeepComments))
+				elif str(File).lower().endswith('.css'):
+					WriteFile(Dest, cssmin(ReadFile(File), MinifyKeepComments))
+				else:
+					shutil.copy2(File, Dest)
+	else:
+		shutil.copytree('Assets', OutDir, dirs_exist_ok=True)
 
 if __name__ == '__main__':
 	StartTime = time.time()
@@ -286,7 +302,8 @@ if __name__ == '__main__':
 	Parser.add_argument('--BlogName', type=str)
 	Parser.add_argument('--SiteTemplate', type=str)
 	Parser.add_argument('--SiteDomain', type=str)
-	Parser.add_argument('--Minify', type=str)
+	Parser.add_argument('--MinifyOutput', type=str)
+	Parser.add_argument('--MinifyAssets', type=str)
 	Parser.add_argument('--MinifyKeepComments', type=str)
 	Parser.add_argument('--NoScripts', type=str)
 	Parser.add_argument('--ImgAltToTitle', type=str)

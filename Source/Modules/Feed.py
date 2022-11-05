@@ -57,5 +57,5 @@ def MakeFeed(Flags, Pages, FullSite=False):
 	if not os.path.exists(f"{Flags['OutDir']}/feed"):
 		os.mkdir(f"{Flags['OutDir']}/feed")
 	FeedType = 'site.' if FullSite else ''
-	Feed.atom_file(f"{Flags['OutDir']}/feed/{FeedType}atom.xml", pretty=(not Flags['Minify']))
-	Feed.rss_file(f"{Flags['OutDir']}/feed/{FeedType}rss.xml", pretty=(not Flags['Minify']))
+	Feed.atom_file(f"{Flags['OutDir']}/feed/{FeedType}atom.xml", pretty=(not Flags['MinifyOutput']))
+	Feed.rss_file(f"{Flags['OutDir']}/feed/{FeedType}rss.xml", pretty=(not Flags['MinifyOutput']))

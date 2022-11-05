@@ -2,12 +2,12 @@
 
 **staticoso** (_from Italian statico [static] + coso [thingy]_) is an unpretentious **static site generator**.
 
-I'm making this because I need a simple and kind-of-minimal program to serve me as a static site generator with (limited) CMS features. Just the features I need.
+I'm making this because I need a simple and kind-of-minimal program to serve me as a static site generator with (limited) mixed-CMS+Wiki features. Just the ones I need, of which some are unique, however.
 
 This won't replace any of the big projects out there that do the same thing but, as all of my projects, I'm releasing it as free libre software, in the hope that someone would find it useful.  
-Also, this software is needed for someone to edit and compile my personal sub-website [sitoctt](https://gitlab.com/octtspacc/sitoctt) from its source. Being that site too released under a libre license that allows modifications, I have to also release the tools I use to build it.
+Also, this software is needed for someone to edit and compile my personal website [sitoctt](https://gitlab.com/octtspacc/sitoctt) from its source. Being that site too released under a libre license that allows modifications, I have to also release the tools I use to build it, or really people will never be able to make the most out of it.
 
-**Everything is still an heavy WIP**, and features might break across commits, but feel free to experiment with all of this stuff!
+**Everything is still kind of a WIP**, and some bugs might appear across commits, but feel free to experiment with all of this stuff! If you really want to use this tool for your website, I suggest you don't do like I do in my build process, running always with the latest code commit; instead, either download a snapshot of the code and keep that, or always clone from a specific commit, until you have time when I do an update to check if your site actually builds correctly with the new version.
 
 ## Documentation
 
@@ -20,18 +20,18 @@ Keep in mind that, currently, it's still very incomplete. **Any help**, from wri
 
 - [Python >= 3.10](https://python.org)
 - (Included) [Python Markdown == 3.3.7](https://pypi.org/project/Markdown)
-  - (Included) Third-Party Extensions for Python Markdown: [markdown_del_ins](https://github.com/honzajavorek/markdown-del-ins), [mdx_subscript](https://github.com/jambonrose/markdown_subscript_extension), [mdx_superscript](https://github.com/jambonrose/markdown_superscript_extension)
 - (Included) [Beautiful Soup == 4.11.1](https://pypi.org/project/beautifulsoup4)
 - (Included) [feedgen == 0.9.0](https://pypi.org/project/feedgen)
-  - [lxml == 4.9.1](https://pypi.org/project/lxml)
+  - (Not included) [lxml == 4.9.1](https://pypi.org/project/lxml)
 - (Included) [htmlmin == 0.1.12](https://pypi.org/project/htmlmin)
+- (Included) [rcssmin == 1.1.1](https://pypi.org/project/rcssmin)
 
 ### Optional dependencies
 
 Needed for Pug input support:
 
 - [node == 12.22.5](https://nodejs.org) - [npm == 7.5.2](https://www.npmjs.com)
-- (Included, must be manually installed in system $PATH) [pug-cli == 1.0.0-alpha6](https://npmjs.com/package/pug-cli)
+- (Included, but must be manually installed in system $PATH) [pug-cli == 1.0.0-alpha6](https://npmjs.com/package/pug-cli)
 
 Needed for Gemtext output support:
 
@@ -61,7 +61,7 @@ Needed for Gemtext output support:
 - [ ] Polished Gemtext generation
 - [x] Autodetection of pages and posts
 - [x] Info for posts shown on their page
-- [x] HTML minification
+- [x] HTML and CSS minification
 - [x] Full Open Graph support
 - [x] Custom categories for posts
 - [x] Custom static and dynamic page parts
@@ -77,7 +77,6 @@ Needed for Gemtext output support:
 - [x] Generation of page (titles) menu as a tree
 - [x] Auto-detection of titles in a page
 - [x] **HTML**, **TXT**, **Extended Markdown**, and **Pug** supported as input page files
-- [ ] Out of heavy-WIP state
 
 ## Known issues (might need further investigation)
 

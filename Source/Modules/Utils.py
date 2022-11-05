@@ -12,12 +12,15 @@ import os
 from datetime import datetime
 from pathlib import Path
 
-ReservedPaths = ('Site.ini', 'Assets', 'Pages', 'Posts', 'Templates', 'StaticParts', 'DynamicParts')
+ReservedPaths = ('Site.ini', 'Assets', 'Resources', 'Pages', 'Posts', 'Templates', 'StaticParts', 'DynamicParts')
 FileExtensions = {
 	'Pages': ('htm', 'html', 'markdown', 'md', 'pug', 'txt'),
 	'HTML': ('.htm', '.html'),
 	'Markdown': ('.markdown', '.md'),
 	'Tmp': ('htm', 'markdown', 'md', 'pug', 'txt')}
+
+def SureList(e):
+    return e if type(e) == list else [e]
 
 def ReadFile(p):
 	try:
@@ -39,14 +42,13 @@ def WriteFile(p, c):
 def FileToStr(File, Truncate=''):
 	return str(File)[len(Truncate):]
 
-# https://stackoverflow.com/a/15664273
+# With shutil.copytree copy only folder struct, no files; https://stackoverflow.com/a/15664273
 def IgnoreFiles(Dir, Files):
     return [f for f in Files if os.path.isfile(os.path.join(Dir, f))]
 
 def LoadFromDir(Dir, Matchs):
 	Contents = {}
-	if type(Matchs) != list:
-		Matchs = [Matchs]
+	Matchs = SureList(Matchs)
 	for Match in Matchs:
 		for File in Path(Dir).rglob(Match):
 			File = str(File)[len(Dir)+1:]

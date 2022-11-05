@@ -378,14 +378,16 @@ def PatchHTML(File, HTML, StaticPartsText, DynamicParts, DynamicPartsText, HTMLP
 			HTML = DictReplWithEsc(HTML, {
 				f"[staticoso:CustomPath:{e}]": FolderRoots[e],
 				f"<staticoso:CustomPath:{e}>": FolderRoots[e],
+				#DEPRECATED
 				f"[staticoso:Folder:{e}:AbsoluteRoot]": FolderRoots[e],
 				f"<staticoso:Folder:{e}:AbsoluteRoot>": FolderRoots[e]})
 		for e in Categories:
 			HTML = DictReplWithEsc(HTML, {
-				f"<span>[staticoso:Category:{e}]</span>": Categories[e],
-				f"[staticoso:Category:{e}]": Categories[e],
-				f"<staticoso:Category:{e}>": Categories[e],
-				f"<staticoso:CategoryList:{e}>": Categories[e]})
+			f"[staticoso:Category:{e}]": Categories[e],
+			f"<staticoso:Category:{e}>": Categories[e],
+			f"<staticoso:CategoryList:{e}>": Categories[e],
+			#DEPRECATED
+			f"<span>[staticoso:Category:{e}]</span>": Categories[e]})
 
 	# TODO: Clean this doubling?
 	ContentHTML = Content
@@ -407,14 +409,16 @@ def PatchHTML(File, HTML, StaticPartsText, DynamicParts, DynamicPartsText, HTMLP
 		ContentHTML = DictReplWithEsc(ContentHTML, {
 			f"[staticoso:CustomPath:{e}]": FolderRoots[e],
 			f"<staticoso:CustomPath:{e}>": FolderRoots[e],
+			#DEPRECATED
 			f"[staticoso:Folder:{e}:AbsoluteRoot]": FolderRoots[e],
 			f"<staticoso:Folder:{e}:AbsoluteRoot>": FolderRoots[e]})
 	for e in Categories:
 		ContentHTML = DictReplWithEsc(ContentHTML, {
-			f"<span>[staticoso:Category:{e}]</span>": Categories[e],
 			f"[staticoso:Category:{e}]": Categories[e],
 			f"<staticoso:Category:{e}>": Categories[e],
-			f"<staticoso:CategoryList:{e}>": Categories[e]})
+			f"<staticoso:CategoryList:{e}>": Categories[e],
+			#DEPRECATED
+			f"<span>[staticoso:Category:{e}]</span>": Categories[e]})
 
 	return HTML, ContentHTML, Description, Image
 
@@ -506,7 +510,7 @@ def HandlePage(Flags, Page, Pages, Categories, LimitFiles, Snippets, ConfMenu, L
 					MenuStyle='Flat')
 				HTML = ReplWithEsc(HTML, f"<staticoso:DirectoryList:{Path}>", DirectoryList)
 
-	if Flags['Minify']:
+	if Flags['MinifyOutput']:
 		if not LightRun:
 			HTML = DoMinifyHTML(HTML, MinifyKeepComments)
 		ContentHTML = DoMinifyHTML(ContentHTML, MinifyKeepComments)
@@ -543,7 +547,7 @@ def MultiprocHandlePage(d):
 def MakeSite(Flags, LimitFiles, Snippets, ConfMenu, GlobalMacros, Locale, Threads):
 	PagesPaths, PostsPaths, Pages, MadePages, Categories = [], [], [], [], {}
 	PoolSize = cpu_count() if Threads <= 0 else Threads
-	OutDir, MarkdownExts, Sorting, MinifyKeepComments = Flags['OutDir'], Flags['MarkdownExts'], Flags['Sorting'], Flags['MinifyKeepComments']
+	OutDir, MarkdownExts, Sorting = Flags['OutDir'], Flags['MarkdownExts'], Flags['Sorting']
 	SiteName, BlogName, SiteTagline = Flags['SiteName'], Flags['BlogName'], Flags['SiteTagline']
 	SiteTemplate, SiteLang = Flags['SiteTemplate'], Flags['SiteLang']
 	SiteDomain, SiteRoot, FolderRoots = Flags['SiteDomain'], Flags['SiteRoot'], Flags['FolderRoots']
