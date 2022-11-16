@@ -334,9 +334,10 @@ def PatchHTML(File, HTML, StaticPartsText, DynamicParts, DynamicPartsText, HTMLP
 				HTML = ReplWithEsc(HTML, f"[staticoso:DynamicPart:{Path}]", Text)
 				HTML = ReplWithEsc(HTML, f"<staticoso:DynamicPart:{Path}>", Text)
 
-	for e in StaticPartsText:
-		HTML = ReplWithEsc(HTML, f"[staticoso:StaticPart:{e}]", StaticPartsText[e])
-		HTML = ReplWithEsc(HTML, f"<staticoso:StaticPart:{e}>", StaticPartsText[e])
+	for i in range(2):
+		for e in StaticPartsText:
+			HTML = ReplWithEsc(HTML, f"[staticoso:StaticPart:{e}]", StaticPartsText[e])
+			HTML = ReplWithEsc(HTML, f"<staticoso:StaticPart:{e}>", StaticPartsText[e])
 
 	if LightRun:
 		HTML = None
@@ -514,7 +515,7 @@ def HandlePage(Flags, Page, Pages, Categories, LimitFiles, Snippets, ConfMenu, L
 		if not LightRun:
 			HTML = DoMinifyHTML(HTML, MinifyKeepComments)
 		ContentHTML = DoMinifyHTML(ContentHTML, MinifyKeepComments)
-	if Flags['NoScripts'] and ("<script" in ContentHTML or "<script" in HTML):
+	if Flags['NoScripts'] and ("<script" in ContentHTML.lower() or "<script" in HTML.lower()):
 		if not LightRun:
 			HTML = StripTags(HTML, ['script'])
 		ContentHTML = StripTags(ContentHTML, ['script'])
@@ -526,6 +527,8 @@ def HandlePage(Flags, Page, Pages, Categories, LimitFiles, Snippets, ConfMenu, L
 		if not LightRun:
 			HTML = DoHTMLFixPre(HTML)
 		ContentHTML = DoHTMLFixPre(ContentHTML)
+	if not LightRun and 'htmljournal' in ContentHTML.lower(): # Avoid extra cycles
+		WriteFile(StripExt(PagePath)+'.journal.html', MakeHTMLJournal(ContentHTML))
 
 	if LightRun:
 		SlimHTML = None

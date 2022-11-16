@@ -1,3 +1,4 @@
+- Internal macro substitutions have to be made until there's nothing to replace
 - Release on pip
 - Alert for deprecated features
 - WriteFreely/Wordpress/Blogger integration for reposting+comments
