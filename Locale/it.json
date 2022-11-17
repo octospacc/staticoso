@@ -6,5 +6,6 @@
 	"Comments": "Commenti",
 	"OpenInNewTab": "Apri in una nuova scheda",
 	"ClickHere": "Clicca qui",
-	"IfNotRedirected": "se non subisci il reindirizzamento automatico"
+	"IfNotRedirected": "se non subisci il reindirizzamento automatico",
+	"StrippedDownNotice": "Questa pagina è stata automaticamente semplificata dalla versione originale, <a href=\"{Link}\">disponibile qui</a>. Considera di consultare quella per un'esperienza migliore."
 }

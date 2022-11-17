@@ -40,6 +40,7 @@ Needed for Gemtext output support:
 
 ## Features roadmap
 
+- [x] Generation of simplified pages compliant with the [HTML Journal standard](https://journal.miso.town)
 - [x] HTML feeds (pages with list of N most recent posts)
 - [x] Lists of all pages in a site directory
 - [x] Page redirects / Alt URLs (+ ActivityPub URL overrides) 
@@ -61,7 +62,7 @@ Needed for Gemtext output support:
 - [ ] Polished Gemtext generation
 - [x] Autodetection of pages and posts
 - [x] Info for posts shown on their page
-- [x] HTML and CSS minification
+- [x] HTML and CSS minification for Pages and Assets
 - [x] Full Open Graph support
 - [x] Custom categories for posts
 - [x] Custom static and dynamic page parts

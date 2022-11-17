@@ -1,3 +1,7 @@
+- Pages transclusion + probably drop StaticParts (would be redundant)
+- User macros with arguments
+- Specifying language for single pages, with the option applying to the locale used for templating
+- Apply HTML templating to Journal pages (requires a template that won't conflict, aka testing is needed)
 - Internal macro substitutions have to be made until there's nothing to replace
 - Release on pip
 - Alert for deprecated features
@@ -20,7 +24,7 @@
 - Show page size/words/time in meta line
 - Add feed support for diary-like pages
 - Fix excess whitespace in some section/menu titles
-- Change all staticoso service tag enclosures from [] to <>
+- Parity presence for [] and <> internal macro enclosure, + streamline the code for that
 - Investigate a strange bug with Macros
 - Handle file extensions with any case sensitivity, not just lowercase; currently the bulk of the issue is finding the files on disk
 - Test sorting by date for files not starting with date, and dated folders

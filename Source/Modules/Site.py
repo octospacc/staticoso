@@ -515,7 +515,7 @@ def HandlePage(Flags, Page, Pages, Categories, LimitFiles, Snippets, ConfMenu, L
 		if not LightRun:
 			HTML = DoMinifyHTML(HTML, MinifyKeepComments)
 		ContentHTML = DoMinifyHTML(ContentHTML, MinifyKeepComments)
-	if Flags['NoScripts'] and ("<script" in ContentHTML.lower() or "<script" in HTML.lower()):
+	if Flags['NoScripts'] and ('<script' in ContentHTML.lower() or '<script' in HTML.lower()):
 		if not LightRun:
 			HTML = StripTags(HTML, ['script'])
 		ContentHTML = StripTags(ContentHTML, ['script'])
@@ -528,7 +528,7 @@ def HandlePage(Flags, Page, Pages, Categories, LimitFiles, Snippets, ConfMenu, L
 			HTML = DoHTMLFixPre(HTML)
 		ContentHTML = DoHTMLFixPre(ContentHTML)
 	if not LightRun and 'htmljournal' in ContentHTML.lower(): # Avoid extra cycles
-		WriteFile(StripExt(PagePath)+'.journal.html', MakeHTMLJournal(ContentHTML))
+		WriteFile(StripExt(PagePath)+'.Journal.html', MakeHTMLJournal(Flags, Locale, f'{StripExt(File)}.html', ContentHTML))
 
 	if LightRun:
 		SlimHTML = None

@@ -6,5 +6,6 @@
 	"Comments": "Comments",
 	"OpenInNewTab": "Open in a new tab",
 	"ClickHere": "Click here",
-	"IfNotRedirected": "if you aren't automatically redirected"
+	"IfNotRedirected": "if you aren't automatically redirected",
+	"StrippedDownNotice": "This page has been automatically stripped-down from the original version, <a href=\"{Link}\">available here</a>. Consider visiting that for a better experience."
 }

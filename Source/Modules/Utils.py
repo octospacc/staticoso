@@ -1,3 +1,4 @@
+
 """ ================================= |
 | This file is part of                |
 |   staticoso                         |
@@ -12,7 +13,7 @@ import os
 from datetime import datetime
 from pathlib import Path
 
-ReservedPaths = ('Site.ini', 'Assets', 'Resources', 'Pages', 'Posts', 'Templates', 'StaticParts', 'DynamicParts')
+ReservedPaths = ('Site.ini', 'Assets', 'Pages', 'Posts', 'Templates', 'StaticParts', 'DynamicParts')
 FileExtensions = {
 	'Pages': ('htm', 'html', 'markdown', 'md', 'pug', 'txt'),
 	'HTML': ('.htm', '.html'),
@@ -20,23 +21,26 @@ FileExtensions = {
 	'Tmp': ('htm', 'markdown', 'md', 'pug', 'txt')}
 
 def SureList(e):
-    return e if type(e) == list else [e]
+	return e if type(e) == list else [e]
 
-def ReadFile(p):
+# Get base directory path of the staticoso program
+def staticosoBaseDir():
+	return f"{os.path.dirname(os.path.abspath(__file__))}/../../"
+
+def ReadFile(p, m='r'):
 	try:
-		with open(p, 'r') as f:
+		with open(p, m) as f:
 			return f.read()
 	except Exception:
-		print(f"[E] Error reading file {p}")
+		logging.error(f"Error reading file {p}")
 		return None
 
-def WriteFile(p, c):
+def WriteFile(p, c, m='w'):
 	try:
-		with open(p, 'w') as f:
-			f.write(c)
-		return True
+		with open(p, m) as f:
+			return f.write(c)
 	except Exception:
-		print(f"[E] Error writing file {p}")
+		logging.error(f"[E] Error writing file {p}")
 		return False
 
 def FileToStr(File, Truncate=''):
@@ -153,7 +157,7 @@ def GetFullDate(Date):
 
 def LoadLocale(Lang):
 	Lang = Lang + '.json'
-	Folder = os.path.dirname(os.path.abspath(__file__)) + '/../../Locale/'
+	Folder = f'{staticosoBaseDir()}Locale/'
 	File = ReadFile(Folder + Lang)
 	if File:
 		return json.loads(File)
