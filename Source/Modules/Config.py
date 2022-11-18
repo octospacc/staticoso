@@ -11,17 +11,18 @@ import configparser
 from ast import literal_eval
 
 DefConf = {
-	'Logging': 20,
-	'Threads': 0,
-	'DiffBuild': False,
-	'OutDir': 'public',
-	'SiteLang': 'en',
-	'SiteTemplate': 'Default.html',
-	'ActivityPubTypeFilter': 'Post',
-	'ActivityPubHoursLimit': 168,
-	'CategoriesUncategorized': 'Uncategorized',
-	'FeedCategoryFilter': 'Blog',
-	'FeedEntries': 10
+	"Logging": 20,
+	"Threads": 0,
+	"DiffBuild": False,
+	"OutDir": "public",
+	"SiteLang": "en",
+	"SiteTemplate": "Default.html",
+	"ActivityPubTypeFilter": "Post",
+	"ActivityPubHoursLimit": 168,
+	"CategoriesUncategorized": "Uncategorized",
+	"FeedCategoryFilter": "Blog",
+	"FeedEntries": 10,
+	"JournalRedirect": False
 }
 
 def LoadConfFile(File):

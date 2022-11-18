@@ -1,7 +1,7 @@
+- Choosing to use HTML or CSS styling for default internal snippets
 - Pages transclusion + probably drop StaticParts (would be redundant)
 - User macros with arguments
 - Specifying language for single pages, with the option applying to the locale used for templating
-- Apply HTML templating to Journal pages (requires a template that won't conflict, aka testing is needed)
 - Internal macro substitutions have to be made until there's nothing to replace
 - Release on pip
 - Alert for deprecated features

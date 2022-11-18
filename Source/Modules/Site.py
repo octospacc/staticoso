@@ -7,6 +7,7 @@
 |   Copyright (C) 2022, OctoSpacc     |
 | ================================= """
 
+import shutil
 from datetime import datetime
 from multiprocessing import Pool, cpu_count
 from Libs.bs4 import BeautifulSoup
@@ -152,7 +153,8 @@ def PagePreprocessor(Path, TempPath, Type, SiteTemplate, SiteRoot, GlobalMacros,
 		'CreatedOn': '',
 		'UpdatedOn': '',
 		'EditedOn': '',
-		'Order': None}
+		'Order': None,
+		'Language': None}
 	# Find all positions of '<!--', '-->', add them in a list=[[pos0,pos1,line0,line1],...]
 	for l in File.splitlines():
 		ll = l.lstrip().rstrip()
@@ -345,8 +347,9 @@ def PatchHTML(File, HTML, StaticPartsText, DynamicParts, DynamicPartsText, HTMLP
 		HTML = DictReplWithEsc(HTML, {
 			'[staticoso:Site:Menu]': HTMLPagesList,
 			'<staticoso:SiteMenu>': HTMLPagesList,
-			'[staticoso:Page:Lang]': SiteLang,
-			'<staticoso:PageLang>': SiteLang,
+			'[staticoso:Page:Lang]': Meta['Language'] if Meta['Language'] else SiteLang,
+			'<staticoso:PageLang>': Meta['Language'] if Meta['Language'] else SiteLang,
+			'<staticoso:PageLanguage>': Meta['Language'] if Meta['Language'] else SiteLang,
 			'[staticoso:Page:Chapters]': HTMLTitles,
 			'<staticoso:PageSections>': HTMLTitles,
 			'[staticoso:Page:Title]': Title,
@@ -527,8 +530,6 @@ def HandlePage(Flags, Page, Pages, Categories, LimitFiles, Snippets, ConfMenu, L
 		if not LightRun:
 			HTML = DoHTMLFixPre(HTML)
 		ContentHTML = DoHTMLFixPre(ContentHTML)
-	if not LightRun and 'htmljournal' in ContentHTML.lower(): # Avoid extra cycles
-		WriteFile(StripExt(PagePath)+'.Journal.html', MakeHTMLJournal(Flags, Locale, f'{StripExt(File)}.html', ContentHTML))
 
 	if LightRun:
 		SlimHTML = None
@@ -536,6 +537,31 @@ def HandlePage(Flags, Page, Pages, Categories, LimitFiles, Snippets, ConfMenu, L
 		SlimHTML = HTMLPagesList + ContentHTML
 	if not LightRun:
 		WriteFile(PagePath, HTML)
+
+	if not LightRun and 'htmljournal' in ContentHTML.lower(): # Avoid extra cycles
+		HTML, _, _, _ = PatchHTML(
+			File=File,
+			HTML=TemplatesText[Meta['Template']],
+			StaticPartsText=StaticPartsText,
+			DynamicParts=DynamicParts,
+			DynamicPartsText=DynamicPartsText,
+			HTMLPagesList=HTMLPagesList,
+			PagePath=f'{StripExt(File)}.Journal.html',
+			Content=MakeHTMLJournal(Flags, Locale, f'{StripExt(File)}.html', ContentHTML),
+			Titles='',
+			Meta=Meta,
+			SiteDomain=SiteDomain,
+			SiteRoot=SiteRoot,
+			SiteName=SiteName,
+			BlogName=BlogName,
+			FolderRoots=FolderRoots,
+			Categories=Categories,
+			SiteLang=SiteLang,
+			Locale=Locale,
+			LightRun=LightRun)
+		if Flags["JournalRedirect"]:
+			HTML = HTML.replace('</head>', f"""<meta http-equiv="refresh" content="0; url='./{PagePath.split('''/''')[-1]}'"></head>""")
+		WriteFile(StripExt(PagePath)+'.Journal.html', HTML)
 
 	return [File, Content, Titles, Meta, ContentHTML, SlimHTML, Description, Image]
 

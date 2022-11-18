@@ -41,7 +41,7 @@ RedirectPageTemplate = """\
 </body>
 </html>
 """
-HTMLCommentsBlock = '<br><h3>{StrComments}</h3><a href="{URL}" rel="noopener" target="_blank">{StrOpen} ↗️</a>'
+HTMLCommentsBlock = '<br><h3>{StrComments}</h3><a href="{URL}" rel="noopener" target="_blank">{StrOpen} <span class="twa twa-↗️"><span>↗️</span></span></a>'
 
 def DashifyTitle(Title, Done=[]):
 	return UndupeStr(DashifyStr(Title.lstrip(' ').rstrip(' ')), Done, '-')
@@ -149,6 +149,8 @@ def MakeHTMLJournal(Flags, Locale, FilePath, HTML):
 					Journal += str(ct)
 		FileName = FilePath.split('/')[-1]
 		URL = f'{Flags["SiteDomain"]}/{StripExt(FilePath)}.Journal.html'
+		Redirect = f"""<meta http-equiv="refresh" content="0; url='./{FileName}'">""" if Flags["JournalRedirect"] else ''
+
 		# Instead of copying stuff from the full page, for now we use dedicated title, header, footer, and pagination
 		Title = t.attrs["journaltitle"] if 'journaltitle' in t.attrs else f'"{StripExt(FileName)}" Journal - {Flags["SiteName"]}' if Flags["SiteName"] else f'"{StripExt(FileName)}" Journal'
 		FeedLink = f"""<a title="Journal Atom Feed" href="https://journal.miso.town/atom?url={URL}" target="_blank" rel="noopener"><img width="88" height="31" alt="Journal Atom Feed" title="Journal Atom Feed" src="data:image/png;base64,{b64encode(ReadFile(staticosoBaseDir()+'Assets/Feed-88x31.png', 'rb')).decode()}"></a>""" if Flags["SiteDomain"] else ''
@@ -160,20 +162,30 @@ def MakeHTMLJournal(Flags, Locale, FilePath, HTML):
 </p>
 """
 		Journal = f"""\
+<!--
 <!DOCTYPE html>
 <html>
 <head>
 	<title>{Title}</title>
 	<link rel="canonical" href="{URL}">
-	<meta http-equiv="refresh" content="0; url='./{FileName}'">
+	{Redirect}
 </head>
 <body>
+--->
 	<h1>{Title}</h1>
-	{Header}<br>
+	<header id="Header">
+		{Header}
+		<div id="staticoso-LinkToFooter"><b>[<big><a href="#Footer"><span class="twa twa-⬇️"><span>⬇️</span></span> Footer</a></big>]</b></div>
+	</header><br>
 	{Journal}
 	</article><br>
-	{t.attrs["journalfooter"] if "journalfooter" in t.attrs else ""}
+	<footer id="Footer">
+		<div id="staticoso-LinkToHeader"><b>[<big><a href="#Header"><span class="twa twa-⬆️"><span>⬆️</span></span> Header</a></big>]</b></div>
+		{t.attrs["journalfooter"] if "journalfooter" in t.attrs else ""}
+	</footer>
+<!--
 </body>
 </html>
+--->
 """
 	return Journal

@@ -146,7 +146,7 @@ def Main(Args, FeedEntries):
 	SiteTemplate = Flags['SiteTemplate'] = DefConfOptChoose('SiteTemplate', Args.SiteTemplate, ReadConf(SiteConf, 'Site', 'Template'))
 	SiteDomain = Flags['SiteDomain'] = OptChoose('', Args.SiteDomain, ReadConf(SiteConf, 'Site', 'Domain'))
 	SiteRoot = Flags['SiteRoot'] = OptChoose('/', Args.SiteRoot, ReadConf(SiteConf, 'Site', 'Root'))
-	SiteLang = Flags['SiteLang'] = DefConfOptChoose('SiteLang', Args.SiteLang, ReadConf(SiteConf, 'Site', 'Lang'))
+	SiteLang = Flags['SiteLang'] = DefConfOptChoose('SiteLang', Args.SiteLanguage, ReadConf(SiteConf, 'Site', 'Language'))
 
 	Sorting = Flags['Sorting'] = literal_eval(OptChoose('{}', Args.Sorting, ReadConf(SiteConf, 'Site', 'Sorting')))
 	Sorting = Flags['Sorting'] = SetSorting(Sorting)
@@ -179,6 +179,8 @@ def Main(Args, FeedEntries):
 
 	FeedCategoryFilter = Flags['FeedCategoryFilter'] = DefConfOptChoose('FeedCategoryFilter', Args.FeedCategoryFilter, ReadConf(SiteConf, 'Feed', 'CategoryFilter'))
 	FeedEntries = Flags['FeedEntries'] = int(FeedEntries) if (FeedEntries or FeedEntries == 0) and FeedEntries != 'Default' else int(ReadConf(SiteConf, 'Feed', 'Entries')) if ReadConf(SiteConf, 'Feed', 'Entries') else DefConf['FeedEntries']
+
+	JournalRedirect = Flags["JournalRedirect"] = StrBoolChoose(DefConf["JournalRedirect"], Args.JournalRedirect, ReadConf(SiteConf, 'Journal', 'Redirect'))
 
 	DynamicParts = Flags['DynamicParts'] = literal_eval(OptionChoose('{}', Args.DynamicParts, ReadConf(SiteConf, 'Site', 'DynamicParts')))
 	DynamicPartsText = Snippets['DynamicParts'] = LoadFromDir('DynamicParts', ['*.htm', '*.html'])
@@ -296,7 +298,8 @@ if __name__ == '__main__':
 	Parser.add_argument('--OutputDir', type=str)
 	#Parser.add_argument('--InputDir', type=str)
 	Parser.add_argument('--Sorting', type=str)
-	Parser.add_argument('--SiteLang', type=str)
+	Parser.add_argument('--SiteLang', type=str) # DEPRECATED
+	Parser.add_argument('--SiteLanguage', type=str)
 	Parser.add_argument('--SiteRoot', type=str)
 	Parser.add_argument('--SiteName', type=str)
 	Parser.add_argument('--BlogName', type=str)
@@ -313,6 +316,7 @@ if __name__ == '__main__':
 	Parser.add_argument('--GemtextHeader', type=str)
 	Parser.add_argument('--SiteTagline', type=str)
 	Parser.add_argument('--SitemapOutput', type=str)
+	Parser.add_argument('--JournalRedirect', type=str)
 	Parser.add_argument('--FeedEntries', type=str)
 	Parser.add_argument('--FolderRoots', type=str)
 	Parser.add_argument('--DynamicParts', type=str)
