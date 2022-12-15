@@ -19,28 +19,6 @@ from Modules.Markdown import *
 from Modules.Pug import *
 from Modules.Utils import *
 
-# Generate HTML tree/nested list from our internal metaformat, such as:
-# :Item 1               \\  <li>Item 1<ul>
-# .:Item 2   ============\\     <li>Item 2<ul>
-# ..:Item 3  ============//         <li>Item 3</li></ul></li></ul></li>
-# :Item 4               //  <li>Item 4</li>
-def GenHTMLTreeList(MetaList:str, Type:str='ul'):
-	HTML = ''
-	Lines = MetaList.splitlines()
-	CurDepth, NextDepth, PrevDepth = 0, 0, 0
-	for i,e in enumerate(Lines):
-		CurDepth = e.find(':')
-		NextDepth = Lines[i+1].find(':') if i+1 < len(Lines) else 0
-		HTML += '\n<li>' + e[CurDepth+1:]
-		if NextDepth == CurDepth:
-			HTML += '</li>'
-		elif NextDepth > CurDepth:
-			HTML += f'\n<{Type}>' * (NextDepth - CurDepth)
-		elif NextDepth < CurDepth:
-			HTML += f'</li>\n</{Type}>' * (CurDepth - NextDepth) + '</li>'
-		PrevDepth = CurDepth
-	return f'<{Type}>{HTML}\n</{Type}>'
-
 # Menu styles:
 # - Simple: Default, Flat, Line
 # - Others: Excerpt, Image, Preview (Excerpt + Image), Full
@@ -134,6 +112,22 @@ def TemplatePreprocessor(Text):
 			Meta.update({i:MetaDefault[i]})
 	return Meta
 
+def FindPreprocLine(Line, Meta, Macros):
+	Changed = False
+	Line = Line.lstrip().rstrip()
+	lll = CheckHTMLCommentLine(Line)
+	if Line.startswith('//') or lll: # Find preprocessor lines
+		lll = Line[2:].lstrip()
+		if lll.startswith('%'):
+			Meta += lll[1:].lstrip() + '\n'
+			Changed = True
+		elif lll.startswith('$'):
+			Macros += lll[1:].lstrip() + '\n'
+			Changed = True
+	#if ll.startswith('<!--') and not ll.endswith('-->'): # Find comment and code blocks
+	#	IgnoreBlocksStart += [l]
+	return (Meta, Macros, Changed)
+
 def PagePreprocessor(Path, TempPath, Type, SiteTemplate, SiteRoot, GlobalMacros, CategoryUncategorized, LightRun=False):
 	File = ReadFile(Path)
 	Path = Path.lower()
@@ -154,23 +148,30 @@ def PagePreprocessor(Path, TempPath, Type, SiteTemplate, SiteRoot, GlobalMacros,
 		'UpdatedOn': '',
 		'EditedOn': '',
 		'Order': None,
-		'Language': None}
+		'Language': None,
+		'Downsync': None}
 	# Find all positions of '<!--', '-->', add them in a list=[[pos0,pos1,line0,line1],...]
 	for l in File.splitlines():
 		ll = l.lstrip().rstrip()
-		lll = CheckHTMLCommentLine(ll)
-		if ll.startswith('//') or lll: # Find preprocessor lines
-			lll = ll[2:].lstrip()
-			if lll.startswith('%'):
-				Meta += lll[1:].lstrip() + '\n'
-			elif lll.startswith('$'):
-				Macros += lll[1:].lstrip() + '\n'
-		#if ll.startswith('<!--') and not ll.endswith('-->'): # Find comment and code blocks
-		#	IgnoreBlocksStart += [l]
-		else: # Find headings
+		Meta, Macros, Changed = FindPreprocLine(ll, Meta, Macros)
+		if not Changed: # Find headings
 			#if line in ignore block:
 			#	continue
 			Headings = ('h1', 'h2', 'h3', 'h4', 'h5', 'h6')
+			#if Path.endswith(FileExtensions['HTML']):
+			#	if ll[1:].startswith(Headings):
+			#		if ll[3:].startswith((" class='NoTitle", ' class="NoTitle')):
+			#			Content += l + '\n'
+			#		elif ll.replace('	', ' ').startswith('// %'):
+			#			pass
+			#		else:
+			#			Title = '#'*int(ll[2]) + ' ' + ll[4:]
+			#			DashTitle = DashifyTitle(Title.lstrip('#'), DashyTitles)
+			#			DashyTitles += [DashTitle]
+			#			Titles += [Title]
+			#			Content += MakeLinkableTitle(l, Title, DashTitle, 'pug') + '\n'
+			#	else:
+			#		Content += l + '\n'
 			if Path.endswith(FileExtensions['HTML']) and not HTMLTitlesFound:
 				Soup = BeautifulSoup(File, 'html.parser')
 				Tags = Soup.find_all()
@@ -181,8 +182,15 @@ def PagePreprocessor(Path, TempPath, Type, SiteTemplate, SiteRoot, GlobalMacros,
 						DashyTitles += [DashTitle]
 						Titles += [Title]
 						t.replace_with(MakeLinkableTitle(None, Title, DashTitle, 'md'))
-				Content = str(Soup.prettify(formatter=None))
 				HTMLTitlesFound = True
+				Content = ''
+				TmpContent = str(Soup.prettify(formatter=None))
+				for cl in TmpContent.splitlines():
+					_, _, IsMetaLine = FindPreprocLine(cl, Meta, Macros)
+					if not IsMetaLine:
+						#print(cl)
+						Content += cl + '\n'
+				break
 			elif Path.endswith(FileExtensions['Markdown']):
 				lsuffix = ''
 				if ll.startswith(('-', '+', '*')):
@@ -196,13 +204,13 @@ def PagePreprocessor(Path, TempPath, Type, SiteTemplate, SiteRoot, GlobalMacros,
 							Content += l + '\n'
 							continue
 						else:
-							Title = '#'*h + str(ll[3:])
+							Title = '#'*int(ll[2]) + ' ' + ll[4:]
 					DashTitle = DashifyTitle(MkSoup(Title.lstrip('#')).get_text(), DashyTitles)
 					DashyTitles += [DashTitle]
 					Titles += [Title]
 					Title = MakeLinkableTitle(None, Title, DashTitle, 'md')
-					Title = Title.replace('> </', '>  </')
-					Title = Title.replace(' </', '</')
+					# I can't remember why I put this but it was needed
+					Title = Title.replace('> </', '>  </').replace(' </', '</')
 					Content += lsuffix + Title + '\n'
 				else:
 					Content += l + '\n'
@@ -211,7 +219,7 @@ def PagePreprocessor(Path, TempPath, Type, SiteTemplate, SiteRoot, GlobalMacros,
 					if ll[2:].startswith(("(class='NoTitle", '(class="NoTitle')):
 						Content += l + '\n'
 					else:
-						Title = '#'*int(ll[1]) + str(ll[3:])
+						Title = '#'*int(ll[1]) + ll[3:]
 						DashTitle = DashifyTitle(Title.lstrip('#'), DashyTitles)
 						DashyTitles += [DashTitle]
 						Titles += [Title]
@@ -664,5 +672,24 @@ def MakeSite(Flags, LimitFiles, Snippets, ConfMenu, GlobalMacros, Locale, Thread
 	with Pool(PoolSize) as MultiprocPool:
 		MadePages = MultiprocPool.map(MultiprocHandlePage, MultiprocPages)
 	os.system('printf "]\n"') # Make newline after percentage dots
+
+	# Do page transclusions here (?)
+	#while True:
+	#	Operated = False
+	#	for di,Dest in enumerate(MadePages):
+	#		#print(Dest[0])
+	#		#TempPath = f'{PathPrefix}{Dest["File"]}'
+	#		#LightRun = False if LimitFiles == False or TempPath in LimitFiles else True
+	#		#if not LightRun:
+	#		if '[staticoso:Transclude:' in Dest[4] and (LimitFiles == False or f'{PathPrefix}{Dest[0]}' in LimitFiles):
+	#			for Item in MadePages:
+	#				SrcPrefix = '' if Item[0].startswith('Posts/') else 'Pages/'
+	#				print(SrcPrefix, Item[0])
+	#				if Item[0] != Dest[0] and f'[staticoso:Transclude:{SrcPrefix}{Item[0]}]' in Dest[4]:
+	#					MadePages[di][4] = ReplWithEsc(Dest[4], f'<staticoso:Transclude:{Item[0]}>', Item[4])
+	#					print(f'[staticoso:Transclude:{SrcPrefix}{Item[0]}]', Item[4])
+	#					Operated = True
+	#	if not Operated:
+	#		break
 
 	return MadePages

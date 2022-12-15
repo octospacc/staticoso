@@ -1,3 +1,5 @@
+- Misskey for ActivityPub
+- Section marking in pages (for use with external translators)
 - Choosing to use HTML or CSS styling for default internal snippets
 - Pages transclusion + probably drop StaticParts (would be redundant)
 - User macros with arguments
@@ -22,7 +24,7 @@
 - Override internal HTML snippets (meta lines, page lists, redirects, ...) with config file in Templates/NAME.ini
 - Specify input folder(s)
 - Show page size/words/time in meta line
-- Add feed support for diary-like pages
+- Add feed support for HTML Journal pages
 - Fix excess whitespace in some section/menu titles
 - Parity presence for [] and <> internal macro enclosure, + streamline the code for that
 - Investigate a strange bug with Macros

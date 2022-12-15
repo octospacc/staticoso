@@ -46,6 +46,28 @@ HTMLCommentsBlock = '<br><h3>{StrComments}</h3><a href="{URL}" rel="noopener" ta
 def DashifyTitle(Title, Done=[]):
 	return UndupeStr(DashifyStr(Title.lstrip(' ').rstrip(' ')), Done, '-')
 
+# Generate HTML tree/nested list from our internal metaformat, such as:
+# :Item 1               \\  <li>Item 1<ul>
+# .:Item 2   ============\\     <li>Item 2<ul>
+# ..:Item 3  ============//         <li>Item 3</li></ul></li></ul></li>
+# :Item 4               //  <li>Item 4</li>
+def GenHTMLTreeList(MetaList:str, Type:str='ul'):
+	HTML = ''
+	Lines = MetaList.splitlines()
+	CurDepth, NextDepth, PrevDepth = 0, 0, 0
+	for i,e in enumerate(Lines):
+		CurDepth = e.find(':')
+		NextDepth = Lines[i+1].find(':') if i+1 < len(Lines) else 0
+		HTML += '\n<li>' + e[CurDepth+1:]
+		if NextDepth == CurDepth:
+			HTML += '</li>'
+		elif NextDepth > CurDepth:
+			HTML += f'\n<{Type}>' * (NextDepth - CurDepth)
+		elif NextDepth < CurDepth:
+			HTML += f'</li>\n</{Type}>' * (CurDepth - NextDepth) + '</li>'
+		PrevDepth = CurDepth
+	return f'<{Type}>{HTML}\n</{Type}>'
+
 def MakeLinkableTitle(Line, Title, DashTitle, Type):
 	if Type == 'md':
 		Index = Title.split(' ')[0].count('#')
@@ -68,7 +90,7 @@ def GetTitle(FileName, Meta, Titles, Prefer='MetaTitle', BlogName=None):
 		Title = Meta['Title'] if Meta['Title'] else Titles[0].lstrip('#') if Titles else FileName
 	elif Prefer == 'HTMLTitle':
 		Title = Meta['HTMLTitle'] if Meta['HTMLTitle'] else Meta['Title'] if Meta['Title'] else Titles[0].lstrip('#') if Titles else FileName
-	if BlogName and 'Blog' in Meta['Categories']:
+	if Meta['Type'] == 'Post' and BlogName and 'Blog' in Meta['Categories']:
 		Title += ' - ' + BlogName
 	return Title
 
@@ -114,16 +136,15 @@ def MakeListTitle(File, Meta, Titles, Prefer, SiteRoot, BlogName, PathPrefix='')
 
 def FormatTitles(Titles, Flatten=False):
 	# TODO: Somehow titles written in Pug can end up here and don't work, they should be handled
-	HTMLTitles, DashyTitles = '', []
+	List, DashyTitles = '', []
 	for t in Titles:
 		n = 0 if Flatten else t.split(' ')[0].count('#')
+		Level = '.' * (n-1) + ':'
 		Title = MkSoup(t.lstrip('#')).get_text()
 		DashyTitle = DashifyTitle(Title, DashyTitles)
 		DashyTitles += [DashyTitle]
-		Start = '<ul><li>' * (n - 1)
-		End = '</li></ul>' * (n - 1)
-		HTMLTitles += f'<li>{Start}<a href="#{DashyTitle}">{html.escape(Title)}</a>{End}</li>'
-	return f'<ul>{HTMLTitles}</ul>'
+		List += f'{Level}<a href="#{DashyTitle}">{html.escape(Title)}</a>\n'
+	return GenHTMLTreeList(List)
 
 # Clean up a generic HTML tree such that it's compliant with the HTML Journal standard
 # (https://m15o.ichi.city/site/subscribing-to-a-journal-page.html);
