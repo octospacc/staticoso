@@ -4,7 +4,7 @@ https://github.com/tootsuite/mastodon/blob/master/docs/Using-the-API/Streaming-A
 """
 
 import json
-import six
+from .. import six
 from . import Mastodon
 from .Mastodon import MastodonMalformedEventError, MastodonNetworkError, MastodonReadTimeout
 from requests.exceptions import ChunkedEncodingError, ReadTimeout

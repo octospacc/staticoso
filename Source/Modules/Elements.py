@@ -8,6 +8,7 @@
 | ================================= """
 
 from base64 import b64encode
+from Modules.Globals import *
 from Modules.HTML import *
 from Modules.Utils import *
 
@@ -32,6 +33,8 @@ RedirectPageTemplate = """\
 <!DOCTYPE html>
 <html>
 <head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>{TitlePrefix}Redirect</title>
 	<link rel="canonical" href="{SiteDomain}/{DestURL}">
 	<meta http-equiv="refresh" content="0; url='{DestURL}'">
@@ -68,7 +71,7 @@ def GenHTMLTreeList(MetaList:str, Type:str='ul'):
 		PrevDepth = CurDepth
 	return f'<{Type}>{HTML}\n</{Type}>'
 
-def MakeLinkableTitle(Line, Title, DashTitle, Type):
+def MakeLinkableTitle(Line:str, Title:str, DashTitle:str, Type:str):
 	if Type == 'md':
 		Index = Title.split(' ')[0].count('#')
 		return HTMLSectionTitleLine.format(
@@ -83,7 +86,7 @@ def MakeLinkableTitle(Line, Title, DashTitle, Type):
 			Rest=Line[Index+2:],
 			DashTitle=DashTitle)
 
-def GetTitle(FileName, Meta, Titles, Prefer='MetaTitle', BlogName=None):
+def GetTitle(FileName:str, Meta:dict, Titles:list, Prefer='MetaTitle', BlogName=None):
 	if Prefer == 'BodyTitle':
 		Title = Titles[0].lstrip('#') if Titles else Meta['Title'] if Meta['Title'] else FileName
 	elif Prefer == 'MetaTitle':
@@ -94,27 +97,29 @@ def GetTitle(FileName, Meta, Titles, Prefer='MetaTitle', BlogName=None):
 		Title += ' - ' + BlogName
 	return Title
 
-def GetDescription(Meta, BodyDescription, Prefer='MetaDescription'):
+def GetDescription(Meta:dict, BodyDescription, Prefer='MetaDescription'):
 	if Prefer == 'BodyDescription':
 		Description = BodyDescription if BodyDescription else Meta['Description'] if Meta['Description'] else ''
 	elif Prefer == 'MetaDescription':
 		Description = Meta['Description'] if Meta['Description'] else BodyDescription if BodyDescription else ''
 	return Description
 
-def GetImage(Meta, BodyImage, Prefer='MetaImage'):
+def GetImage(Meta:dict, BodyImage, Prefer='MetaImage'):
 	if Prefer == 'BodyImage':
 		Image = BodyImage if BodyImage else Meta['Image'] if Meta['Image'] else ''
 	elif Prefer == 'MetaImage':
 		Image = Meta['Image'] if Meta['Image'] else BodyImage if BodyImage else ''
 	return Image
 
-def MakeContentHeader(Meta, Locale, Categories=''):
+def MakeContentHeader(Meta:dict, Locale:dict, Categories=''):
 	Header = ''
 	for e in ['CreatedOn', 'EditedOn']:
 		if Meta[e]:
-			Header += f'<span class="staticoso-ContentHeader-{e}"><span class="staticoso-Label">{Locale[e]}</span>: <span class="staticoso-Value">{Meta[e]}</span></span><br>'
+			Header += f'<span class="staticoso-ContentHeader-{e}" id="staticoso-ContentHeader-{e}"><span class="staticoso-Label">{Locale[e]}</span>: <span class="staticoso-Value">{Meta[e]}</span></span><br>'
 	if Categories:
-		Header += f'<span class="staticoso-ContentHeader-Categories"><span class="staticoso-Label">{Locale["Categories"]}</span>:<span class="staticoso-Value">{Categories.removesuffix(" ")}</span></span><br>'
+		Header += f'<span class="staticoso-ContentHeader-Categories" id="staticoso-ContentHeader-Categories"><span class="staticoso-Label">{Locale["Categories"]}</span>:<span class="staticoso-Value">{Categories.removesuffix(" ")}</span></span><br>'
+	if Meta['Index'].lower() in PageIndexStrNeg:
+		Header += f'<span class="staticoso-ContentHeader-Index" id="staticoso-ContentHeader-Index"><span class="staticoso-Value">{Locale["Unlisted"]}</span></span><br>'
 	return f'<p>{Header}</p>'
 
 def MakeCategoryLine(File, Meta):

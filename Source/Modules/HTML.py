@@ -58,21 +58,24 @@ def WriteImgAltAndTitle(HTML, AltToTitle, TitleToAlt): # Adds alt or title attr.
 	return str(Soup)
 
 def AddToTagStartEnd(HTML, MatchStart, MatchEnd, AddStart, AddEnd): # This doesn't handle nested tags
-	StartPos = None
+	StartPos, DidStart, DidEnd = None, 0, 0
 	for i,e in enumerate(HTML):
 		FilterStart = HTML[i:i+len(MatchStart)]
 		FilterEnd = HTML[i:i+len(MatchEnd)]
-		if not AddStart and not AddEnd:
-			break
-		if FilterStart == MatchStart:
+		if DidStart == 0 and FilterStart == MatchStart:
 			StartPos = i
 			if AddStart:
 				HTML = HTML[:i] + AddStart + HTML[i:]
-				AddStart = None
-		if FilterEnd == MatchEnd and StartPos and i > StartPos:
+				DidStart = 2
+		if DidEnd == 0 and FilterEnd == MatchEnd and StartPos and i > StartPos:
+			StartPos = None
 			if AddEnd:
 				HTML = HTML[:i+len(MatchEnd)] + AddEnd + HTML[i+len(MatchEnd):]
-				AddEnd = None
+				DidEnd = 2
+		if DidStart > 0:
+			DidStart -= 1
+		if DidEnd > 0:
+			DidEnd -= 1
 	return HTML
 
 def SquareFnrefs(HTML): # Different combinations of formatting for Soup .prettify, .encode, .decode break different page elements, don't use this for now

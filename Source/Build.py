@@ -17,6 +17,7 @@ from datetime import datetime
 from pathlib import Path
 from Modules.Config import *
 from Modules.Gemini import *
+from Modules.Globals import *
 from Modules.Logging import *
 from Modules.Markdown import *
 from Modules.Site import *

@@ -12,13 +12,7 @@ import json
 import os
 from datetime import datetime
 from pathlib import Path
-
-ReservedPaths = ('Site.ini', 'Assets', 'Pages', 'Posts', 'Templates', 'StaticParts', 'DynamicParts')
-FileExtensions = {
-	'Pages': ('htm', 'html', 'markdown', 'md', 'pug', 'txt'),
-	'HTML': ('.htm', '.html'),
-	'Markdown': ('.markdown', '.md'),
-	'Tmp': ('htm', 'markdown', 'md', 'pug', 'txt')}
+from Modules.Globals import *
 
 def SureList(e):
 	return e if type(e) == list else [e]
@@ -111,10 +105,17 @@ def ReplWithEsc(Str, Find, Repl, Esc='\\'):
 				New += Repl + e
 	return New
 
-def DictReplWithEsc(Str, Dict, Esc='\\'):
+def DictReplWithEsc(Str:str, Dict:dict, Esc:str='\\'):
 	for Item in Dict:
 		Str = ReplWithEsc(Str, Item, Dict[Item], Esc='\\')
 	return Str
+
+def WrapDictReplWithEsc(Str:str, Dict:dict, Wraps:list=[], Esc:str='\\'):
+	NewDict = {}
+	for Item in Dict:
+		for Wrap in Wraps:
+			NewDict.update({f'{Wrap[0]}{Item}{Wrap[1]}': Dict[Item]})
+	return DictReplWithEsc(Str, NewDict, Esc)
 
 def NumsFromFileName(Path):
 	Name = Path.split('/')[-1]

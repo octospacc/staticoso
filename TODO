@@ -1,5 +1,10 @@
+- .html input pages bug: // metadata lines not being removed from final file after parsing
+- Multi-line metadata flags
+- Category-based feeds
+- Meta tag generator showing software version (git commit hash)
+- Customize date format
 - Misskey for ActivityPub
-- Section marking in pages (for use with external translators)
+- Section marking in pages? (for use with external translators)
 - Choosing to use HTML or CSS styling for default internal snippets
 - Pages transclusion + probably drop StaticParts (would be redundant)
 - User macros with arguments
@@ -17,8 +22,8 @@
 - Custom path for Posts and Categories
 - Support for YAML header in Markdown
 - Support for HTML comment lines (<!-- -->) in any format
-- Support for rST and AsciiDoc (?)
-- Posts in draft state (will not be compiled) / show unlisted status for posts with Index = False
+- Support for Wikitext, rST, AsciiDoc (?)
+- Posts in draft state (will not be compiled) (?)
 - Check if external tools (pug-cli, html2gmi) are installed
 - Static code syntax highlighing
 - Override internal HTML snippets (meta lines, page lists, redirects, ...) with config file in Templates/NAME.ini

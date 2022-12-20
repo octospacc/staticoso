@@ -13,6 +13,7 @@ from multiprocessing import Pool, cpu_count
 from Libs.bs4 import BeautifulSoup
 from Modules.Config import *
 from Modules.Elements import *
+from Modules.Globals import *
 from Modules.HTML import *
 from Modules.Logging import *
 from Modules.Markdown import *
@@ -31,7 +32,7 @@ def GetHTMLPagesList(Pages, BlogName, SiteRoot, PathPrefix, CallbackFile=None, U
 	List, ToPop, LastParent = '', [], []
 	IndexPages = Pages.copy()
 	for e in IndexPages:
-		if e[3]['Index'] == 'False' or e[3]['Index'] == 'None':
+		if e[3]['Index'].lower() in PageIndexStrNeg:
 			IndexPages.remove(e)
 	for i,e in enumerate(IndexPages):
 		if Type and e[3]['Type'] != Type:
@@ -43,7 +44,7 @@ def GetHTMLPagesList(Pages, BlogName, SiteRoot, PathPrefix, CallbackFile=None, U
 		IndexPages = OrderPages(IndexPages)
 	for i,e in enumerate(Unite):
 		if e:
-			IndexPages.insert(i,[e,None,None,{'Type':Type,'Index':'True','Order':'Unite'}])
+			IndexPages.insert(i, [e, None, None, {'Type':Type, 'Index':'True', 'Order':'Unite'}])
 	for File, Content, Titles, Meta in IndexPages:
 		# Allow for the virtual "Pages/" prefix to be used in path filtering
 		TmpPathFilter = PathFilter
@@ -128,11 +129,12 @@ def FindPreprocLine(Line, Meta, Macros):
 	#	IgnoreBlocksStart += [l]
 	return (Meta, Macros, Changed)
 
-def PagePreprocessor(Path, TempPath, Type, SiteTemplate, SiteRoot, GlobalMacros, CategoryUncategorized, LightRun=False):
+def PagePreprocessor(Path:str, TempPath:str, Type, SiteTemplate, SiteRoot, GlobalMacros, CategoryUncategorized, LightRun=False):
 	File = ReadFile(Path)
 	Path = Path.lower()
 	Content, Titles, DashyTitles, HTMLTitlesFound, Macros, Meta, MetaDefault = '', [], [], False, '', '', {
 		'Template': SiteTemplate,
+		'Head': '',
 		'Style': '',
 		'Type': Type,
 		'Index': 'Unspecified',
@@ -250,24 +252,24 @@ def PagePreprocessor(Path, TempPath, Type, SiteTemplate, SiteRoot, GlobalMacros,
 			Meta.update({i:MetaDefault[i]})
 	if Meta['UpdatedOn']:
 		Meta['EditedOn'] = Meta['UpdatedOn']
-	if Meta['Index'] in ('Default', 'Unspecified', 'Categories'):
+	if Meta['Index'].lower() in ('default', 'unspecified', 'categories'):
 		if not Meta['Categories']:
 			Meta['Categories'] = [CategoryUncategorized]
-		if Meta['Type'] == 'Page':
+		if Meta['Type'].lower() == 'page':
 			Meta['Index'] = 'Categories'
-		elif Meta['Type'] == 'Post':
+		elif Meta['Type'].lower() == 'post':
 			Meta['Index'] = 'True'
 	if GlobalMacros:
 		Meta['Macros'].update(GlobalMacros)
 	Meta['Macros'].update(ReadConf(LoadConfStr('[Macros]\n' + Macros), 'Macros'))
 	return [TempPath, Content, Titles, Meta]
 
-def PagePostprocessor(FileType, Text, Meta):
+def PagePostprocessor(FileType, Text:str, Meta:dict):
 	for e in Meta['Macros']:
 		Text = ReplWithEsc(Text, f"[: {e} :]", f"[:{e}:]")
 	return Text
 
-def OrderPages(Old):
+def OrderPages(Old:list):
 	New, NoOrder, Max = [], [], 0
 	for i,e in enumerate(Old):
 		Curr = e[3]['Order']
@@ -285,10 +287,10 @@ def OrderPages(Old):
 		New.remove(None)
 	return New + NoOrder
 
-def CanIndex(Index, For):
-	if Index in ('False', 'None'):
+def CanIndex(Index:str, For:str):
+	if Index.lower() in PageIndexStrNeg:
 		return False
-	elif Index in ('True', 'All', 'Unlinked'):
+	elif Index.lower() in PageIndexStrPos:
 		return True
 	else:
 		return True if Index == For else False
@@ -297,20 +299,26 @@ def PatchHTML(File, HTML, StaticPartsText, DynamicParts, DynamicPartsText, HTMLP
 	HTMLTitles = FormatTitles(Titles)
 	BodyDescription, BodyImage = '', ''
 	if not File.lower().endswith('.txt'):
-		Soup = BeautifulSoup(Content, 'html.parser')
-	
-		if not BodyDescription and Soup.p:
-			BodyDescription = Soup.p.get_text()[:150].replace('\n', ' ').replace('"', "'") + '...'
+		Soup = MkSoup(Content)
+		if not BodyDescription:# and Soup.p:
+			#BodyDescription = Soup.p.get_text()[:150].replace('\n', ' ').replace('"', "'") + '...'
+			for t in Soup.find_all('p'):
+				if t.get_text():
+					BodyDescription = t.get_text()[:150].replace('\n', ' ').replace('"', "'") + '...'
+					break
 		if not BodyImage and Soup.img and Soup.img['src']:
 			BodyImage = Soup.img['src']
 
 		#Content = SquareFnrefs(Content)
-		if '<a class="footnote-ref"' in Content:
-			Content = AddToTagStartEnd(Content, '<a class="footnote-ref"', '</a>', '[', ']')
+		if '<a class="footnote-ref" ' in Content:
+			Content = AddToTagStartEnd(Content, '<a class="footnote-ref" ', '</a>', '[', ']')
 
 		if any(_ in Content for _ in ('<!-- noprocess />', '<!--noprocess/>', '</ noprocess -->', '</ noprocess --->', '</noprocess-->', '</noprocess--->')):
 			Content = DictReplWithEsc(
 				Content, {
+					'<!--<%noprocess>': '',
+					'<noprocess%>-->': '',
+					'<noprocess%>--->': '',
 					'<!-- noprocess />': '',
 					'<!--noprocess/>': '',
 					'</ noprocess -->': '',
@@ -352,85 +360,130 @@ def PatchHTML(File, HTML, StaticPartsText, DynamicParts, DynamicPartsText, HTMLP
 	if LightRun:
 		HTML = None
 	else:
-		HTML = DictReplWithEsc(HTML, {
-			'[staticoso:Site:Menu]': HTMLPagesList,
-			'<staticoso:SiteMenu>': HTMLPagesList,
-			'[staticoso:Page:Lang]': Meta['Language'] if Meta['Language'] else SiteLang,
-			'<staticoso:PageLang>': Meta['Language'] if Meta['Language'] else SiteLang,
-			'<staticoso:PageLanguage>': Meta['Language'] if Meta['Language'] else SiteLang,
-			'[staticoso:Page:Chapters]': HTMLTitles,
-			'<staticoso:PageSections>': HTMLTitles,
-			'[staticoso:Page:Title]': Title,
-			'<staticoso:PageTitle>': Title,
-			'[staticoso:Page:Description]': Description,
-			'<staticoso:PageDescription>': Description,
-			'[staticoso:Page:Image]': Image,
-			'<staticoso:PageImage>': Image,
-			'[staticoso:Page:Path]': PagePath,
-			'<staticoso:PagePath>': PagePath,
-			'[staticoso:Page:Style]': Meta['Style'],
-			'<staticoso:PageStyle>': Meta['Style'],
+		HTML = WrapDictReplWithEsc(HTML, {
+			#'[staticoso:Site:Menu]': HTMLPagesList,
+			#'<staticoso:SiteMenu>': HTMLPagesList,
+			#'[staticoso:Page:Lang]': Meta['Language'] if Meta['Language'] else SiteLang,
+			#'<staticoso:PageLang>': Meta['Language'] if Meta['Language'] else SiteLang,
+			#'<staticoso:PageLanguage>': Meta['Language'] if Meta['Language'] else SiteLang,
+			#'[staticoso:Page:Chapters]': HTMLTitles,
+			#'<staticoso:PageSections>': HTMLTitles,
+			#'[staticoso:Page:Title]': Title,
+			#'<staticoso:PageTitle>': Title,
+			#'[staticoso:Page:Description]': Description,
+			#'<staticoso:PageDescription>': Description,
+			#'[staticoso:Page:Image]': Image,
+			#'<staticoso:PageImage>': Image,
+			#'[staticoso:Page:Path]': PagePath,
+			#'<staticoso:PagePath>': PagePath,
+			#'[staticoso:PageHead]': Meta['Head'],
+			#'<staticoso:PageHead>': Meta['Head'],
+			#'[staticoso:Page:Style]': Meta['Style'],
+			#'<staticoso:PageStyle>': Meta['Style'],
+			# #DEPRECATION #
+			'staticoso:Site:Menu': HTMLPagesList,
+			'staticoso:Page:Lang': Meta['Language'] if Meta['Language'] else SiteLang,
+			'staticoso:Page:Chapters': HTMLTitles,
+			'staticoso:Page:Title': Title,
+			'staticoso:Page:Description': Description,
+			'staticoso:Page:Image': Image,
+			'staticoso:Page:Path': PagePath,
+			'staticoso:Page:Style': Meta['Style'],
+			################
+			'staticoso:SiteMenu': HTMLPagesList,
+			'staticoso:PageLang': Meta['Language'] if Meta['Language'] else SiteLang,
+			'staticoso:PageLanguage': Meta['Language'] if Meta['Language'] else SiteLang,
+			'staticoso:PageSections': HTMLTitles,
+			'staticoso:PageTitle': Title,
+			'staticoso:PageDescription': Description,
+			'staticoso:PageImage': Image,
+			'staticoso:PagePath': PagePath,
+			'staticoso:PageHead': Meta['Head'],
+			'staticoso:PageStyle': Meta['Style'],
 			# NOTE: Content is injected in page only at this point! Keep in mind for other substitutions
-			'[staticoso:Page:Content]': Content,
-			'<staticoso:PageContent>': Content,
-			'[staticoso:Page:ContentInfo]': ContentHeader,
-			'<staticoso:PageContentInfo>': ContentHeader,
-			'[staticoso:BuildTime]': TimeNow,
-			'<staticoso:BuildTime>': TimeNow,
-			'<staticoso:SiteDomain>': SiteDomain,
-			'[staticoso:Site:Name]': SiteName,
-			'<staticoso:SiteName>': SiteName,
-			'[staticoso:Site:AbsoluteRoot]': SiteRoot,
-			'<staticoso:SiteAbsoluteRoot>': SiteRoot,
-			'[staticoso:Site:RelativeRoot]': RelativeRoot,
-			'<staticoso:SiteRelativeRoot>': RelativeRoot})
+			#'[staticoso:Page:Content]': Content,
+			#'<staticoso:PageContent>': Content,
+			#'[staticoso:Page:ContentInfo]': ContentHeader,
+			#'<staticoso:PageContentInfo>': ContentHeader,
+			#'[staticoso:BuildTime]': TimeNow,
+			#'<staticoso:BuildTime>': TimeNow,
+			#'<staticoso:SiteDomain>': SiteDomain,
+			#'[staticoso:Site:Name]': SiteName,
+			#'<staticoso:SiteName>': SiteName,
+			#'[staticoso:Site:AbsoluteRoot]': SiteRoot,
+			#'<staticoso:SiteAbsoluteRoot>': SiteRoot,
+			#'[staticoso:Site:RelativeRoot]': RelativeRoot,
+			#'<staticoso:SiteRelativeRoot>': RelativeRoot,
+			# #DEPRECATION #
+			'staticoso:Page:Content': Content,
+			'staticoso:Page:ContentInfo': ContentHeader,
+			'staticoso:Site:Name': SiteName,
+			'staticoso:Site:AbsoluteRoot': SiteRoot,
+			'staticoso:Site:RelativeRoot': RelativeRoot,
+			################
+			'staticoso:PageContent': Content,
+			'staticoso:PageContentInfo': ContentHeader,
+			'staticoso:BuildTime': TimeNow,
+			'staticoso:SiteDomain': SiteDomain,
+			'staticoso:SiteName': SiteName,
+			'staticoso:SiteAbsoluteRoot': SiteRoot,
+			'staticoso:SiteRelativeRoot': RelativeRoot,
+		}, InternalMacrosWraps)
 		for e in Meta['Macros']:
 			HTML = ReplWithEsc(HTML, f"[:{e}:]", Meta['Macros'][e])
 		for e in FolderRoots:
-			HTML = DictReplWithEsc(HTML, {
-				f"[staticoso:CustomPath:{e}]": FolderRoots[e],
-				f"<staticoso:CustomPath:{e}>": FolderRoots[e],
-				#DEPRECATED
-				f"[staticoso:Folder:{e}:AbsoluteRoot]": FolderRoots[e],
-				f"<staticoso:Folder:{e}:AbsoluteRoot>": FolderRoots[e]})
+			HTML = WrapDictReplWithEsc(HTML, {
+				f'staticoso:CustomPath:{e}': FolderRoots[e],
+				f'staticoso:Folder:{e}:AbsoluteRoot': FolderRoots[e], #DEPRECATED
+			}, InternalMacrosWraps)
 		for e in Categories:
-			HTML = DictReplWithEsc(HTML, {
-			f"[staticoso:Category:{e}]": Categories[e],
-			f"<staticoso:Category:{e}>": Categories[e],
-			f"<staticoso:CategoryList:{e}>": Categories[e],
-			#DEPRECATED
-			f"<span>[staticoso:Category:{e}]</span>": Categories[e]})
+			HTML = WrapDictReplWithEsc(HTML, {
+				f'staticoso:Category:{e}': Categories[e],
+				f'staticoso:CategoryList:{e}': Categories[e],
+			}, InternalMacrosWraps)
+			HTML = ReplWithEsc(HTML, f'<span>[staticoso:Category:{e}]</span>', Categories[e]) #DEPRECATED
 
 	# TODO: Clean this doubling?
 	ContentHTML = Content
-	ContentHTML = DictReplWithEsc(ContentHTML, {
+	ContentHTML = WrapDictReplWithEsc(ContentHTML, {
+		#'[staticoso:Page:Title]': Title,
+		#'<staticoso:PageTitle>': Title,
+		#'[staticoso:Page:Description]': Description,
+		#'<staticoso:PageDescription>': Description,
+		#'<staticoso:SiteDomain>': SiteDomain,
+		#'[staticoso:Site:Name]': SiteName,
+		#'<staticoso:SiteName>': SiteName,
+		#'[staticoso:Site:AbsoluteRoot]': SiteRoot,
+		#'<staticoso:SiteAbsoluteRoot>': SiteRoot,
+		#'[staticoso:Site:RelativeRoot]': RelativeRoot,
+		#'<staticoso:SiteRelativeRoot>': RelativeRoot,
+		# #DEPRECATION #
 		'[staticoso:Page:Title]': Title,
-		'<staticoso:PageTitle>': Title,
 		'[staticoso:Page:Description]': Description,
+		'[staticoso:Site:Name]': SiteName,
+		'[staticoso:Site:AbsoluteRoot]': SiteRoot,
+		'[staticoso:Site:RelativeRoot]': RelativeRoot,
+		################
+		'<staticoso:PageTitle>': Title,
 		'<staticoso:PageDescription>': Description,
 		'<staticoso:SiteDomain>': SiteDomain,
-		'[staticoso:Site:Name]': SiteName,
 		'<staticoso:SiteName>': SiteName,
-		'[staticoso:Site:AbsoluteRoot]': SiteRoot,
 		'<staticoso:SiteAbsoluteRoot>': SiteRoot,
-		'[staticoso:Site:RelativeRoot]': RelativeRoot,
-		'<staticoso:SiteRelativeRoot>': RelativeRoot})
+		'<staticoso:SiteRelativeRoot>': RelativeRoot,
+	}, InternalMacrosWraps)
 	for e in Meta['Macros']:
 		ContentHTML = ReplWithEsc(ContentHTML, f"[:{e}:]", Meta['Macros'][e])
 	for e in FolderRoots:
-		ContentHTML = DictReplWithEsc(ContentHTML, {
-			f"[staticoso:CustomPath:{e}]": FolderRoots[e],
-			f"<staticoso:CustomPath:{e}>": FolderRoots[e],
-			#DEPRECATED
-			f"[staticoso:Folder:{e}:AbsoluteRoot]": FolderRoots[e],
-			f"<staticoso:Folder:{e}:AbsoluteRoot>": FolderRoots[e]})
+		ContentHTML = WrapDictReplWithEsc(ContentHTML, {
+			f'staticoso:CustomPath:{e}': FolderRoots[e],
+			f'staticoso:Folder:{e}:AbsoluteRoot': FolderRoots[e], #DEPRECATED
+		}, InternalMacrosWraps)
 	for e in Categories:
-		ContentHTML = DictReplWithEsc(ContentHTML, {
-			f"[staticoso:Category:{e}]": Categories[e],
-			f"<staticoso:Category:{e}>": Categories[e],
-			f"<staticoso:CategoryList:{e}>": Categories[e],
-			#DEPRECATED
-			f"<span>[staticoso:Category:{e}]</span>": Categories[e]})
+		ContentHTML = WrapDictReplWithEsc(ContentHTML, {
+			f'staticoso:Category:{e}': Categories[e],
+			f'staticoso:CategoryList:{e}': Categories[e],
+		}, InternalMacrosWraps)
+		ContentHTML = ReplWithEsc(ContentHTML, f'<span>[staticoso:Category:{e}]</span>', Categories[e]) #DEPRECATED
 
 	return HTML, ContentHTML, Description, Image
 
