@@ -33,11 +33,11 @@ RedirectPageTemplate = """\
 <!DOCTYPE html>
 <html>
 <head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta charset="UTF-8"/>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 	<title>{TitlePrefix}Redirect</title>
-	<link rel="canonical" href="{SiteDomain}/{DestURL}">
-	<meta http-equiv="refresh" content="0; url='{DestURL}'">
+	<link rel="canonical" href="{SiteDomain}/{DestURL}"/>
+	<meta http-equiv="refresh" content="0; url='{DestURL}'"/>
 </head>
 <body>
 	<p><a href="{DestURL}">{StrClick}</a> {StrRedirect}.</p>
@@ -46,15 +46,15 @@ RedirectPageTemplate = """\
 """
 HTMLCommentsBlock = '<br><h3>{StrComments}</h3><a href="{URL}" rel="noopener" target="_blank">{StrOpen} <span class="twa twa-↗️"><span>↗️</span></span></a>'
 
-def DashifyTitle(Title, Done=[]):
+def DashifyTitle(Title:str, Done:list=[]):
 	return UndupeStr(DashifyStr(Title.lstrip(' ').rstrip(' ')), Done, '-')
 
-# Generate HTML tree/nested list from our internal metaformat, such as:
+# Generate HTML tree list (nested list) from our internal metaformat, such as:
 # :Item 1               \\  <li>Item 1<ul>
 # .:Item 2   ============\\     <li>Item 2<ul>
 # ..:Item 3  ============//         <li>Item 3</li></ul></li></ul></li>
 # :Item 4               //  <li>Item 4</li>
-def GenHTMLTreeList(MetaList:str, Type:str='ul'):
+def GenHTMLTreeList(MetaList:str, Type:str='ul', Class:str=""):
 	HTML = ''
 	Lines = MetaList.splitlines()
 	CurDepth, NextDepth, PrevDepth = 0, 0, 0
@@ -69,7 +69,7 @@ def GenHTMLTreeList(MetaList:str, Type:str='ul'):
 		elif NextDepth < CurDepth:
 			HTML += f'</li>\n</{Type}>' * (CurDepth - NextDepth) + '</li>'
 		PrevDepth = CurDepth
-	return f'<{Type}>{HTML}\n</{Type}>'
+	return f'<{Type} class="staticoso-TreeList {Class}">{HTML}\n</{Type}>'
 
 def MakeLinkableTitle(Line:str, Title:str, DashTitle:str, Type:str):
 	if Type == 'md':
@@ -86,7 +86,7 @@ def MakeLinkableTitle(Line:str, Title:str, DashTitle:str, Type:str):
 			Rest=Line[Index+2:],
 			DashTitle=DashTitle)
 
-def GetTitle(FileName:str, Meta:dict, Titles:list, Prefer='MetaTitle', BlogName=None):
+def GetTitle(FileName:str, Meta:dict, Titles:list, Prefer:str='MetaTitle', BlogName:str=None):
 	if Prefer == 'BodyTitle':
 		Title = Titles[0].lstrip('#') if Titles else Meta['Title'] if Meta['Title'] else FileName
 	elif Prefer == 'MetaTitle':
@@ -97,21 +97,21 @@ def GetTitle(FileName:str, Meta:dict, Titles:list, Prefer='MetaTitle', BlogName=
 		Title += ' - ' + BlogName
 	return Title
 
-def GetDescription(Meta:dict, BodyDescription, Prefer='MetaDescription'):
+def GetDescription(Meta:dict, BodyDescription:str, Prefer:str='MetaDescription'):
 	if Prefer == 'BodyDescription':
 		Description = BodyDescription if BodyDescription else Meta['Description'] if Meta['Description'] else ''
 	elif Prefer == 'MetaDescription':
 		Description = Meta['Description'] if Meta['Description'] else BodyDescription if BodyDescription else ''
 	return Description
 
-def GetImage(Meta:dict, BodyImage, Prefer='MetaImage'):
+def GetImage(Meta:dict, BodyImage:str, Prefer:str='MetaImage'):
 	if Prefer == 'BodyImage':
 		Image = BodyImage if BodyImage else Meta['Image'] if Meta['Image'] else ''
 	elif Prefer == 'MetaImage':
 		Image = Meta['Image'] if Meta['Image'] else BodyImage if BodyImage else ''
 	return Image
 
-def MakeContentHeader(Meta:dict, Locale:dict, Categories=''):
+def MakeContentHeader(Meta:dict, Locale:dict, Categories:str=''):
 	Header = ''
 	for e in ['CreatedOn', 'EditedOn']:
 		if Meta[e]:
@@ -122,24 +122,26 @@ def MakeContentHeader(Meta:dict, Locale:dict, Categories=''):
 		Header += f'<span class="staticoso-ContentHeader-Index" id="staticoso-ContentHeader-Index"><span class="staticoso-Value">{Locale["Unlisted"]}</span></span><br>'
 	return f'<p>{Header}</p>'
 
-def MakeCategoryLine(File, Meta):
+def MakeCategoryLine(File:str, Meta:dict):
 	Categories = ''
 	for Cat in Meta['Categories']:
 		Categories += f' <a href="{GetPathLevels(File)}Categories/{Cat}.html">{html.escape(Cat)}</a> '
 	return Categories
 
-def MakeListTitle(File, Meta, Titles, Prefer, SiteRoot, BlogName, PathPrefix=''):
+def MakeListTitle(File:str, Meta:dict, Titles:list, Prefer:str, BlogName:str, PathPrefix:str=''):
 	Title = GetTitle(File.split('/')[-1], Meta, Titles, Prefer, BlogName).lstrip().rstrip()
 	Link = False if Meta['Index'] == 'Unlinked' else True
 	if Link:
 		Href = f'{PathPrefix}{StripExt(File)}.html'
 		Title = f'<a href="{Href}">{Title}</a>'
+	#else:
+	#	Title = f'<span class="staticoso-ListItem-Plain">{Title}</span>'
 	if Meta['Type'] == 'Post':
 		CreatedOn = Meta['CreatedOn'] if Meta['CreatedOn'] else '?'
-		Title = f"[<time>{CreatedOn}</time>] {Title}"
+		Title = f"<span>[<time>{CreatedOn}</time>]</span> {Title}"
 	return Title
 
-def FormatTitles(Titles, Flatten=False):
+def FormatTitles(Titles:list, Flatten=False):
 	# TODO: Somehow titles written in Pug can end up here and don't work, they should be handled
 	List, DashyTitles = '', []
 	for t in Titles:
@@ -192,8 +194,10 @@ def MakeHTMLJournal(Flags, Locale, FilePath, HTML):
 <!DOCTYPE html>
 <html>
 <head>
+	<meta charset="UTF-8"/>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 	<title>{Title}</title>
-	<link rel="canonical" href="{URL}">
+	<link rel="canonical" href="{URL}"/>
 	{Redirect}
 </head>
 <body>

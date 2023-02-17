@@ -289,6 +289,16 @@ def Main(Args, FeedEntries):
 	else:
 		shutil.copytree('Assets', OutDir, dirs_exist_ok=True)
 
+#def DoSiteBuild(Arg=None):
+#	#try:
+#	#	SiteEditObserver.stop()
+#	#	SiteEditObserver.join()
+#	#except:
+#	#	pass
+#	Main(Args=Args, FeedEntries=FeedEntries)
+#	logging.info(f"✅ Done! ({round(time.time()-StartTime, 3)}s)")
+#	#SiteEditObserver.start()
+
 if __name__ == '__main__':
 	StartTime = time.time()
 
@@ -341,7 +351,26 @@ if __name__ == '__main__':
 		logging.warning("⚠ Can't load the XML libraries. XML Feeds Generation is Disabled. Make sure the 'lxml' library is installed.")
 		FeedEntries = 0
 
-	Main(
-		Args=Args,
-		FeedEntries=FeedEntries)
+	#from watchdog.observers import Observer
+	#from watchdog.events import LoggingEventHandler
+	#SiteEditEvent = LoggingEventHandler()
+	#SiteEditEvent.on_created = DoSiteBuild
+	#SiteEditEvent.on_deleted = DoSiteBuild
+	#SiteEditEvent.on_modified = DoSiteBuild
+	#SiteEditEvent.on_moved = DoSiteBuild
+	#SiteEditObserver = Observer()
+	#SiteEditObserver.schedule(SiteEditEvent, ".", recursive=True)
+	#SiteEditObserver.start()
+
+	Main(Args=Args, FeedEntries=FeedEntries)
 	logging.info(f"✅ Done! ({round(time.time()-StartTime, 3)}s)")
+	#DoSiteBuild()
+	
+	#try:
+	#	while True:
+	#		pass
+	#except KeyboardInterrupt:
+	#	logging.info("Stopped.")
+	#finally:
+	#	SiteEditObserver.stop()
+	#	SiteEditObserver.join()

@@ -64,14 +64,14 @@ def GetHTMLPagesList(Pages, BlogName, SiteRoot, PathPrefix, CallbackFile=None, U
 						Levels = '.' * ((Depth-2+i) if not Flatten else 0) + ':'
 						# If search node endswith index, it's a page; else, it's a folder
 						if StripExt(File).endswith('index'):
-							Title = MakeListTitle(File, Meta, Titles, 'HTMLTitle', SiteRoot, BlogName, PathPrefix)
+							Title = MakeListTitle(File, Meta, Titles, 'HTMLTitle', BlogName, PathPrefix)
 							DoneCount += 1
 						else:
 							Title = CurParent[Depth-2+i]
 						if SingleLine:
-							List += ' <span>' + Title + '</span> '
+							List += f' <span>{Title}</span> '
 						else:
-							List += Levels + Title + '\n'
+							List += f'{Levels}<span>{Title}</span>\n'
 
 			# Pages with any other path
 			if not (Depth > 1 and StripExt(File).split('/')[-1] == 'index'):
@@ -80,14 +80,14 @@ def GetHTMLPagesList(Pages, BlogName, SiteRoot, PathPrefix, CallbackFile=None, U
 				if Meta['Order'] == 'Unite':
 					Title = markdown(MarkdownHTMLEscape(File, MarkdownExts), extensions=MarkdownExts).removeprefix('<p>').removesuffix('<p>')
 				else:
-					Title = MakeListTitle(File, Meta, Titles, 'HTMLTitle', SiteRoot, BlogName, PathPrefix)
+					Title = MakeListTitle(File, Meta, Titles, 'HTMLTitle', BlogName, PathPrefix)
 				if SingleLine:
 					List += ' <span>' + Title + '</span> '
 				else:
 					List += Levels + Title + '\n'
 
 	if MenuStyle in ('Default', 'Flat'):
-		return GenHTMLTreeList(List)
+		return GenHTMLTreeList(List, Class="staticoso-PagesList")
 	elif MenuStyle in ('Line', 'Excerpt', 'Image', 'Preview', 'Full'):
 		return List
 
@@ -361,25 +361,8 @@ def PatchHTML(File, HTML, StaticPartsText, DynamicParts, DynamicPartsText, HTMLP
 		HTML = None
 	else:
 		HTML = WrapDictReplWithEsc(HTML, {
-			#'[staticoso:Site:Menu]': HTMLPagesList,
-			#'<staticoso:SiteMenu>': HTMLPagesList,
-			#'[staticoso:Page:Lang]': Meta['Language'] if Meta['Language'] else SiteLang,
-			#'<staticoso:PageLang>': Meta['Language'] if Meta['Language'] else SiteLang,
-			#'<staticoso:PageLanguage>': Meta['Language'] if Meta['Language'] else SiteLang,
-			#'[staticoso:Page:Chapters]': HTMLTitles,
-			#'<staticoso:PageSections>': HTMLTitles,
-			#'[staticoso:Page:Title]': Title,
-			#'<staticoso:PageTitle>': Title,
-			#'[staticoso:Page:Description]': Description,
-			#'<staticoso:PageDescription>': Description,
-			#'[staticoso:Page:Image]': Image,
-			#'<staticoso:PageImage>': Image,
-			#'[staticoso:Page:Path]': PagePath,
-			#'<staticoso:PagePath>': PagePath,
 			#'[staticoso:PageHead]': Meta['Head'],
 			#'<staticoso:PageHead>': Meta['Head'],
-			#'[staticoso:Page:Style]': Meta['Style'],
-			#'<staticoso:PageStyle>': Meta['Style'],
 			# #DEPRECATION #
 			'staticoso:Site:Menu': HTMLPagesList,
 			'staticoso:Page:Lang': Meta['Language'] if Meta['Language'] else SiteLang,
@@ -401,19 +384,6 @@ def PatchHTML(File, HTML, StaticPartsText, DynamicParts, DynamicPartsText, HTMLP
 			'staticoso:PageHead': Meta['Head'],
 			'staticoso:PageStyle': Meta['Style'],
 			# NOTE: Content is injected in page only at this point! Keep in mind for other substitutions
-			#'[staticoso:Page:Content]': Content,
-			#'<staticoso:PageContent>': Content,
-			#'[staticoso:Page:ContentInfo]': ContentHeader,
-			#'<staticoso:PageContentInfo>': ContentHeader,
-			#'[staticoso:BuildTime]': TimeNow,
-			#'<staticoso:BuildTime>': TimeNow,
-			#'<staticoso:SiteDomain>': SiteDomain,
-			#'[staticoso:Site:Name]': SiteName,
-			#'<staticoso:SiteName>': SiteName,
-			#'[staticoso:Site:AbsoluteRoot]': SiteRoot,
-			#'<staticoso:SiteAbsoluteRoot>': SiteRoot,
-			#'[staticoso:Site:RelativeRoot]': RelativeRoot,
-			#'<staticoso:SiteRelativeRoot>': RelativeRoot,
 			# #DEPRECATION #
 			'staticoso:Page:Content': Content,
 			'staticoso:Page:ContentInfo': ContentHeader,
@@ -446,17 +416,6 @@ def PatchHTML(File, HTML, StaticPartsText, DynamicParts, DynamicPartsText, HTMLP
 	# TODO: Clean this doubling?
 	ContentHTML = Content
 	ContentHTML = WrapDictReplWithEsc(ContentHTML, {
-		#'[staticoso:Page:Title]': Title,
-		#'<staticoso:PageTitle>': Title,
-		#'[staticoso:Page:Description]': Description,
-		#'<staticoso:PageDescription>': Description,
-		#'<staticoso:SiteDomain>': SiteDomain,
-		#'[staticoso:Site:Name]': SiteName,
-		#'<staticoso:SiteName>': SiteName,
-		#'[staticoso:Site:AbsoluteRoot]': SiteRoot,
-		#'<staticoso:SiteAbsoluteRoot>': SiteRoot,
-		#'[staticoso:Site:RelativeRoot]': RelativeRoot,
-		#'<staticoso:SiteRelativeRoot>': RelativeRoot,
 		# #DEPRECATION #
 		'[staticoso:Page:Title]': Title,
 		'[staticoso:Page:Description]': Description,

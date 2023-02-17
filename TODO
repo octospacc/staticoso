@@ -1,3 +1,4 @@
+- Put more metadata in the generated HTML (classes, data- attribs., ecc..) for CSS purposes
 - .html input pages bug: // metadata lines not being removed from final file after parsing
 - Multi-line metadata flags
 - Category-based feeds
