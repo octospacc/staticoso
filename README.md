@@ -1,4 +1,10 @@
-# staticoso
+# Development has been moved
+
+This branch is now frozen and won't receive any updates. For now, all future development will happen on the new **Dev monorepo branch**: <https://gitlab.com/octtspacc/staticoso/-/tree/Dev>.
+
+The _main_ branch remains indefinitely as it is to not break build workflows. However, everyone is advised to adjust their workflows ASAP. Consult the [README on the Dev branch](https://gitlab.com/octtspacc/staticoso/-/blob/Dev/README.md) for more details.
+
+---
 
 **staticoso** (_from Italian statico [static] + coso [thingy]_) is an unpretentious **static site generator**.
 
