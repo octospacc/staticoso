@@ -105,3 +105,4 @@ All of this is because some crucial things might be changed from one commit to a
 - Bad HTML included in Markdown files can cause a build to fail entirely.
 - Despite differential building and multithreading, the program still needs some more optimizations.
 - Ordering pages in the global menu with external configuration flags (outside the pages' source) yields broken and unpredictable results.
+- If site is small, the graphic of percentage completion is bugged (appears shorter).

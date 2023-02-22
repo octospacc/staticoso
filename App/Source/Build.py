@@ -33,7 +33,7 @@ from Libs import rcssmin
 cssmin = rcssmin._make_cssmin(python_only=True)
 
 def ResetOutDir(OutDir):
-	for e in (OutDir, f"{OutDir}.gmi"):
+	for e in (OutDir, f'{OutDir}.Content', f'{OutDir}.gmi'):
 		try:
 			shutil.rmtree(e)
 		except FileNotFoundError:
@@ -119,7 +119,7 @@ def WriteRedirects(Flags, Pages, FinalPaths, Locale):
 					StrClick=Locale['ClickHere'],
 					StrRedirect=Locale['IfNotRedirected']))
 
-def Main(Args, FeedEntries):
+def BuildMain(Args, FeedEntries):
 	Flags, Snippets, FinalPaths = {}, {}, []
 	HavePages, HavePosts = False, False
 	SiteConf = LoadConfFile('Site.ini')
@@ -208,13 +208,15 @@ def Main(Args, FeedEntries):
 	if os.path.isdir('Pages'):
 		HavePages = True
 		shutil.copytree('Pages', OutDir, dirs_exist_ok=True)
+		shutil.copytree('Pages', f'{OutDir}.Content', dirs_exist_ok=True)
 		if Flags['GemtextOutput']:
-			shutil.copytree('Pages', f"{OutDir}.gmi", ignore=IgnoreFiles, dirs_exist_ok=True)
+			shutil.copytree('Pages', f'{OutDir}.gmi', ignore=IgnoreFiles, dirs_exist_ok=True)
 	if os.path.isdir('Posts'):
 		HavePosts = True
-		shutil.copytree('Posts', f"{OutDir}/Posts", dirs_exist_ok=True)
+		shutil.copytree('Posts', f'{OutDir}/Posts', dirs_exist_ok=True)
+		shutil.copytree('Posts', f'{OutDir}.Content/Posts', dirs_exist_ok=True)
 		if Flags['GemtextOutput']:
-			shutil.copytree('Posts', f"{OutDir}.gmi/Posts", ignore=IgnoreFiles, dirs_exist_ok=True)
+			shutil.copytree('Posts', f'{OutDir}.gmi/Posts', ignore=IgnoreFiles, dirs_exist_ok=True)
 
 	if not (HavePages or HavePosts):
 		logging.error("⛔ No Pages or posts found. Nothing to do, exiting!")
@@ -259,8 +261,11 @@ def Main(Args, FeedEntries):
 		WriteFile(File, Content)
 		FinalPaths += [File]
 
-	logging.debug("Creating Redirects")
+	logging.info("Creating Redirects")
 	WriteRedirects(Flags, Pages, FinalPaths, Locale)
+
+	logging.info("Building HTML Search Page")
+	WriteFile(f'{OutDir}/Search.html', BuildPagesSearch(Flags, Pages))
 
 	if Flags['GemtextOutput']:
 		logging.info("Generating Gemtext")
@@ -288,16 +293,6 @@ def Main(Args, FeedEntries):
 					shutil.copy2(File, Dest)
 	else:
 		shutil.copytree('Assets', OutDir, dirs_exist_ok=True)
-
-#def DoSiteBuild(Arg=None):
-#	#try:
-#	#	SiteEditObserver.stop()
-#	#	SiteEditObserver.join()
-#	#except:
-#	#	pass
-#	Main(Args=Args, FeedEntries=FeedEntries)
-#	logging.info(f"✅ Done! ({round(time.time()-StartTime, 3)}s)")
-#	#SiteEditObserver.start()
 
 if __name__ == '__main__':
 	StartTime = time.time()
@@ -351,26 +346,5 @@ if __name__ == '__main__':
 		logging.warning("⚠ Can't load the XML libraries. XML Feeds Generation is Disabled. Make sure the 'lxml' library is installed.")
 		FeedEntries = 0
 
-	#from watchdog.observers import Observer
-	#from watchdog.events import LoggingEventHandler
-	#SiteEditEvent = LoggingEventHandler()
-	#SiteEditEvent.on_created = DoSiteBuild
-	#SiteEditEvent.on_deleted = DoSiteBuild
-	#SiteEditEvent.on_modified = DoSiteBuild
-	#SiteEditEvent.on_moved = DoSiteBuild
-	#SiteEditObserver = Observer()
-	#SiteEditObserver.schedule(SiteEditEvent, ".", recursive=True)
-	#SiteEditObserver.start()
-
-	Main(Args=Args, FeedEntries=FeedEntries)
+	BuildMain(Args=Args, FeedEntries=FeedEntries)
 	logging.info(f"✅ Done! ({round(time.time()-StartTime, 3)}s)")
-	#DoSiteBuild()
-	
-	#try:
-	#	while True:
-	#		pass
-	#except KeyboardInterrupt:
-	#	logging.info("Stopped.")
-	#finally:
-	#	SiteEditObserver.stop()
-	#	SiteEditObserver.join()

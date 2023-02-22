@@ -1,0 +1,201 @@
+<!-- -->
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8"/>
+		<style>
+			:root {
+				--staticoso-HtmlSearch-ColorMatchWord: yellow;
+				/*--staticoso-HtmlSearch-ColorMatchBlock: orange;*/
+			}
+		</style>
+	</head>
+	<body>
+<!--
+-->
+		<style class="staticoso-HtmlSearch-Style"></style>
+		<input class="staticoso-HtmlSearch-Input"/>
+
+		<div class="staticoso-HtmlSearch-Pages">
+			{{PagesInject}}
+		</div>
+		<script>
+			var SearchInput = document.querySelector('.staticoso-HtmlSearch-Input');
+			var SearchStyle = document.querySelector('.staticoso-HtmlSearch-Style');
+			var SelectPage = '.staticoso-HtmlSearch-Page';
+			var SelectHref = '.staticoso-HtmlSearch-Href';
+			var SelectBase = `${SelectPage}s > ${SelectPage}`;
+			// <https://developer.mozilla.org/en-US/docs/Web/HTML/Block-level_elements#elements> + some personal
+			var BlockElems = ['address', 'article', 'aside', 'blockquote', 'details', 'dialog', 'dd', 'div', 'dl', 'dt', 'fieldset', 'figcaption', 'figure', 'footer', 'form', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'header', 'hgroup', 'hr', 'li', 'main', 'nav', 'ol', 'p', 'pre', 'section', 'table', 'ul', /**/ 'iframe', 'video', 'label'/*, 'span', 'i'*/];
+
+			// <https://stackoverflow.com/a/10730777>
+			function TextNodesUnder(El) {
+				var n, a = [], walk = document.createTreeWalker(El, NodeFilter.SHOW_TEXT, null, false);
+				while (n = walk.nextNode()) a.push(n);
+				return a;
+			};
+
+			function StripExcessSpace(Txt) {
+				return Txt
+					.trim()
+					.replaceAll('\n', ' ')
+					.replaceAll('\t', ' ')
+					.replace(/\s+/g, ' '); // Replace all multiple spaces with 1
+			};
+
+			// Make a CSS string emulating the :where selector, for old browsers
+			function CssWhere(Base, Where) {
+				var Style = '';
+				Where.forEach(function(Tgt) {
+					Style += `${Base} ${Tgt},`;
+				});
+				return Style.slice(0, -1);
+			};
+
+			// Get all needed elements under our class, infinitely nested, and set their textContent as data attribute
+			function PatchHtml() {
+				// Block elements, just add the attribute
+				document.querySelectorAll(CssWhere(SelectBase, BlockElems)).forEach(function(El) {
+					El.dataset.staticosoHtmlsearchBlock = StripExcessSpace(El.textContent.toLowerCase());
+				});
+				// Text nodes, we have to wrap each into a new real element and delete the original node
+				TextNodesUnder(document.querySelector(`${SelectPage}s`)).forEach(function(El) {
+					var ElNew = document.createElement('span');
+					StripExcessSpace(El.textContent).split(' ').forEach(function(Word) {
+						var ElWord;
+						[Word, ' '].forEach(function(Str) {
+							ElWord = document.createElement('span');
+							ElWord.innerHTML = Str;
+							ElWord.dataset.staticosoHtmlsearchWord = Str.toLowerCase();
+							ElNew.appendChild(ElWord);
+						});
+					});
+					El.replaceWith(ElNew);
+				});
+				// Delete any illegal elements that got out of their supposed div due to bad HTML
+				document.querySelectorAll(`${SelectPage}s > *:not(${SelectPage})`).forEach(function(El) {
+					El.remove();
+				});
+			};
+
+			// Check if any child of a node is actually visible
+			function HasVisibleChild(El) {
+				var Childs = El.children;
+				for (var i = 0; i < Childs.length; i++) {
+					// If at least one child is CSS-displayed and has non-void content
+					if (getComputedStyle(Childs[i]).display != 'none' && Childs[i].textContent.trim()) {
+						return true;
+					};
+				};
+				return false;
+			};
+
+			function CreateSearchAnchors() {
+				/*
+				// Create anchors redirecting to the pages that are displayed
+				document.querySelectorAll(SelectBase).forEach(function(Page) {
+					var Href = Page.dataset.staticosoHtmlsearchHref;
+					if (HasVisibleChild(Page)) {
+						if (!Page.parentNode.querySelector(`${SelectHref}[href="${Href}"]`)) {
+							var ElHref = document.createElement('a');
+							ElHref.className = SelectHref.slice(1);
+							ElHref.innerHTML = Page.dataset.staticosoHtmlsearchName || Href;
+							ElHref.href = Href;
+							Page.parentNode.insertBefore(ElHref, Page);
+						};
+					} else {
+						Page.parentNode.querySelectorAll(`${SelectHref}[href="${Href}"]`).forEach(function(ElHref) {
+							ElHref.remove();
+						});
+					};
+				});
+				*/
+				// Create anchors redirecting to the pages that are displayed
+				// First delete old links
+				document.querySelectorAll(`${SelectPage}s > ${SelectHref}`).forEach(function(Link) {
+					Link.remove();
+				});
+				// Then for all visible blocks check their parents to see if the links exist, if not [re]create them
+				// Go page by page to skip cycles when we can
+				var Pages = document.querySelectorAll(SelectBase);
+				for (var i = 0; i < Pages.length; i++) {
+				//document.querySelectorAll(SelectBase).forEach(function(Page) {
+					var Page = Pages[i];
+					var Blocks = Page.querySelector/*All*/(`*[data-staticoso-htmlsearch-block*="${Query}"]`);
+					//for (var i = 0; i < Blocks.length; i++) {
+					if (Blocks) {
+						var Href = Page.dataset.staticosoHtmlsearchHref;
+						if (!Page.parentNode.querySelector(`${SelectHref}[href="${Href}"]`)) {
+							var Link = document.createElement('a');
+							Link.className = SelectHref.slice(1);
+							Link.innerHTML = Page.dataset.staticosoHtmlsearchName || Href;
+							Link.href = Href;
+							Page.parentNode.insertBefore(Link, Page);
+						};
+						//break;
+					};
+				//});
+				};
+				/*
+				document.querySelectorAll(`${SelectBase} *[data-staticoso-htmlsearch-block*="${Query}"]`).forEach(function(Block) {
+					var Page = Block.closest('.staticoso-HtmlSearch-Page');
+					var Href = Page.dataset.staticosoHtmlsearchHref;
+					if (!Page.parentNode.querySelector(`${SelectHref}[href="${Href}"]`)) {
+						var Link = document.createElement('a');
+						Link.className = SelectHref.slice(1);
+						Link.innerHTML = Page.dataset.staticosoHtmlsearchName || Href;
+						Link.href = Href;
+						Page.parentNode.insertBefore(Link, Page);
+					};
+				});
+				*/
+				// NOTE: This lags so baaad but I've not found a better solution for now, and I want the search to be continuos, without clicking a button :(
+			};
+
+			// Every time the search query is modified, reset our CSS that does all the content filtering
+			function SetSearch() {
+				var Query = StripExcessSpace(SearchInput.value.toLowerCase());
+				var WordStrictStyle = '';
+				var WordLooseStyle = '';
+				
+				// Reset the style CSS to hide everything by default
+				SearchStyle.innerHTML = `
+					/* ${SelectBase} { cursor: pointer; } */
+					${SelectBase} *[data-staticoso-htmlsearch-block] { display: none; }
+				`;
+				
+				// For every word in the search query, add a CSS selector
+				// Strict selection (=)
+				Query.split(' ').forEach(function(Token) {
+					WordStrictStyle += `${SelectBase} *[data-staticoso-htmlsearch-word="${Token}"],`;
+				});
+				WordStrictStyle = `${WordStrictStyle.trim().slice(0, -1)}{ background: var(--staticoso-HtmlSearch-ColorMatchWord); }`;
+				// Loose selection (*=)
+				Query.split(' ').forEach(function(Token) {
+					WordLooseStyle += `${SelectBase} *[data-staticoso-htmlsearch-word*="${Token}"],`;
+				});
+				WordLooseStyle = `${WordLooseStyle.trim().slice(0, -1)}{ border: 2px dotted gray; }`;
+				
+				// Set the style for the above tokens, then unhide needed blocks
+				//SearchStyle.innerHTML = `
+				//	${SearchStyle.innerHTML.trim().slice(0, -1)} { background: var(--staticoso-HtmlSearch-ColorMatchWord); }
+				SearchStyle.innerHTML += `
+					${WordStrictStyle}
+					${WordLooseStyle}
+					${SelectBase} *[data-staticoso-htmlsearch-block*="${Query}"] { display: revert; }
+				`;
+				CreateSearchAnchors();
+			};
+
+			['onchange', 'oninput', 'onpaste'].forEach(function(Ev) {
+				SearchInput[Ev] = SetSearch;
+			});
+
+			PatchHtml();
+			SetSearch();
+		</script>
+<!-- -->
+	</body>
+</html>
+<!--
+-->

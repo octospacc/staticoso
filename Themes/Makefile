@@ -1,10 +1,11 @@
-all: BuildThemes BuildDemos
+all: All
+All: BuildThemes BuildDemos
 
 BuildThemes:
-	./Scripts/BuildThemes.py
+	python3 ./Scripts/BuildThemes.py
 
 BuildDemos:
-	./Scripts/BuildDemos.sh
+	sh ./Scripts/BuildDemos.sh
 
 clean: Clean
 Clean:

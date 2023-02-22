@@ -1,25 +1,25 @@
 <!DOCTYPE html>
-<html lang="<staticoso:PageLang>">
-<head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<meta name="generator" content="staticoso">
-	<link rel="stylesheet" href="Style.css">
-	<link rel="alternate" type="application/atom+xml" title="Blog Atom Feed" href="[staticoso:Site:RelativeRoot]feed/atom.xml">
-	<link rel="alternate" type="application/rss+xml" title="Blog RSS Feed" href="[staticoso:Site:RelativeRoot]feed/rss.xml">
-	<title><staticoso:PageTitle> - <staticoso:SiteName></title>
-	<meta name="description" content="<staticoso:PageDescription>">
-	<link href="[staticoso:Site:RelativeRoot]favicon.png" rel="icon" type="image/png">
-	<meta property="og:type" content="website">
-	<meta property="og:title" content="<staticoso:PageTitle> - <staticoso:SiteName>">
-	<meta property="og:description" content="<staticoso:PageDescription>">
-	<meta property="og:url" content="<staticoso:SiteDomain>/<staticoso:PagePath>">
-	<meta property="og:image" content="<staticoso:PageImage>">
-	<style>
-		<staticoso:PageStyle>
-	</style>
-</head>
-<body>
-{{Body}}
-</body>
+<html lang="[staticoso:PageLang]">
+	<head>
+		<meta charset="UTF-8"/>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+		<meta name="generator" content="staticoso"/>
+		<link rel="stylesheet" href="[staticoso:SiteRelativeRoot]{{Theme}}.css"/>
+		<link rel="alternate" type="application/atom+xml" title="Blog Atom Feed" href="[staticoso:SiteRelativeRoot]feed/atom.xml"/>
+		<link rel="alternate" type="application/rss+xml" title="Blog RSS Feed" href="[staticoso:SiteRelativeRoot]feed/rss.xml"/>
+		<title><staticoso:PageTitle> - <staticoso:SiteName></title>
+		<meta name="description" content="[staticoso:PageDescription]"/>
+		<link href="[staticoso:SiteRelativeRoot]favicon.png" rel="icon" type="image/png"/>
+		<meta property="og:type" content="website"/>
+		<meta property="og:title" content="[staticoso:PageTitle] - [staticoso:SiteName]"/>
+		<meta property="og:description" content="[staticoso:PageDescription]"/>
+		<meta property="og:url" content="[staticoso:SiteDomain]/[staticoso:PagePath]"/>
+		<meta property="og:image" content="[staticoso:PageImage]"/>
+		<style>
+			<staticoso:PageStyle>
+		</style>
+	</head>
+	<body>
+		{{Body}}
+	</body>
 </html>

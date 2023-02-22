@@ -23,7 +23,7 @@ from Modules.Utils import *
 # Menu styles:
 # - Simple: Default, Flat, Line
 # - Others: Excerpt, Image, Preview (Excerpt + Image), Full
-def GetHTMLPagesList(Pages, BlogName, SiteRoot, PathPrefix, CallbackFile=None, Unite=[], Type=None, Limit=None, PathFilter='', Category=None, For='Menu', MarkdownExts=(), MenuStyle='Default', ShowPaths=True):
+def GetHTMLPagesList(Pages:list, BlogName:str, SiteRoot:str, PathPrefix:str, CallbackFile=None, Unite=[], Type=None, Limit=None, PathFilter='', Category=None, For='Menu', MarkdownExts=(), MenuStyle='Default', ShowPaths=True):
 	Flatten, SingleLine, DoneCount, PrevDepth = False, False, 0, 0
 	if MenuStyle == 'Flat':
 		Flatten = True
@@ -91,14 +91,14 @@ def GetHTMLPagesList(Pages, BlogName, SiteRoot, PathPrefix, CallbackFile=None, U
 	elif MenuStyle in ('Line', 'Excerpt', 'Image', 'Preview', 'Full'):
 		return List
 
-def CheckHTMLCommentLine(Line):
+def CheckHTMLCommentLine(Line:str):
 	if Line.startswith('<!--'):
 		Line = Line[4:].lstrip()
 		if Line.endswith('-->'):
 			return Line
 	return None
 
-def TemplatePreprocessor(Text):
+def TemplatePreprocessor(Text:str):
 	Meta, MetaDefault = '', {
 		'MenuStyle': 'Default'}
 	for l in Text.splitlines():
@@ -113,7 +113,7 @@ def TemplatePreprocessor(Text):
 			Meta.update({i:MetaDefault[i]})
 	return Meta
 
-def FindPreprocLine(Line, Meta, Macros):
+def FindPreprocLine(Line:str, Meta, Macros):
 	Changed = False
 	Line = Line.lstrip().rstrip()
 	lll = CheckHTMLCommentLine(Line)
@@ -129,8 +129,8 @@ def FindPreprocLine(Line, Meta, Macros):
 	#	IgnoreBlocksStart += [l]
 	return (Meta, Macros, Changed)
 
-def PagePreprocessor(Path:str, TempPath:str, Type, SiteTemplate, SiteRoot, GlobalMacros, CategoryUncategorized, LightRun=False):
-	File = ReadFile(Path)
+def PagePreprocessor(Path:str, TempPath:str, Type:str, SiteTemplate, SiteRoot, GlobalMacros, CategoryUncategorized, LightRun:bool=False, Content=None):
+	File = ReadFile(Path) if not Content else Content
 	Path = Path.lower()
 	Content, Titles, DashyTitles, HTMLTitlesFound, Macros, Meta, MetaDefault = '', [], [], False, '', '', {
 		'Template': SiteTemplate,
@@ -457,7 +457,8 @@ def HandlePage(Flags, Page, Pages, Categories, LimitFiles, Snippets, ConfMenu, L
 	DynamicParts, DynamicPartsText, StaticPartsText, TemplatesText = Flags['DynamicParts'], Snippets['DynamicParts'], Snippets['StaticParts'], Snippets['Templates']
 
 	FileLower = File.lower()
-	PagePath = f"{OutDir}/{StripExt(File)}.html"
+	PagePath = f'{OutDir}/{StripExt(File)}.html'
+	ContentPagePath = f'{OutDir}.Content/{StripExt(File)}.html'
 	LightRun = False if LimitFiles == False or File in LimitFiles else True
 
 	if FileLower.endswith(FileExtensions['Markdown']):
@@ -466,8 +467,8 @@ def HandlePage(Flags, Page, Pages, Categories, LimitFiles, Snippets, ConfMenu, L
 		Content = PagePostprocessor('pug', ReadFile(PagePath), Meta)
 	elif FileLower.endswith(('.txt')):
 		Content = '<pre>' + html.escape(Content) + '</pre>'
-	elif FileLower.endswith(FileExtensions['HTML']):
-		Content = ReadFile(PagePath)
+	#elif FileLower.endswith(FileExtensions['HTML']):
+	#	Content = ReadFile(PagePath)
 
 	if LightRun:
 		HTMLPagesList = None
@@ -557,6 +558,7 @@ def HandlePage(Flags, Page, Pages, Categories, LimitFiles, Snippets, ConfMenu, L
 		SlimHTML = HTMLPagesList + ContentHTML
 	if not LightRun:
 		WriteFile(PagePath, HTML)
+		WriteFile(ContentPagePath, ContentHTML)
 
 	if not LightRun and 'htmljournal' in ContentHTML.lower(): # Avoid extra cycles
 		HTML, _, _, _ = PatchHTML(
@@ -667,8 +669,11 @@ def MakeSite(Flags, LimitFiles, Snippets, ConfMenu, GlobalMacros, Locale, Thread
 				File = f"Categories/{Cat}.md"
 				FilePath = f"{OutDir}/{File}"
 				WriteFile(FilePath, CategoryPageTemplate.format(Name=Cat))
-				_, Content, Titles, Meta = PagePreprocessor(FilePath, FilePath, Type, SiteTemplate, SiteRoot, GlobalMacros, CategoryUncategorized, LightRun=LightRun) 
+				_, Content, Titles, Meta = PagePreprocessor(FilePath, FilePath, Type, SiteTemplate, SiteRoot, GlobalMacros, CategoryUncategorized, LightRun=LightRun)
 				Pages += [[File, Content, Titles, Meta]]
+
+	#logging.info("Building the HTML Search Page")
+	#Pages += [PagePreprocessor(Path='Search.html', TempPath='Search.html', Type='Page', SiteTemplate=SiteTemplate, SiteRoot=SiteRoot, GlobalMacros=GlobalMacros, CategoryUncategorized=CategoryUncategorized, LightRun=LightRun, Content=BuildPagesSearch(Flags, Pages))]
 
 	for i,e in enumerate(ConfMenu):
 		for File, Content, Titles, Meta in Pages:

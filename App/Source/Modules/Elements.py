@@ -180,12 +180,12 @@ def MakeHTMLJournal(Flags, Locale, FilePath, HTML):
 		Redirect = f"""<meta http-equiv="refresh" content="0; url='./{FileName}'">""" if Flags["JournalRedirect"] else ''
 
 		# Instead of copying stuff from the full page, for now we use dedicated title, header, footer, and pagination
-		Title = t.attrs["journaltitle"] if 'journaltitle' in t.attrs else f'"{StripExt(FileName)}" Journal - {Flags["SiteName"]}' if Flags["SiteName"] else f'"{StripExt(FileName)}" Journal'
-		FeedLink = f"""<a title="Journal Atom Feed" href="https://journal.miso.town/atom?url={URL}" target="_blank" rel="noopener"><img width="88" height="31" alt="Journal Atom Feed" title="Journal Atom Feed" src="data:image/png;base64,{b64encode(ReadFile(staticosoBaseDir()+'Assets/Feed-88x31.png', 'rb')).decode()}"></a>""" if Flags["SiteDomain"] else ''
-		Header = t.attrs["journalheader"] if 'journalheader' in t.attrs else f"""\
+		Title = t.attrs['journaltitle'] if 'journaltitle' in t.attrs else f'"{StripExt(FileName)}" Journal - {Flags["SiteName"]}' if Flags["SiteName"] else f'"{StripExt(FileName)}" Journal'
+		FeedLink = f"""<a title="Journal Atom Feed" href="https://journal.miso.town/atom?url={URL}" target="_blank" rel="noopener"><img width="88" height="31" alt="Journal Atom Feed" title="Journal Atom Feed" src="data:image/png;base64,{b64encode(ReadFile(staticosoBaseDir()+'Assets/ThirdParty/Feed-88x31.png', 'rb')).decode()}"></a>""" if Flags['SiteDomain'] else ''
+		Header = t.attrs['journalheader'] if 'journalheader' in t.attrs else f"""\
 <p>
 <i>{Locale["StrippedDownNotice"].format(Link="./"+FileName)}</i>
-<a title="Valid HTML Journal" href="https://journal.miso.town" target="_blank" rel="noopener"><img alt="Valid HTML Journal" title="Valid HTML Journal" width="88" height="31" src="data:image/png;base64,{b64encode(ReadFile(staticosoBaseDir()+'Assets/Valid-HTML-Journal-88x31.png', 'rb')).decode()}"></a>
+<a title="Valid HTML Journal" href="https://journal.miso.town" target="_blank" rel="noopener"><img alt="Valid HTML Journal" title="Valid HTML Journal" width="88" height="31" src="data:image/png;base64,{b64encode(ReadFile(staticosoBaseDir()+'Assets/ThirdParty/Valid-HTML-Journal-88x31.png', 'rb')).decode()}"></a>
 {FeedLink}
 </p>
 """

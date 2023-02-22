@@ -7,6 +7,9 @@ before_script: |
 pages:
   stage: deploy
   script: |
+    cd ./Themes
+    make All
+    cd ..
     sh ./Sites/BuildAll.sh
   artifacts:
     paths:
