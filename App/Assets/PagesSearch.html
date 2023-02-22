@@ -90,7 +90,7 @@
 				return false;
 			};
 
-			function CreateSearchAnchors() {
+			function CreateSearchAnchors(Query) {
 				/*
 				// Create anchors redirecting to the pages that are displayed
 				document.querySelectorAll(SelectBase).forEach(function(Page) {
@@ -184,7 +184,7 @@
 					${WordLooseStyle}
 					${SelectBase} *[data-staticoso-htmlsearch-block*="${Query}"] { display: revert; }
 				`;
-				CreateSearchAnchors();
+				CreateSearchAnchors(Query);
 			};
 
 			['onchange', 'oninput', 'onpaste'].forEach(function(Ev) {

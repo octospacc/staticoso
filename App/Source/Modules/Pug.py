@@ -1,11 +1,11 @@
-""" ================================= |
-| This file is part of                |
-|   staticoso                         |
-| Just a simple Static Site Generator |
-|                                     |
-| Licensed under the AGPLv3 license   |
-|   Copyright (C) 2022, OctoSpacc     |
-| ================================= """
+""" ================================== |
+| This file is part of                 |
+|   staticoso                          |
+| Just a simple Static Site Generator  |
+|                                      |
+| Licensed under the AGPLv3 license    |
+|   Copyright (C) 2022-2023, OctoSpacc |
+| ================================== """
 
 # TODO: Write a native Pug parser; There is one already available for Python but seems broken / out-of-date
 

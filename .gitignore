@@ -3,4 +3,6 @@
 tmp.*
 public/*
 Sites/*/public/*
+Sites/*/public.Content/*
+Sites/*/public.gmi/*
 Themes/Build/*

@@ -1,11 +1,11 @@
-""" ================================= |
-| This file is part of                |
-|   staticoso                         |
-| Just a simple Static Site Generator |
-|                                     |
-| Licensed under the AGPLv3 license   |
-|   Copyright (C) 2022, OctoSpacc     |
-| ================================= """
+""" ================================== |
+| This file is part of                 |
+|   staticoso                          |
+| Just a simple Static Site Generator  |
+|                                      |
+| Licensed under the AGPLv3 license    |
+|   Copyright (C) 2022-2023, OctoSpacc |
+| ================================== """
 
 # TODO: Either switch feed generation lib, or rewrite the 'lxml' module, so that no modules have to be compiled and the program is 100% portable
 

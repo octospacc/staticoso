@@ -1,11 +1,11 @@
-""" ================================= |
-| This file is part of                |
-|   staticoso                         |
-| Just a simple Static Site Generator |
-|                                     |
-| Licensed under the AGPLv3 license   |
-|   Copyright (C) 2022, OctoSpacc     |
-| ================================= """
+""" ================================== |
+| This file is part of                 |
+|   staticoso                          |
+| Just a simple Static Site Generator  |
+|                                      |
+| Licensed under the AGPLv3 license    |
+|   Copyright (C) 2022-2023, OctoSpacc |
+| ================================== """
 
 from base64 import b64encode
 from Modules.Globals import *
