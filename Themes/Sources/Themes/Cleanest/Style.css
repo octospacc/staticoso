@@ -1,0 +1,29 @@
+@Media (Prefers-Color-Scheme: Light) {
+	Body {
+		Color: #000000;
+		Background-Color: #FFFFFF;
+	}
+}
+@Media (Prefers-Color-Scheme: Dark) {
+	Body {
+		Color: #FFFFFF;
+		Background-Color: #000000;
+	}
+}
+
+Body {
+	Margin: 4px;
+	Padding: 4px;
+}
+
+#Bar {
+	Padding: 8px;
+}
+
+#Menu {
+	Padding: 8px;
+}
+
+#Main {
+	Padding: 8px;
+}

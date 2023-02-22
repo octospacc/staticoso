@@ -1,0 +1,13 @@
+image: alpine:latest
+
+before_script: |
+  apk update
+  apk add python3
+
+pages:
+  stage: deploy
+  script: |
+    sh ./Sites/BuildAll.sh
+  artifacts:
+    paths:
+    - public

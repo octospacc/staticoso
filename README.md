@@ -9,14 +9,16 @@ Also, this software is needed for someone to edit and compile my personal websit
 
 **Everything is still kind of a WIP**, and some bugs might appear across commits, but feel free to experiment with all of this stuff! If you really want to use this tool for your website, I suggest you don't do like I do in my build process, running always with the latest code commit; instead, either download a snapshot of the code and keep that, or always clone from a specific commit, until you have time when I do an update to check if your site actually builds correctly with the new version.
 
-## Documentation
+## Usage
+
+### Documentation
 
 Documentation can be found at [octtspacc.gitlab.io/staticoso-docs](https://octtspacc.gitlab.io/staticoso-docs).  
 Obviously, it's built with staticoso itself 😁️. Its source repo can be found at [gitlab.com/octtspacc/staticoso-docs](https://gitlab.com/octtspacc/staticoso-docs).
 
 Keep in mind that, currently, it's still very incomplete. **Any help**, from writing the documentation to creating a decent HTML+CSS template for its site, **is more than welcome**.
 
-## Dependencies
+### Dependencies
 
 - [Python >= 3.10](https://python.org)
 - (Included) [Python Markdown == 3.3.7](https://pypi.org/project/Markdown)
@@ -26,7 +28,7 @@ Keep in mind that, currently, it's still very incomplete. **Any help**, from wri
 - (Included) [htmlmin == 0.1.12](https://pypi.org/project/htmlmin)
 - (Included) [rcssmin == 1.1.1](https://pypi.org/project/rcssmin)
 
-### Optional dependencies
+#### Optional dependencies
 
 Needed for Pug input support:
 
@@ -38,7 +40,17 @@ Needed for Gemtext output support:
 - [Go](https://go.dev)
 - [html2gmi](https://github.com/LukeEmmet/html2gmi)
 
-## Features roadmap
+### Getting a version
+
+The recommended way to get staticoso is to choose a commit, (preferably the most recent as of you're reading this) and stick to that for workflows and automatic deployments. You can either fork the repository at a certain point and always clone from yours, clone from a specific commit of this repo, or download an archive of the commit in question (click the GitLab download icon after navigating to a commit, or try `https://gitlab.com/octtspacc/staticoso/-/archive/<FullCommitHash>/staticoso-<FullCommitHash>.tar.bz2`).
+
+Once that's set-up, it will also be possible to download the latest version from the CI/CD, based on if that commit has or has not passed runtime tests.
+
+All of this is because some crucial things might be changed from one commit to another, possibly causing your site build to fail. Always make sure you have some spare minutes at hand for checking that your site actually still builds, whenever you want to update your workflows to the bleeding edge.
+
+## Roadmap
+
+### Features
 
 - [x] Generation of simplified pages compliant with the [HTML Journal standard](https://journal.miso.town)
 - [x] HTML feeds (pages with list of N most recent posts)
@@ -78,6 +90,15 @@ Needed for Gemtext output support:
 - [x] Generation of page (titles) menu as a tree
 - [x] Auto-detection of titles in a page
 - [x] **HTML**, **TXT**, **Extended Markdown**, and **Pug** supported as input page files
+
+### Meta
+
+- [ ] Preparing more themes, both original and ported
+    - [ ] First the theme build system should be even more streamlined
+- [ ] Actually making the documentation useful
+- [ ] Presentation website for the project
+    - [ ] With a devlog maybe?
+- [ ] Constructing something to make testing of staticoso work in a web browser (doable with WASM Python?)
 
 ## Known issues (might need further investigation)
 

@@ -1,1 +1,6 @@
 *.pyc
+*.tmp
+tmp.*
+public/*
+Sites/*/public/*
+Themes/Build/*
