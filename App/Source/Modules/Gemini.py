@@ -13,7 +13,7 @@ from Libs.bs4 import BeautifulSoup
 from Modules.HTML import *
 from Modules.Utils import *
 
-def FixGemlogDateLine(Line):
+def FixGemlogDateLine(Line:str):
 	if len(Line) >= 2 and Line[0] == '[' and Line[1].isdigit():
 		Line = Line[1:]
 	else:
@@ -22,7 +22,7 @@ def FixGemlogDateLine(Line):
 			Line = Words[0] + '\n' + Words[1][1:] + ' ' + ' '.join(Words[2:])
 	return Line
 
-def GemtextCompileList(Flags, Pages, LimitFiles):
+def GemtextCompileList(Flags:dict, Pages:list, LimitFiles):
 	Cmd = ''
 	for File, Content, Titles, Meta, ContentHTML, SlimHTML, Description, Image in Pages:
 		if IsLightRun(File, LimitFiles):
@@ -53,7 +53,7 @@ def FindEarliest(Str, Items):
 		Str.find(Item)
 	return Pos, Item
 
-def ParseTag(Content):
-	print(Content)
+def ParseTag(Content:str):
+	#print(Content)
 	Parse = BeautifulSoup(str(Content), 'html.parser')
 	Tag = Parse.find()

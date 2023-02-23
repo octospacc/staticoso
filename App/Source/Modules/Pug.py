@@ -12,12 +12,12 @@
 import os
 from Modules.Utils import *
 
-def PugCompileList(OutputDir, Pages, LimitFiles):
+def PugCompileList(OutDir:str, Pages:list, LimitFiles):
 	# Pug-cli seems to shit itself with folder paths as input, so we pass ALL the files as arguments
 	Paths = ''
 	for File, Content, Titles, Meta in Pages:
 		if File.lower().endswith('.pug') and (LimitFiles == False or File in LimitFiles):
-			Path = f'{OutputDir}/{File}'
+			Path = f'{OutDir}/{File}'
 			WriteFile(Path, Content)
 			Paths += f'"{Path}" '
 	if Paths:

@@ -11,7 +11,7 @@ from urllib.parse import quote as URLEncode
 from Modules.HTML import *
 from Modules.Utils import *
 
-def MakeSitemap(Flags, Pages):
+def MakeSitemap(Flags:dict, Pages:list):
 	Map = ''
 	Domain = Flags['SiteDomain'] + '/' if Flags['SiteDomain'] else ''
 	for File, Content, Titles, Meta, ContentHtml, SlimHtml, Description, Image in Pages:

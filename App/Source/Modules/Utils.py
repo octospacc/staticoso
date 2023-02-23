@@ -10,7 +10,9 @@
 import json
 import os
 from datetime import datetime
+from multiprocessing import Pool, cpu_count
 from pathlib import Path
+from types import SimpleNamespace
 from Modules.Globals import *
 
 def SureList(e):
@@ -36,14 +38,14 @@ def WriteFile(p, c, m='w'):
 		logging.error(f"[E] Error writing file {p}")
 		return False
 
-def FileToStr(File, Truncate=''):
+def FileToStr(File:str, Truncate:str=''):
 	return str(File)[len(Truncate):]
 
 # With shutil.copytree copy only folder struct, no files; https://stackoverflow.com/a/15664273
-def IgnoreFiles(Dir, Files):
+def IgnoreFiles(Dir:str, Files):
     return [f for f in Files if os.path.isfile(os.path.join(Dir, f))]
 
-def LoadFromDir(Dir, Matchs):
+def LoadFromDir(Dir:str, Matchs):
 	Contents = {}
 	Matchs = SureList(Matchs)
 	for Match in Matchs:
@@ -52,10 +54,10 @@ def LoadFromDir(Dir, Matchs):
 			Contents.update({File: ReadFile(f"{Dir}/{File}")})
 	return Contents
 
-def mkdirps(Dir):
+def mkdirps(Dir:str):
 	return Path(Dir).mkdir(parents=True, exist_ok=True)
 
-def StripExt(Path):
+def StripExt(Path:str):
 	return ".".join(Path.split('.')[:-1])
 
 def UndupeStr(Str, Known, Split):
@@ -174,3 +176,28 @@ def PrintProcPercentDots(Proc, DivMult=1):
 		os.system('printf "="') # Using sys shell since for some reason print() without newline breaks here (doesn't print everytime)
 		return True
 	return False
+
+def NameSpace(From):
+    return SimpleNamespace(**From)
+
+def DoMultiProc(Funct, ArgsCollection:list, Threads:int=cpu_count(), Progress:bool=False):
+	# The function should simply be like this
+	# def Funct(Args:dict):
+	# 	# Print the percentage dots, if needed
+	# 	PrintProcPercentDots(Args['Process'])
+	# 	# Call the real function that handles a single process at a time
+	# 	return Work(Args['a'], ...)
+	#if not Threads:
+	#	Threads = cpu_count()
+	FinalArgsCollection = []
+	for Index, Args in enumerate(ArgsCollection):
+		FinalArgsCollection.append(Args)
+		FinalArgsCollection[Index].update({"Process": {"Num": Index, "Count": len(ArgsCollection)}})
+	Results = []
+	if Progress:
+		os.system('printf "["') # Using system print because (see PrintProcPercentDots())
+	with Pool(Threads) as MultiprocPool:
+		Results = MultiprocPool.map(Funct, FinalArgsCollection)
+	if Progress:
+		os.system('printf "]\n"') # Newline after percentage dots
+	return Results

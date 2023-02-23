@@ -156,7 +156,7 @@ def FormatTitles(Titles:list, Flatten=False):
 # Clean up a generic HTML tree such that it's compliant with the HTML Journal standard
 # (https://m15o.ichi.city/site/subscribing-to-a-journal-page.html);
 # basis is: find an element with the JournalBody attr., and group its direct children as <article>s
-def MakeHTMLJournal(Flags, Locale, FilePath, HTML):
+def MakeHTMLJournal(Flags:dict, Locale:dict, FilePath:str, HTML:str):
 	Soup, Journal, Entries = MkSoup(HTML), '', []
 	for t in Soup.find_all(attrs={"htmljournal":True}):
 		#JournalStyle = JournalStyles[t.attrs["journalstyle"]] if 'journalstyle' in t.attrs and t.attrs["journalstyle"] in JournalStyles else JournalStyles['Default']

@@ -15,30 +15,31 @@ from Modules.Utils import *
 
 # Suppress useless bs4 warnings
 warnings.filterwarnings('ignore', message='The input looks more like a filename than markup.')
+warnings.filterwarnings('ignore', message='The soupsieve package is not installed.')
 
-def MkSoup(HTML):
-	return BeautifulSoup(HTML, 'html.parser')
+def MkSoup(Html:str):
+	return BeautifulSoup(Html, 'html.parser')
 
-def StripAttrs(HTML):
-	Soup = MkSoup(HTML)
+def StripAttrs(Html:str):
+	Soup = MkSoup(Html)
 	Tags = Soup.find_all()
 	for t in Tags:
 		if 'href' not in t.attrs and 'src' not in t.attrs:
 			t.attrs = {}
 	return str(Soup)
 
-def StripTags(HTML, ToStrip): # Remove desired tags from the HTML
-	Soup = MkSoup(HTML)
+def StripTags(Html:str, ToStrip:list): # Remove desired tags from the HTML
+	Soup = MkSoup(Html)
 	Tags = Soup.find_all()
 	for t in Tags:
 		if t.name in ToStrip:
 			t.replace_with('')
 	return str(Soup)
 
-def DoHTMLFixPre(HTML):
-	if not ("<pre>" in HTML or "<pre " in HTML):
-		return HTML
-	Soup = MkSoup(HTML)
+def DoHTMLFixPre(Html:str):
+	if not ("<pre>" in Html or "<pre " in Html):
+		return Html
+	Soup = MkSoup(Html)
 	Tags = Soup.find_all('pre')
 	for t in Tags:
 		FirstLine = str(t).splitlines()[0].lstrip().rstrip()
@@ -78,8 +79,8 @@ def AddToTagStartEnd(HTML, MatchStart, MatchEnd, AddStart, AddEnd): # This doesn
 			DidEnd -= 1
 	return HTML
 
-def SquareFnrefs(HTML): # Different combinations of formatting for Soup .prettify, .encode, .decode break different page elements, don't use this for now
-	Soup = MkSoup(HTML)
+def SquareFnrefs(Html:str): # Different combinations of formatting for Soup .prettify, .encode, .decode break different page elements, don't use this for now
+	Soup = MkSoup(Html)
 	Tags = Soup.find_all('sup')
 	for t in Tags:
 		if 'id' in t.attrs and t.attrs['id'].startswith('fnref:'):
@@ -87,9 +88,9 @@ def SquareFnrefs(HTML): # Different combinations of formatting for Soup .prettif
 			s.replace_with(f'[{t}]')
 	return str(Soup.prettify(formatter=None))
 
-def DoMinifyHTML(HTML, KeepComments):
+def DoMinifyHTML(Html:str, KeepComments:bool):
 	return htmlmin.minify(
-		input=HTML,
+		input=Html,
 		remove_comments=not KeepComments,
 		remove_empty_space=True,
 		remove_all_empty_space=False,

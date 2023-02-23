@@ -20,7 +20,13 @@ from Modules.Meta import *
 from Modules.Pug import *
 from Modules.Utils import *
 
-def PatchHTML(File, HTML, StaticPartsText, DynamicParts, DynamicPartsText, HTMLPagesList, PagePath, Content, Titles, Meta, SiteDomain, SiteRoot, SiteName, BlogName, FolderRoots, Categories, SiteLang, Locale, LightRun):
+def PatchHTML(Flags, File, HTML, StaticPartsText, DynamicParts, DynamicPartsText, HTMLPagesList, PagePath, Content, Titles, Meta, FolderRoots, Categories, Locale, LightRun):
+	SiteDomain = Flags['SiteDomain']
+	SiteRoot = Flags['SiteRoot']
+	SiteLang = Flags['SiteLang']
+	SiteName = Flags['SiteName']
+	BlogName = Flags['BlogName']
+
 	HTMLTitles = FormatTitles(Titles)
 	BodyDescription, BodyImage = '', ''
 	if not File.lower().endswith('.txt'):
@@ -171,8 +177,9 @@ def PatchHTML(File, HTML, StaticPartsText, DynamicParts, DynamicPartsText, HTMLP
 
 	return HTML, ContentHTML, Description, Image
 
-def HandlePage(Flags, Page, Pages, Categories, LimitFiles, Snippets, ConfMenu, Locale):
+def HandlePage(Flags:dict, Page:list, Pages, Categories, LimitFiles, Snippets, ConfMenu, Locale:dict):
 	File, Content, Titles, Meta = Page
+	
 	OutDir, MarkdownExts, Sorting, MinifyKeepComments = Flags['OutDir'], Flags['MarkdownExts'], Flags['Sorting'], Flags['MinifyKeepComments']
 	SiteName, BlogName, SiteTagline = Flags['SiteName'], Flags['BlogName'], Flags['SiteTagline']
 	SiteTemplate, SiteLang = Flags['SiteTemplate'], Flags['SiteLang']
@@ -200,17 +207,16 @@ def HandlePage(Flags, Page, Pages, Categories, LimitFiles, Snippets, ConfMenu, L
 	else:
 		TemplateMeta = TemplatePreprocessor(TemplatesText[Meta['Template']])
 		HTMLPagesList = GetHTMLPagesList(
+			Flags,
 			Pages=Pages,
-			BlogName=BlogName,
-			SiteRoot=SiteRoot,
 			PathPrefix=GetPathLevels(File),
 			Unite=ConfMenu,
 			Type='Page',
 			For='Menu',
-			MarkdownExts=MarkdownExts,
 			MenuStyle=TemplateMeta['MenuStyle'])
 
 	HTML, ContentHTML, Description, Image = PatchHTML(
+		Flags,
 		File=File,
 		HTML=TemplatesText[Meta['Template']],
 		StaticPartsText=StaticPartsText,
@@ -221,26 +227,19 @@ def HandlePage(Flags, Page, Pages, Categories, LimitFiles, Snippets, ConfMenu, L
 		Content=Content,
 		Titles=Titles,
 		Meta=Meta,
-		SiteDomain=SiteDomain,
-		SiteRoot=SiteRoot,
-		SiteName=SiteName,
-		BlogName=BlogName,
 		FolderRoots=FolderRoots,
 		Categories=Categories,
-		SiteLang=SiteLang,
 		Locale=Locale,
 		LightRun=LightRun)
 
 	HTML = ReplWithEsc(HTML, f"<staticoso:Feed>", GetHTMLPagesList(
+		Flags,
 		Limit=Flags['FeedEntries'],
 		Type='Post',
 		Category=None if Flags['FeedCategoryFilter'] == '*' else Flags['FeedCategoryFilter'],
 		Pages=Pages,
-		BlogName=BlogName,
-		SiteRoot=SiteRoot,
 		PathPrefix=GetPathLevels(File),
 		For='Categories',
-		MarkdownExts=MarkdownExts,
 		MenuStyle='Flat',
 		ShowPaths=False))
 	if 'staticoso:DirectoryList:' in HTML: # Reduce risk of unnecessary cycles
@@ -249,14 +248,12 @@ def HandlePage(Flags, Page, Pages, Categories, LimitFiles, Snippets, ConfMenu, L
 			if Line.startswith('<staticoso:DirectoryList:') and Line.endswith('>'):
 				Path = Line[len('<staticoso:DirectoryList:'):-1]
 				DirectoryList = GetHTMLPagesList(
+					Flags,
 					CallbackFile=File,
 					Pages=Pages,
-					BlogName=BlogName,
-					SiteRoot=SiteRoot,
 					PathPrefix=GetPathLevels(File),
 					PathFilter=Path,
 					For='Categories',
-					MarkdownExts=MarkdownExts,
 					MenuStyle='Flat')
 				HTML = ReplWithEsc(HTML, f"<staticoso:DirectoryList:{Path}>", DirectoryList)
 
@@ -287,6 +284,7 @@ def HandlePage(Flags, Page, Pages, Categories, LimitFiles, Snippets, ConfMenu, L
 
 	if not LightRun and 'htmljournal' in ContentHTML.lower(): # Avoid extra cycles
 		HTML, _, _, _ = PatchHTML(
+			Flags,
 			File=File,
 			HTML=TemplatesText[Meta['Template']],
 			StaticPartsText=StaticPartsText,
@@ -297,32 +295,92 @@ def HandlePage(Flags, Page, Pages, Categories, LimitFiles, Snippets, ConfMenu, L
 			Content=MakeHTMLJournal(Flags, Locale, f'{StripExt(File)}.html', ContentHTML),
 			Titles='',
 			Meta=Meta,
-			SiteDomain=SiteDomain,
-			SiteRoot=SiteRoot,
-			SiteName=SiteName,
-			BlogName=BlogName,
 			FolderRoots=FolderRoots,
 			Categories=Categories,
-			SiteLang=SiteLang,
 			Locale=Locale,
 			LightRun=LightRun)
 		if Flags["JournalRedirect"]:
 			HTML = HTML.replace('</head>', f"""<meta http-equiv="refresh" content="0; url='./{PagePath.split('''/''')[-1]}'"></head>""")
 		WriteFile(StripExt(PagePath)+'.Journal.html', HTML)
 
-	return [File, Content, Titles, Meta, ContentHTML, SlimHTML, Description, Image]
+	#return [File, Content, Titles, Meta, ContentHTML, SlimHTML, Description, Image]
+	return {"File":File, "Content":Content, "Titles":Titles, "Meta":Meta, "ContentHtml":ContentHTML, "SlimHtml":SlimHTML, "Description":Description, "Image":Image}
 
-def MultiprocPagePreprocessor(d):
-	PrintProcPercentDots(d['Process'], 2)
-	return PagePreprocessor(d['Path'], d['TempPath'], d['Type'], d['Template'], d['SiteRoot'], d['GlobalMacros'], d['CategoryUncategorized'], d['LightRun'])
+def MultiprocPagePreprocessor(d:dict):
+	PrintProcPercentDots(d['Process'])#, 2)
+	return PagePreprocessor(d['Flags'], d['Page'], d['Template'], d['GlobalMacros'], d['LightRun'])
 
-def MultiprocHandlePage(d):
+def MultiprocHandlePage(d:dict):
 	PrintProcPercentDots(d['Process'])
 	return HandlePage(d['Flags'], d['Page'], d['Pages'], d['Categories'], d['LimitFiles'], d['Snippets'], d['ConfMenu'], d['Locale'])
 
-def MakeSite(Flags, LimitFiles, Snippets, ConfMenu, GlobalMacros, Locale, Threads):
-	PagesPaths, PostsPaths, Pages, MadePages, Categories = [], [], [], [], {}
+def FindPagesPaths():
+	Paths = {"Pages":[], "Posts":[]}
+	for Ext in FileExtensions['Pages']:
+		for Type in ('Pages', 'Posts'):
+			for File in Path(Type).rglob(f'*.{Ext}'):
+				Paths[Type] += [FileToStr(File, f'{Type}/')]
+	return Paths
+
+def ReorderPagesPaths(Paths:dict, Sorting:dict):
+	for Type in ('Pages', 'Posts'):
+		Paths[Type] = FileNameDateSort(Paths[Type])
+		if Sorting[Type] in ('Inverse', 'Reverse'):
+			Paths[Type].reverse()
+	return Paths
+
+def PopulateCategoryLists(Flags:dict, Pages:list, Categories):
+	for Cat in Categories:
+		for Type in ('Page', 'Post'):
+			Categories[Cat] += GetHTMLPagesList(
+				Flags,
+				Pages=Pages,
+				PathPrefix=GetPathLevels('Categories/'),
+				Type=Type,
+				Category=Cat,
+				For='Categories',
+				MenuStyle='Flat')
+	return Categories
+
+def MakeAutoCategories(Flags:dict, Categories):
+	Pages = []
+	if Flags['CategoriesAutomatic']:
+		OutDir = Flags['OutDir']
+		Dir = f'{OutDir}/Categories'
+		for Cat in Categories:
+			Exists = False
+			for File in Path(Dir).rglob(str(Cat)+'.*'):
+				Exists = True
+				break
+			if not Exists:
+				File = f'Categories/{Cat}.md'
+				FilePath = f'{OutDir}/{File}'
+				WriteFile(FilePath, CategoryPageTemplate.format(Name=Cat))
+				_, Content, Titles, Meta = PagePreprocessor(Flags, [FilePath, FilePath, Type, None], SiteTemplate, GlobalMacros, LightRun=LightRun)
+				Pages += [File, Content, Titles, Meta]
+	return Pages
+
+def PreprocessSourcePages(Flags:dict, PagesPaths:dict, LimitFiles, SiteTemplate, GlobalMacros, PoolSize:int):
+	MultiprocPages = []
+	for Type in ('Page', 'Post'):
+		Files, PathPrefix = {"Page": [PagesPaths['Pages'], ''], "Post": [PagesPaths['Posts'], 'Posts/']}[Type]
+		for i, File in enumerate(Files):
+			TempPath = f"{PathPrefix}{File}"
+			LightRun = False if LimitFiles == False or TempPath in LimitFiles else True
+			MultiprocPages += [{'Flags': Flags, 'Page': [f"{Type}s/{File}", TempPath, Type, None], 'Template': SiteTemplate, 'GlobalMacros': GlobalMacros, 'LightRun': LightRun}]
+	return DoMultiProc(MultiprocPagePreprocessor, MultiprocPages, PoolSize, True)
+
+def WriteProcessedPages(Flags:dict, Pages:list, Categories, ConfMenu, Snippets, LimitFiles, PoolSize:int, Locale:dict):
+	MultiprocPages = []
+	for i, Page in enumerate(Pages):
+		MultiprocPages += [{'Flags': Flags, 'Page': Page, 'Pages': Pages, 'Categories': Categories, 'LimitFiles': LimitFiles, 'Snippets': Snippets, 'ConfMenu': ConfMenu, 'Locale': Locale}]
+	return DoMultiProc(MultiprocHandlePage, MultiprocPages, PoolSize, True)
+
+def MakeSite(Flags:dict, LimitFiles, Snippets, ConfMenu, GlobalMacros, Locale:dict, Threads):
+	Pages, MadePages, Categories = [], [], {}
 	PoolSize = cpu_count() if Threads <= 0 else Threads
+
+	f = NameSpace(Flags)
 	OutDir, MarkdownExts, Sorting = Flags['OutDir'], Flags['MarkdownExts'], Flags['Sorting']
 	SiteName, BlogName, SiteTagline = Flags['SiteName'], Flags['BlogName'], Flags['SiteTagline']
 	SiteTemplate, SiteLang = Flags['SiteTemplate'], Flags['SiteLang']
@@ -331,74 +389,29 @@ def MakeSite(Flags, LimitFiles, Snippets, ConfMenu, GlobalMacros, Locale, Thread
 	ImgAltToTitle, ImgTitleToAlt = Flags['ImgAltToTitle'], Flags['ImgTitleToAlt']
 	DynamicParts, DynamicPartsText, StaticPartsText, TemplatesText = Flags['DynamicParts'], Snippets['DynamicParts'], Snippets['StaticParts'], Snippets['Templates']
 
-	for Ext in FileExtensions['Pages']:
-		for File in Path('Pages').rglob(f"*.{Ext}"):
-			PagesPaths += [FileToStr(File, 'Pages/')]
-		for File in Path('Posts').rglob(f"*.{Ext}"):
-			PostsPaths += [FileToStr(File, 'Posts/')]
-	logging.info(f"Pages Found: {len(PagesPaths+PostsPaths)}")
+	logging.info("Finding Pages")
+	PagesPaths = FindPagesPaths()
+	logging.info(f"Pages Found: {len(PagesPaths['Pages']+PagesPaths['Posts'])}")
 
-	PagesPaths = FileNameDateSort(PagesPaths)
-	if Sorting['Pages'] == 'Inverse':
-		PagesPaths.reverse()
-	PostsPaths = FileNameDateSort(PostsPaths)
-	if Sorting['Posts'] == 'Inverse':
-		PostsPaths.reverse()
+	logging.info("Reordering Pages")
+	PagesPaths = ReorderPagesPaths(PagesPaths, f.Sorting)
 
 	logging.info("Preprocessing Source Pages")
-	MultiprocPages = []
-	for Type in ['Page', 'Post']:
-		if Type == 'Page':
-			Files = PagesPaths
-			PathPrefix = ''
-		elif Type == 'Post':
-			Files = PostsPaths
-			PathPrefix = 'Posts/'
-		for i,File in enumerate(Files):
-			TempPath = f"{PathPrefix}{File}"
-			LightRun = False if LimitFiles == False or TempPath in LimitFiles else True
-			MultiprocPages += [{'Process':{'Num':i, 'Count':len(Files)}, 'Path':f"{Type}s/{File}", 'TempPath':TempPath, 'Type':Type, 'Template':SiteTemplate, 'SiteRoot':SiteRoot, 'GlobalMacros':GlobalMacros, 'CategoryUncategorized':CategoryUncategorized, 'LightRun':LightRun}]
-	os.system('printf "["')
-	with Pool(PoolSize) as MultiprocPool:
-		Pages = MultiprocPool.map(MultiprocPagePreprocessor, MultiprocPages)
-	os.system('printf "]\n"') # Make newline after percentage dots
+	Pages = PreprocessSourcePages(Flags, PagesPaths, LimitFiles, SiteTemplate, GlobalMacros, PoolSize)
 
 	for File, Content, Titles, Meta in Pages:
 		for Cat in Meta['Categories']:
 			Categories.update({Cat:''})
+
 	PugCompileList(OutDir, Pages, LimitFiles)
 
-	if Categories:
+	if Categories or f.CategoriesAutomatic:
 		logging.info("Generating Category Lists")
-		for Cat in Categories:
-			for Type in ('Page', 'Post'):
-				Categories[Cat] += GetHTMLPagesList(
-					Pages=Pages,
-					BlogName=BlogName,
-					SiteRoot=SiteRoot,
-					PathPrefix=GetPathLevels('Categories/'),
-					Type=Type,
-					Category=Cat,
-					For='Categories',
-					MarkdownExts=MarkdownExts,
-					MenuStyle='Flat')
-
-	if AutoCategories:
-		Dir = f"{OutDir}/Categories"
-		for Cat in Categories:
-			Exists = False
-			for File in Path(Dir).rglob(str(Cat)+'.*'):
-				Exists = True
-				break
-			if not Exists:
-				File = f"Categories/{Cat}.md"
-				FilePath = f"{OutDir}/{File}"
-				WriteFile(FilePath, CategoryPageTemplate.format(Name=Cat))
-				_, Content, Titles, Meta = PagePreprocessor(FilePath, FilePath, Type, SiteTemplate, SiteRoot, GlobalMacros, CategoryUncategorized, LightRun=LightRun)
-				Pages += [[File, Content, Titles, Meta]]
+	Categories = PopulateCategoryLists(Flags, Pages, Categories)
+	Pages += MakeAutoCategories(Flags, Categories)
 
 	#logging.info("Building the HTML Search Page")
-	#Pages += [PagePreprocessor(Path='Search.html', TempPath='Search.html', Type='Page', SiteTemplate=SiteTemplate, SiteRoot=SiteRoot, GlobalMacros=GlobalMacros, CategoryUncategorized=CategoryUncategorized, LightRun=LightRun, Content=BuildPagesSearch(Flags, Pages))]
+	#Pages += [PagePreprocessor(Flags, Path='Search.html', TempPath='Search.html', Type='Page', SiteTemplate=SiteTemplate, GlobalMacros=GlobalMacros, LightRun=LightRun, Content=BuildPagesSearch(Flags, Pages))]
 
 	for i,e in enumerate(ConfMenu):
 		for File, Content, Titles, Meta in Pages:
@@ -407,13 +420,7 @@ def MakeSite(Flags, LimitFiles, Snippets, ConfMenu, GlobalMacros, Locale, Thread
 				ConfMenu[i] = None
 
 	logging.info("Writing Pages")
-	MultiprocPages = []
-	for i,Page in enumerate(Pages):
-		MultiprocPages += [{'Process':{'Num':i, 'Count':len(Pages)}, 'Flags':Flags, 'Page':Page, 'Pages':Pages, 'Categories':Categories, 'LimitFiles':LimitFiles, 'Snippets':Snippets, 'ConfMenu':ConfMenu, 'Locale':Locale}]
-	os.system('printf "["')
-	with Pool(PoolSize) as MultiprocPool:
-		MadePages = MultiprocPool.map(MultiprocHandlePage, MultiprocPages)
-	os.system('printf "]\n"') # Make newline after percentage dots
+	MadePages = WriteProcessedPages(Flags, Pages, Categories, ConfMenu, Snippets, LimitFiles, PoolSize, Locale)
 
 	# Do page transclusions here (?)
 	#while True:

@@ -15,6 +15,7 @@ import time
 from ast import literal_eval
 from datetime import datetime
 from pathlib import Path
+from Modules.Assets import *
 from Modules.Config import *
 from Modules.Gemini import *
 from Modules.Globals import *
@@ -22,15 +23,8 @@ from Modules.Logging import *
 from Modules.Markdown import *
 from Modules.Site import *
 from Modules.Sitemap import *
+from Modules.Social import *
 from Modules.Utils import *
-try:
-	from Modules.ActivityPub import *
-	ActivityPub = True
-except:
-	logging.warning("⚠ Can't load the ActivityPub module. Its use is disabled. Make sure the 'requests' library is installed.")
-	ActivityPub = False
-from Libs import rcssmin
-cssmin = rcssmin._make_cssmin(python_only=True)
 
 def ResetOutDir(OutDir):
 	for e in (OutDir, f'{OutDir}.Content', f'{OutDir}.gmi'):
@@ -120,7 +114,7 @@ def WriteRedirects(Flags, Pages, FinalPaths, Locale):
 					StrRedirect=Locale['IfNotRedirected']))
 
 def BuildMain(Args, FeedEntries):
-	Flags, Snippets, FinalPaths = {}, {}, []
+	Flags, Snippets = {}, {}
 	HavePages, HavePosts = False, False
 	SiteConf = LoadConfFile('Site.ini')
 
@@ -232,34 +226,17 @@ def BuildMain(Args, FeedEntries):
 		Locale=Locale,
 		Threads=Threads)
 
+	# REFACTOR: The functions below are still not changed to accept a Page as Dict
+	for i, e in enumerate(Pages):
+		Pages[i] = list(e.values())
+
 	if FeedEntries != 0:
 		logging.info("Generating Feeds")
 		for FeedType in (True, False):
 			MakeFeed(Flags, Pages, FeedType)
 
-	if ActivityPub and MastodonURL and MastodonToken and SiteDomain:
-		logging.info("Mastodon Stuff")
-		MastodonPosts = MastodonShare(Flags, Pages, Locale)
-	else:
-		MastodonPosts = []
-
-	for File, Content, Titles, Meta, ContentHTML, SlimHTML, Description, Image in Pages:
-		if IsLightRun(File, LimitFiles):
-			continue
-		File = f"{OutDir}/{StripExt(File)}.html"
-		Content = ReadFile(File)
-		Post = ''
-		for p in MastodonPosts:
-			if p['Link'] == SiteDomain + '/' + File[len(f"{OutDir}/"):]:
-				Post = HTMLCommentsBlock.format(
-					StrComments=Locale['Comments'],
-					StrOpen=Locale['OpenInNewTab'],
-					URL=p['Post'])
-				break
-		Content = ReplWithEsc(Content, '[staticoso:Comments]', Post)
-		Content = ReplWithEsc(Content, '<staticoso:Comments>', Post)
-		WriteFile(File, Content)
-		FinalPaths += [File]
+	logging.info("Applying Social Integrations")
+	FinalPaths = ApplySocialIntegrations(Flags, Pages, LimitFiles, Locale)
 
 	logging.info("Creating Redirects")
 	WriteRedirects(Flags, Pages, FinalPaths, Locale)
@@ -279,20 +256,7 @@ def BuildMain(Args, FeedEntries):
 		MakeSitemap(Flags, Pages)
 
 	logging.info("Preparing Assets")
-	#os.system(f"cp -R Assets/* {OutDir}/")
-	if Flags['MinifyAssets']:
-		shutil.copytree('Assets', OutDir, ignore=IgnoreFiles, dirs_exist_ok=True)
-		for File in Path('Assets').rglob('*'):
-			if os.path.isfile(File):
-				Dest = f"{OutDir}/{str(File)[len('Assets')+1:]}"
-				if str(File).lower().endswith(FileExtensions['HTML']):
-					WriteFile(Dest, DoMinifyHTML(ReadFile(File), MinifyKeepComments))
-				elif str(File).lower().endswith('.css'):
-					WriteFile(Dest, cssmin(ReadFile(File), MinifyKeepComments))
-				else:
-					shutil.copy2(File, Dest)
-	else:
-		shutil.copytree('Assets', OutDir, dirs_exist_ok=True)
+	PrepareAssets(Flags)
 
 if __name__ == '__main__':
 	StartTime = time.time()

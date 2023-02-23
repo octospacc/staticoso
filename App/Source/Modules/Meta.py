@@ -16,7 +16,9 @@ from Modules.Utils import *
 # Menu styles:
 # - Simple: Default, Flat, Line
 # - Others: Excerpt, Image, Preview (Excerpt + Image), Full
-def GetHTMLPagesList(Pages:list, BlogName:str, SiteRoot:str, PathPrefix:str, CallbackFile=None, Unite=[], Type=None, Limit=None, PathFilter='', Category=None, For='Menu', MarkdownExts=(), MenuStyle='Default', ShowPaths=True):
+def GetHTMLPagesList(Flags:dict, Pages:list, PathPrefix:str, CallbackFile=None, Unite=[], Type=None, Limit=None, PathFilter='', Category=None, For='Menu', MenuStyle='Default', ShowPaths=True):
+	f = NameSpace(Flags)
+
 	Flatten, SingleLine, DoneCount, PrevDepth = False, False, 0, 0
 	if MenuStyle == 'Flat':
 		Flatten = True
@@ -57,7 +59,7 @@ def GetHTMLPagesList(Pages:list, BlogName:str, SiteRoot:str, PathPrefix:str, Cal
 						Levels = '.' * ((Depth-2+i) if not Flatten else 0) + ':'
 						# If search node endswith index, it's a page; else, it's a folder
 						if StripExt(File).endswith('index'):
-							Title = MakeListTitle(File, Meta, Titles, 'HTMLTitle', BlogName, PathPrefix)
+							Title = MakeListTitle(File, Meta, Titles, 'HTMLTitle', f.BlogName, PathPrefix)
 							DoneCount += 1
 						else:
 							Title = CurParent[Depth-2+i]
@@ -71,9 +73,9 @@ def GetHTMLPagesList(Pages:list, BlogName:str, SiteRoot:str, PathPrefix:str, Cal
 				Levels = '.' * ((Depth-1) if not Flatten else 0) + ':'
 				DoneCount += 1
 				if Meta['Order'] == 'Unite':
-					Title = markdown(MarkdownHTMLEscape(File, MarkdownExts), extensions=MarkdownExts).removeprefix('<p>').removesuffix('<p>')
+					Title = markdown(MarkdownHTMLEscape(File, f.MarkdownExts), extensions=f.MarkdownExts).removeprefix('<p>').removesuffix('<p>')
 				else:
-					Title = MakeListTitle(File, Meta, Titles, 'HTMLTitle', BlogName, PathPrefix)
+					Title = MakeListTitle(File, Meta, Titles, 'HTMLTitle', f.BlogName, PathPrefix)
 				if SingleLine:
 					List += ' <span>' + Title + '</span> '
 				else:
@@ -122,7 +124,10 @@ def FindPreprocLine(Line:str, Meta, Macros):
 	#	IgnoreBlocksStart += [l]
 	return (Meta, Macros, Changed)
 
-def PagePreprocessor(Path:str, TempPath:str, Type:str, SiteTemplate, SiteRoot, GlobalMacros, CategoryUncategorized, LightRun:bool=False, Content=None):
+def PagePreprocessor(Flags:dict, Page:list, SiteTemplate, GlobalMacros, LightRun:bool=False):
+	CategoryUncategorized = Flags['CategoriesUncategorized']
+	Path, TempPath, Type, Content = Page
+
 	File = ReadFile(Path) if not Content else Content
 	Path = Path.lower()
 	Content, Titles, DashyTitles, HTMLTitlesFound, Macros, Meta, MetaDefault = '', [], [], False, '', '', {
