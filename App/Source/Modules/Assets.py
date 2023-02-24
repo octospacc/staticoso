@@ -14,7 +14,7 @@ from Modules.Utils import *
 from Libs import rcssmin
 cssmin = rcssmin._make_cssmin(python_only=True)
 
-def PrepareAssets(Flags):
+def PrepareAssets(Flags:dict):
 	f = NameSpace(Flags)
 	if f.MinifyAssets:
 		shutil.copytree('Assets', f.OutDir, ignore=IgnoreFiles, dirs_exist_ok=True)

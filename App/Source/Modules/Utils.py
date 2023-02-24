@@ -22,7 +22,7 @@ def SureList(e):
 def staticosoBaseDir():
 	return f"{os.path.dirname(os.path.abspath(__file__))}/../../"
 
-def ReadFile(p, m='r'):
+def ReadFile(p:str, m:str='r'):
 	try:
 		with open(p, m) as f:
 			return f.read()
@@ -42,10 +42,10 @@ def FileToStr(File:str, Truncate:str=''):
 	return str(File)[len(Truncate):]
 
 # With shutil.copytree copy only folder struct, no files; https://stackoverflow.com/a/15664273
-def IgnoreFiles(Dir:str, Files):
+def IgnoreFiles(Dir:str, Files:list):
     return [f for f in Files if os.path.isfile(os.path.join(Dir, f))]
 
-def LoadFromDir(Dir:str, Matchs):
+def LoadFromDir(Dir:str, Matchs:list):
 	Contents = {}
 	Matchs = SureList(Matchs)
 	for Match in Matchs:
@@ -70,26 +70,26 @@ def UndupeStr(Str, Known, Split):
 		Str = Split.join(Sections)
 	return Str
 
-def DashifyStr(s, Limit=32):
+def DashifyStr(s:str, Limit:int=32):
 	Str = ''
 	for c in s[:Limit].replace('\n','-').replace('\t','-').replace(' ','-'):
 		if c.lower() in '0123456789qwfpbjluyarstgmneiozxcdvkh-':
 			Str += c
 	return '-' + Str
 
-def GetPathLevels(Path, AsNum=False, Add=0, Sub=0):
+def GetPathLevels(Path:str, AsNum:bool=False, Add:int=0, Sub:int=0):
 	n = Path.count('/') + Add - Sub
 	return n if AsNum else '../' * n
 
 # https://stackoverflow.com/a/34445090
-def FindAllIndex(Str, Sub):
+def FindAllIndex(Str:str, Sub:str):
 	i = Str.find(Sub)
 	while i != -1:
 		yield i
 		i = Str.find(Sub, i+1)
 
 # Replace substrings in a string, except when an escape char is prepended
-def ReplWithEsc(Str, Find, Repl, Esc='\\'):
+def ReplWithEsc(Str:str, Find:str, Repl:str, Esc:str='\\'):
 	New = ''
 	Sects = Str.split(Find)
 	for i,e in enumerate(Sects):
@@ -118,7 +118,7 @@ def WrapDictReplWithEsc(Str:str, Dict:dict, Wraps:list=[], Esc:str='\\'):
 			NewDict.update({f'{Wrap[0]}{Item}{Wrap[1]}': Dict[Item]})
 	return DictReplWithEsc(Str, NewDict, Esc)
 
-def NumsFromFileName(Path):
+def NumsFromFileName(Path:str):
 	Name = Path.split('/')[-1]
 	Split = len(Name)
 	for i,e in enumerate(Name):
@@ -126,7 +126,7 @@ def NumsFromFileName(Path):
 			return Name[:i]
 	return Path
 
-def RevSort(List):
+def RevSort(List:list):
 	List.sort()
 	List.reverse()
 	return List
@@ -157,7 +157,7 @@ def GetFullDate(Date):
 		return None
 	return datetime.strftime(datetime.strptime(Date, '%Y-%m-%d'), '%Y-%m-%dT%H:%M+00:00')
 
-def LoadLocale(Lang):
+def LoadLocale(Lang:str):
 	Lang = Lang + '.json'
 	Folder = f'{staticosoBaseDir()}Locale/'
 	File = ReadFile(Folder + Lang)
@@ -169,7 +169,10 @@ def LoadLocale(Lang):
 def IsLightRun(File, LimitFiles):
 	return False if LimitFiles == False or File in LimitFiles else True
 
-def PrintProcPercentDots(Proc, DivMult=1):
+def NameSpace(From):
+    return SimpleNamespace(**From)
+
+def PrintProcPercentDots(Proc:dict, DivMult=1):
 	Div = 5 * DivMult # 100/5 = 20 chars
 	Num, Count = Proc['Num'], Proc['Count']
 	if int(((Num/Count)*100)/Div) != int((((Num+1)/Count)*100)/Div):
@@ -177,27 +180,20 @@ def PrintProcPercentDots(Proc, DivMult=1):
 		return True
 	return False
 
-def NameSpace(From):
-    return SimpleNamespace(**From)
+def MultiProcFunctWrap(Args:dict):
+	PrintProcPercentDots(Args['Process'])
+	return Args['Process']['Funct'](Args)
 
 def DoMultiProc(Funct, ArgsCollection:list, Threads:int=cpu_count(), Progress:bool=False):
-	# The function should simply be like this
-	# def Funct(Args:dict):
-	# 	# Print the percentage dots, if needed
-	# 	PrintProcPercentDots(Args['Process'])
-	# 	# Call the real function that handles a single process at a time
-	# 	return Work(Args['a'], ...)
-	#if not Threads:
-	#	Threads = cpu_count()
 	FinalArgsCollection = []
 	for Index, Args in enumerate(ArgsCollection):
 		FinalArgsCollection.append(Args)
-		FinalArgsCollection[Index].update({"Process": {"Num": Index, "Count": len(ArgsCollection)}})
+		FinalArgsCollection[Index].update({"Process": {"Funct": Funct, "Num": Index, "Count": len(ArgsCollection)}})
 	Results = []
 	if Progress:
 		os.system('printf "["') # Using system print because (see PrintProcPercentDots())
 	with Pool(Threads) as MultiprocPool:
-		Results = MultiprocPool.map(Funct, FinalArgsCollection)
+		Results = MultiprocPool.map(MultiProcFunctWrap if Progress else Funct, FinalArgsCollection)
 	if Progress:
 		os.system('printf "]\n"') # Newline after percentage dots
 	return Results

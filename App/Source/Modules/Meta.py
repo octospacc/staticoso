@@ -8,6 +8,7 @@
 | ================================== """
 
 from Modules.Config import *
+from Modules.Globals import *
 from Modules.Elements import *
 from Modules.HTML import *
 from Modules.Markdown import *
@@ -124,32 +125,15 @@ def FindPreprocLine(Line:str, Meta, Macros):
 	#	IgnoreBlocksStart += [l]
 	return (Meta, Macros, Changed)
 
-def PagePreprocessor(Flags:dict, Page:list, SiteTemplate, GlobalMacros, LightRun:bool=False):
-	CategoryUncategorized = Flags['CategoriesUncategorized']
+def PagePreprocessor(Flags:dict, Page:list, GlobalMacros:dict, LightRun:bool=False):
+	f = NameSpace(Flags)
 	Path, TempPath, Type, Content = Page
 
 	File = ReadFile(Path) if not Content else Content
 	Path = Path.lower()
-	Content, Titles, DashyTitles, HTMLTitlesFound, Macros, Meta, MetaDefault = '', [], [], False, '', '', {
-		'Template': SiteTemplate,
-		'Head': '',
-		'Style': '',
-		'Type': Type,
-		'Index': 'Unspecified',
-		'Feed': 'True',
-		'Title': '',
-		'HTMLTitle': '',
-		'Description': '',
-		'Image': '',
-		'Macros': {},
-		'Categories': [],
-		'URLs': [],
-		'CreatedOn': '',
-		'UpdatedOn': '',
-		'EditedOn': '',
-		'Order': None,
-		'Language': None,
-		'Downsync': None}
+	Content, Titles, DashyTitles, HTMLTitlesFound, Macros, Meta = '', [], [], False, '', ''
+	MetaDefault = PageMetaDefault.copy()
+	MetaDefault.update({"Template": f.SiteTemplate, "Type": Type})
 	# Find all positions of '<!--', '-->', add them in a list=[[pos0,pos1,line0,line1],...]
 	for l in File.splitlines():
 		ll = l.lstrip().rstrip()
@@ -252,7 +236,7 @@ def PagePreprocessor(Flags:dict, Page:list, SiteTemplate, GlobalMacros, LightRun
 		Meta['EditedOn'] = Meta['UpdatedOn']
 	if Meta['Index'].lower() in ('default', 'unspecified', 'categories'):
 		if not Meta['Categories']:
-			Meta['Categories'] = [CategoryUncategorized]
+			Meta['Categories'] = [f.CategoriesUncategorized]
 		if Meta['Type'].lower() == 'page':
 			Meta['Index'] = 'Categories'
 		elif Meta['Type'].lower() == 'post':

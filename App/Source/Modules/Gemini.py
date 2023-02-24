@@ -47,7 +47,7 @@ def GemtextCompileList(Flags:dict, Pages:list, LimitFiles):
 			Gemtext += Line + '\n'
 		WriteFile(Dst, Flags['GemtextHeader'] + Gemtext)
 
-def FindEarliest(Str, Items):
+def FindEarliest(Str:str, Items:list):
 	Pos, Item = 0, ''
 	for Item in Items:
 		Str.find(Item)

@@ -26,25 +26,23 @@ from Modules.Sitemap import *
 from Modules.Social import *
 from Modules.Utils import *
 
-def ResetOutDir(OutDir):
+def ResetOutDir(OutDir:str):
 	for e in (OutDir, f'{OutDir}.Content', f'{OutDir}.gmi'):
 		try:
 			shutil.rmtree(e)
 		except FileNotFoundError:
 			pass
 
-def DelTmp(OutDir):
+def DelTmp(OutDir:str):
 	for Ext in FileExtensions['Tmp']:
-		for File in Path(OutDir).rglob(f"*.{Ext}"):
+		for File in Path(OutDir).rglob(f'*.{Ext}'):
 			os.remove(File)
-	for Dir in (OutDir, f"{OutDir}.gmi"):
+	for Dir in (OutDir, f'{OutDir}.gmi'):
 		for File in Path(Dir).rglob('*.tmp'):
 			os.remove(File)
 
-def SetSorting(Sorting):
-	Default = {
-		'Pages':'Standard',
-		'Posts':'Inverse'}
+def SetSorting(Sorting:dict):
+	Default = {"Pages": "Standard", "Posts": "Inverse"}
 	for i in Default:
 		if i not in Sorting:
 			Sorting.update({i:Default[i]})
@@ -65,14 +63,14 @@ def GetConfMenu(Entries, MarkdownExts):
 			Menu[int(i)] = e
 	return Menu
 
-def CheckSafeOutDir(OutDir):
+def CheckSafeOutDir(OutDir:str):
 	InDir = os.path.realpath(os.getcwd())
 	OutDir = os.path.realpath(OutDir)
 	OutFolder = OutDir.split('/')[-1]
-	if InDir == OutDir:
+	if InDir.lower() == OutDir.lower():
 		logging.error(f"⛔ Output and Input directories ({OutDir}) can't be the same. Exiting.")
 		exit(1)
-	elif OutFolder in ReservedPaths and f"{InDir}/{OutFolder}" == OutDir:
+	elif OutFolder.lower() in ReservedPaths and f"{InDir.lower()}/{OutFolder.lower()}" == OutDir.lower():
 		logging.error(f"⛔ Output directory {OutDir} can't be a reserved subdirectory of the Input. Exiting.")
 		exit(1)
 
@@ -98,20 +96,33 @@ def GetModifiedFiles(OutDir):
 			Mod += [File['Tmp']]
 	return Mod
 
-def WriteRedirects(Flags, Pages, FinalPaths, Locale):
-	OutDir, SiteName, SiteDomain = Flags['OutDir'], Flags['SiteName'], Flags['SiteDomain']
-	for File, Content, Titles, Meta, ContentHTML, SlimHTML, Description, Image in Pages:
-		for URL in Meta['URLs']:
-			DestFile = f"{OutDir}/{URL}"
+def WriteRedirects(Flags:dict, Pages:list, FinalPaths, Locale:dict):
+	SiteName = Flags['SiteName']
+	for Page in Pages:
+		for URL in Page['Meta']['URLs']:
+			DestFile = f'{Flags["OutDir"]}/{URL}'
 			if DestFile not in FinalPaths:
-				DestURL = f"{GetPathLevels(URL)}{StripExt(File)}.html"
+				DestURL = f'{GetPathLevels(URL)}{StripExt(Page["File"])}.html'
 				mkdirps(os.path.dirname(DestFile))
 				WriteFile(DestFile, RedirectPageTemplate.format(
-					SiteDomain=SiteDomain,
+					SiteDomain=Flags['SiteDomain'],
 					DestURL=DestURL,
-					TitlePrefix=f"{SiteName} - " if SiteName else '',
+					TitlePrefix=f'{SiteName} - ' if SiteName else '',
 					StrClick=Locale['ClickHere'],
 					StrRedirect=Locale['IfNotRedirected']))
+
+def CopyBaseFiles(Flags:dict):
+	f = NameSpace(Flags)
+	Have = {"Pages": False, "Posts": False}
+	Prefix = {"Pages": "", "Posts": "/Posts"}
+	for Type in ('Pages', 'Posts'):
+		if os.path.isdir(Type):
+			Have[Type] = True
+			shutil.copytree(Type, f'{f.OutDir}{Prefix[Type]}', dirs_exist_ok=True)
+			shutil.copytree(Type, f'{f.OutDir}.Content{Prefix[Type]}', dirs_exist_ok=True)
+			if f.GemtextOutput:
+				shutil.copytree('Posts', f'{f.OutDir}.gmi{Prefix[Type]}', ignore=IgnoreFiles, dirs_exist_ok=True)
+	return Have['Pages'] or Have['Posts']
 
 def BuildMain(Args, FeedEntries):
 	Flags, Snippets = {}, {}
@@ -136,48 +147,48 @@ def BuildMain(Args, FeedEntries):
 	Threads = Args.Threads if Args.Threads else DefConf['Threads']
 	DiffBuild = Args.DiffBuild if Args.DiffBuild else DefConf['DiffBuild']
 
-	BlogName = Flags['BlogName'] = OptChoose('', Args.BlogName, ReadConf(SiteConf, 'Site', 'BlogName'))
-	SiteTagline = Flags['SiteTagline'] = OptChoose('', Args.SiteTagline, ReadConf(SiteConf, 'Site', 'Tagline'))
-	SiteTemplate = Flags['SiteTemplate'] = DefConfOptChoose('SiteTemplate', Args.SiteTemplate, ReadConf(SiteConf, 'Site', 'Template'))
+	Flags['BlogName'] = OptChoose('', Args.BlogName, ReadConf(SiteConf, 'Site', 'BlogName'))
+	Flags['SiteTagline'] = OptChoose('', Args.SiteTagline, ReadConf(SiteConf, 'Site', 'Tagline'))
+	Flags['SiteTemplate'] = DefConfOptChoose('SiteTemplate', Args.SiteTemplate, ReadConf(SiteConf, 'Site', 'Template'))
 	SiteDomain = Flags['SiteDomain'] = OptChoose('', Args.SiteDomain, ReadConf(SiteConf, 'Site', 'Domain'))
-	SiteRoot = Flags['SiteRoot'] = OptChoose('/', Args.SiteRoot, ReadConf(SiteConf, 'Site', 'Root'))
+	Flags['SiteRoot'] = OptChoose('/', Args.SiteRoot, ReadConf(SiteConf, 'Site', 'Root'))
 	SiteLang = Flags['SiteLang'] = DefConfOptChoose('SiteLang', Args.SiteLanguage, ReadConf(SiteConf, 'Site', 'Language'))
 
 	Sorting = Flags['Sorting'] = literal_eval(OptChoose('{}', Args.Sorting, ReadConf(SiteConf, 'Site', 'Sorting')))
 	Sorting = Flags['Sorting'] = SetSorting(Sorting)
 
-	NoScripts = Flags['NoScripts'] = StrBoolChoose(False, Args.NoScripts, ReadConf(SiteConf, 'Site', 'NoScripts'))
-	FolderRoots = Flags['FolderRoots'] = literal_eval(Args.FolderRoots) if Args.FolderRoots else {}
+	Flags['NoScripts'] = StrBoolChoose(False, Args.NoScripts, ReadConf(SiteConf, 'Site', 'NoScripts'))
+	Flags['FolderRoots'] = literal_eval(Args.FolderRoots) if Args.FolderRoots else {}
 
-	ActivityPubTypeFilter = Flags['ActivityPubTypeFilter'] = DefConfOptChoose('ActivityPubTypeFilter', Args.ActivityPubTypeFilter, ReadConf(SiteConf, 'ActivityPub', 'TypeFilter'))
-	ActivityPubHoursLimit = Flags['ActivityPubHoursLimit'] = DefConfOptChoose('ActivityPubHoursLimit', Args.ActivityPubHoursLimit, ReadConf(SiteConf, 'ActivityPub', 'HoursLimit'))
+	Flags['ActivityPubTypeFilter'] = DefConfOptChoose('ActivityPubTypeFilter', Args.ActivityPubTypeFilter, ReadConf(SiteConf, 'ActivityPub', 'TypeFilter'))
+	Flags['ActivityPubHoursLimit'] = DefConfOptChoose('ActivityPubHoursLimit', Args.ActivityPubHoursLimit, ReadConf(SiteConf, 'ActivityPub', 'HoursLimit'))
 
-	MastodonURL = Flags['MastodonURL'] = OptChoose('', Args.MastodonURL, ReadConf(SiteConf, 'Mastodon', 'URL'))
-	MastodonToken = Flags['MastodonToken'] = OptChoose('', Args.MastodonToken, ReadConf(SiteConf, 'Mastodon', 'Token'))
+	Flags['MastodonURL'] = OptChoose('', Args.MastodonURL, ReadConf(SiteConf, 'Mastodon', 'URL'))
+	Flags['MastodonToken'] = OptChoose('', Args.MastodonToken, ReadConf(SiteConf, 'Mastodon', 'Token'))
 
 	MarkdownExts = Flags['MarkdownExts'] = literal_eval(OptionChoose(str(MarkdownExtsDefault), Args.MarkdownExts, ReadConf(SiteConf, 'Markdown', 'Exts')))
-	SitemapOutput = Flags['SitemapOutput'] = StrBoolChoose(True, Args.SitemapOutput, ReadConf(SiteConf, 'Sitemap', 'Output'))
+	Flags['SitemapOutput'] = StrBoolChoose(True, Args.SitemapOutput, ReadConf(SiteConf, 'Sitemap', 'Output'))
 
-	MinifyOutput = Flags['MinifyOutput'] = StrBoolChoose(False, Args.MinifyOutput, ReadConf(SiteConf, 'Minify', 'Output'))
-	MinifyAssets = Flags['MinifyAssets'] = StrBoolChoose(False, Args.MinifyAssets, ReadConf(SiteConf, 'Minify', 'Assets'))
-	MinifyKeepComments = Flags['MinifyKeepComments'] = StrBoolChoose(False, Args.MinifyKeepComments, ReadConf(SiteConf, 'Minify', 'KeepComments'))
+	Flags['MinifyOutput'] = StrBoolChoose(False, Args.MinifyOutput, ReadConf(SiteConf, 'Minify', 'Output'))
+	Flags['MinifyAssets'] = StrBoolChoose(False, Args.MinifyAssets, ReadConf(SiteConf, 'Minify', 'Assets'))
+	Flags['MinifyKeepComments'] = StrBoolChoose(False, Args.MinifyKeepComments, ReadConf(SiteConf, 'Minify', 'KeepComments'))
 
-	ImgAltToTitle = Flags['ImgAltToTitle'] = StrBoolChoose(True, Args.ImgAltToTitle, ReadConf(SiteConf, 'Site', 'ImgAltToTitle'))
-	ImgTitleToAlt = Flags['ImgTitleToAlt'] = StrBoolChoose(False, Args.ImgTitleToAlt, ReadConf(SiteConf, 'Site', 'ImgTitleToAlt'))
-	HTMLFixPre = Flags['HTMLFixPre'] = StrBoolChoose(False, Args.HTMLFixPre, ReadConf(SiteConf, 'Site', 'HTMLFixPre'))
+	Flags['ImgAltToTitle'] = StrBoolChoose(True, Args.ImgAltToTitle, ReadConf(SiteConf, 'Site', 'ImgAltToTitle'))
+	Flags['ImgTitleToAlt'] = StrBoolChoose(False, Args.ImgTitleToAlt, ReadConf(SiteConf, 'Site', 'ImgTitleToAlt'))
+	Flags['HTMLFixPre'] = StrBoolChoose(False, Args.HTMLFixPre, ReadConf(SiteConf, 'Site', 'HTMLFixPre'))
 
-	CategoriesAutomatic = Flags['CategoriesAutomatic'] = StrBoolChoose(False, Args.CategoriesAutomatic, ReadConf(SiteConf, 'Categories', 'Automatic'))
-	CategoriesUncategorized = Flags['CategoriesUncategorized'] = DefConfOptChoose('CategoriesUncategorized', Args.CategoriesUncategorized, ReadConf(SiteConf, 'Categories', 'Uncategorized'))
+	Flags['CategoriesAutomatic'] = StrBoolChoose(False, Args.CategoriesAutomatic, ReadConf(SiteConf, 'Categories', 'Automatic'))
+	Flags['CategoriesUncategorized'] = DefConfOptChoose('CategoriesUncategorized', Args.CategoriesUncategorized, ReadConf(SiteConf, 'Categories', 'Uncategorized'))
 
-	GemtextOutput = Flags['GemtextOutput'] = StrBoolChoose(False, Args.GemtextOutput, ReadConf(SiteConf, 'Gemtext', 'Output'))
-	GemtextHeader = Flags['GemtextHeader'] = Args.GemtextHeader if Args.GemtextHeader else ReadConf(SiteConf, 'Gemtext', 'Header') if ReadConf(SiteConf, 'Gemtext', 'Header') else f"# {SiteName}\n\n" if SiteName else ''
+	Flags['GemtextOutput'] = StrBoolChoose(False, Args.GemtextOutput, ReadConf(SiteConf, 'Gemtext', 'Output'))
+	Flags['GemtextHeader'] = Args.GemtextHeader if Args.GemtextHeader else ReadConf(SiteConf, 'Gemtext', 'Header') if ReadConf(SiteConf, 'Gemtext', 'Header') else f"# {SiteName}\n\n" if SiteName else ''
 
-	FeedCategoryFilter = Flags['FeedCategoryFilter'] = DefConfOptChoose('FeedCategoryFilter', Args.FeedCategoryFilter, ReadConf(SiteConf, 'Feed', 'CategoryFilter'))
+	Flags['FeedCategoryFilter'] = DefConfOptChoose('FeedCategoryFilter', Args.FeedCategoryFilter, ReadConf(SiteConf, 'Feed', 'CategoryFilter'))
 	FeedEntries = Flags['FeedEntries'] = int(FeedEntries) if (FeedEntries or FeedEntries == 0) and FeedEntries != 'Default' else int(ReadConf(SiteConf, 'Feed', 'Entries')) if ReadConf(SiteConf, 'Feed', 'Entries') else DefConf['FeedEntries']
 
-	JournalRedirect = Flags["JournalRedirect"] = StrBoolChoose(DefConf["JournalRedirect"], Args.JournalRedirect, ReadConf(SiteConf, 'Journal', 'Redirect'))
+	Flags["JournalRedirect"] = StrBoolChoose(DefConf["JournalRedirect"], Args.JournalRedirect, ReadConf(SiteConf, 'Journal', 'Redirect'))
 
-	DynamicParts = Flags['DynamicParts'] = literal_eval(OptionChoose('{}', Args.DynamicParts, ReadConf(SiteConf, 'Site', 'DynamicParts')))
+	Flags['DynamicParts'] = literal_eval(OptionChoose('{}', Args.DynamicParts, ReadConf(SiteConf, 'Site', 'DynamicParts')))
 	DynamicPartsText = Snippets['DynamicParts'] = LoadFromDir('DynamicParts', ['*.htm', '*.html'])
 	StaticPartsText = Snippets['StaticParts'] = LoadFromDir('StaticParts', ['*.htm', '*.html'])
 	TemplatesText = Snippets['Templates'] = LoadFromDir('Templates', ['*.htm', '*.html'])
@@ -199,25 +210,13 @@ def BuildMain(Args, FeedEntries):
 		ResetOutDir(OutDir)
 		LimitFiles = False
 
-	if os.path.isdir('Pages'):
-		HavePages = True
-		shutil.copytree('Pages', OutDir, dirs_exist_ok=True)
-		shutil.copytree('Pages', f'{OutDir}.Content', dirs_exist_ok=True)
-		if Flags['GemtextOutput']:
-			shutil.copytree('Pages', f'{OutDir}.gmi', ignore=IgnoreFiles, dirs_exist_ok=True)
-	if os.path.isdir('Posts'):
-		HavePosts = True
-		shutil.copytree('Posts', f'{OutDir}/Posts', dirs_exist_ok=True)
-		shutil.copytree('Posts', f'{OutDir}.Content/Posts', dirs_exist_ok=True)
-		if Flags['GemtextOutput']:
-			shutil.copytree('Posts', f'{OutDir}.gmi/Posts', ignore=IgnoreFiles, dirs_exist_ok=True)
-
-	if not (HavePages or HavePosts):
+	logging.info("Reading Base Files")
+	if not (CopyBaseFiles(Flags)):
 		logging.error("⛔ No Pages or posts found. Nothing to do, exiting!")
 		exit(1)
 
 	logging.info("Generating HTML")
-	Pages = MakeSite(
+	DictPages = MakeSite(
 		Flags=Flags,
 		LimitFiles=LimitFiles,
 		Snippets=Snippets,
@@ -226,34 +225,35 @@ def BuildMain(Args, FeedEntries):
 		Locale=Locale,
 		Threads=Threads)
 
-	# REFACTOR: The functions below are still not changed to accept a Page as Dict
-	for i, e in enumerate(Pages):
-		Pages[i] = list(e.values())
+	# REFACTOR: Some functions below are still not changed to accept a Page as Dict, so let's convert to Lists
+	ListPages = DictPages.copy()
+	for i, e in enumerate(ListPages):
+		ListPages[i] = list(e.values())
 
 	if FeedEntries != 0:
 		logging.info("Generating Feeds")
 		for FeedType in (True, False):
-			MakeFeed(Flags, Pages, FeedType)
+			MakeFeed(Flags, ListPages, FeedType)
 
 	logging.info("Applying Social Integrations")
-	FinalPaths = ApplySocialIntegrations(Flags, Pages, LimitFiles, Locale)
+	FinalPaths = ApplySocialIntegrations(Flags, ListPages, LimitFiles, Locale)
 
 	logging.info("Creating Redirects")
-	WriteRedirects(Flags, Pages, FinalPaths, Locale)
+	WriteRedirects(Flags, DictPages, FinalPaths, Locale)
 
 	logging.info("Building HTML Search Page")
-	WriteFile(f'{OutDir}/Search.html', BuildPagesSearch(Flags, Pages))
+	WriteFile(f'{OutDir}/Search.html', BuildPagesSearch(Flags, DictPages, TemplatesText[Flags['SiteTemplate']], Snippets, Locale))
 
 	if Flags['GemtextOutput']:
 		logging.info("Generating Gemtext")
-		GemtextCompileList(Flags, Pages, LimitFiles)
+		GemtextCompileList(Flags, ListPages, LimitFiles)
 
 	logging.info("Cleaning Temporary Files")
 	DelTmp(OutDir)
 
 	if Flags['SitemapOutput']:
 		logging.info("Generating Sitemap")
-		MakeSitemap(Flags, Pages)
+		MakeSitemap(Flags, DictPages)
 
 	logging.info("Preparing Assets")
 	PrepareAssets(Flags)
@@ -268,7 +268,7 @@ if __name__ == '__main__':
 	Parser.add_argument('--OutputDir', type=str)
 	#Parser.add_argument('--InputDir', type=str)
 	Parser.add_argument('--Sorting', type=str)
-	Parser.add_argument('--SiteLang', type=str) # DEPRECATED
+	#Parser.add_argument('--SiteLang', type=str) # DEPRECATED
 	Parser.add_argument('--SiteLanguage', type=str)
 	Parser.add_argument('--SiteRoot', type=str)
 	Parser.add_argument('--SiteName', type=str)

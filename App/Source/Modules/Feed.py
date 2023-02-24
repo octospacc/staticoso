@@ -13,6 +13,7 @@ from Libs.feedgen.feed import FeedGenerator
 from Modules.Utils import *
 
 def MakeFeed(Flags:dict, Pages:list, FullSite=False):
+	f = NameSpace(Flags)
 	CategoryFilter = Flags['FeedCategoryFilter']
 	MaxEntries = Flags['FeedEntries']
 
