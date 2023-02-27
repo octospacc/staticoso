@@ -19,10 +19,62 @@ from Modules.Meta import *
 from Modules.Pug import *
 from Modules.Utils import *
 
-def PatchHTML(Flags:dict, File, HTML:str, Snippets:dict, HTMLPagesList:str, PagePath:str, Content:str, Titles:list, Meta:dict, Categories, Locale:dict, LightRun):
-	f = NameSpace(Flags)
+def HandleStaticParts(Html:str, Snippets:dict):
+	for e in Snippets['StaticParts']:
+		Html = ReplWithEsc(Html, f"[staticoso:StaticPart:{e}]", Snippets['StaticParts'][e])
+		Html = ReplWithEsc(Html, f"<staticoso:StaticPart:{e}>", Snippets['StaticParts'][e])
+	return Html
 
-	HTMLTitles = FormatTitles(Titles)
+def HandleDynamicParts(Flags:dict, Html:str, Snippets:dict):
+	f = NameSpace(Flags)
+	Key = 'staticoso:dynamicpart'
+	if f'{Key}:' in Html.lower(): # Reduce unnecessary cycles
+		for Line in Html.splitlines():
+			Line = Line.lstrip().rstrip()
+			LineLow = Line.lower()
+			if (LineLow.startswith(f'[{Key}:') and LineLow.endswith(']')) or (LineLow.startswith(f'<{Key}:') and LineLow.endswith('>')):
+				Path =  Line[len(f'<{Key}:'):-1]
+				Section = Path.split('/')[-1]
+				if Section in f.DynamicParts:
+					Parts = f.DynamicParts[Section]
+					Text = ''
+					Parts = SureList(Parts)
+					for Part in Parts:
+						Text += Snippets['DynamicParts'][f'{Path}/{Part}'] + '\n'
+				else:
+					Text = ''
+				Html = ReplWithEsc(Html, f'[staticoso:DynamicPart:{Path}]', Text)
+				Html = ReplWithEsc(Html, f'<staticoso:DynamicPart:{Path}>', Text)
+	return Html
+
+# TODO: This would need to be handled either fully before or fully after after all pages' content has been transformed to HTML, else other markups end up in HTML and the page is broken
+def HandleTransclusions(Html:str, Caller:str, Pages:list):
+	#if Type == 'Evals': # [% cmd %] | {% cmd %}
+	Targets = []
+	Finding = Html
+	Start = Finding.find('{{')
+	while Start != -1:
+		Start = Start + 2
+		Finding = Finding[Start:]
+		Stop = Finding.find('}}')
+		if Stop != -1:
+			Targets += [Finding[:Stop]]
+		Start = Finding.find('{{')
+	for Target in Targets:
+		# Maybe we should show an error message on possible recursive transclusion, as currently this doesn't handle escaped tokens
+		if Target != Caller:
+			for File, Content, _, _ in Pages:
+				if File == Target:
+					Html = ReplWithEsc(Html, '{{' + Target + '}}', Content)
+					break
+	return Html
+
+def PatchHtml(Flags:dict, Pages:list, Page:dict, Context:dict, Snippets:dict, Locale:dict, LightRun):
+	f = NameSpace(Flags)
+	File, PagePath, Content, Titles, Meta = tuple(Page.values())
+	Html, HtmlPagesList, Categories = tuple(Context.values())
+
+	HtmlTitles = FormatTitles(Titles)
 	BodyDescription, BodyImage = '', ''
 	if not File.lower().endswith('.txt'):
 		Soup = MkSoup(Content)
@@ -59,50 +111,29 @@ def PatchHTML(Flags:dict, File, HTML:str, Snippets:dict, HTMLPagesList:str, Page
 	TimeNow = datetime.now().strftime('%Y-%m-%d %H:%M')
 	RelativeRoot = GetPathLevels(PagePath)
 
-	if 'staticoso:DynamicPart:' in HTML: # Reduce risk of unnecessary cycles
-		for Line in HTML.splitlines():
-			Line = Line.lstrip().rstrip()
-			if (Line.startswith('[staticoso:DynamicPart:') and Line.endswith(']')) or (Line.startswith('<staticoso:DynamicPart:') and Line.endswith('>')):
-				Path =  Line[len('<staticoso:DynamicPart:'):-1]
-				Section = Path.split('/')[-1]
-				if Section in f.DynamicParts:
-					Part = f.DynamicParts[Section]
-					Text = ''
-					if type(Part) == list:
-						for e in Part:
-							Text += Snippets['DynamicParts'][f"{Path}/{e}"] + '\n'
-					elif type(Part) == str:
-						Text = Snippets['DynamicParts'][f"{Path}/{Part}"]
-				else:
-					Text = ''
-				HTML = ReplWithEsc(HTML, f"[staticoso:DynamicPart:{Path}]", Text)
-				HTML = ReplWithEsc(HTML, f"<staticoso:DynamicPart:{Path}>", Text)
-
-	for i in range(2):
-		for e in Snippets['StaticParts']:
-			HTML = ReplWithEsc(HTML, f"[staticoso:StaticPart:{e}]", Snippets['StaticParts'][e])
-			HTML = ReplWithEsc(HTML, f"<staticoso:StaticPart:{e}>", Snippets['StaticParts'][e])
+	Html = WhileFuncResultChanges(HandleDynamicParts, {"Flags": Flags, "Html": Html, "Snippets": Snippets}, 'Html')
+	Html = WhileFuncResultChanges(HandleStaticParts, {"Html": Html, "Snippets": Snippets}, 'Html')
 
 	if LightRun:
-		HTML = None
+		Html = None
 	else:
-		HTML = WrapDictReplWithEsc(HTML, {
+		Html = WrapDictReplWithEsc(Html, {
 			#'[staticoso:PageHead]': Meta['Head'],
 			#'<staticoso:PageHead>': Meta['Head'],
 			# #DEPRECATION #
-			'staticoso:Site:Menu': HTMLPagesList,
+			'staticoso:Site:Menu': HtmlPagesList,
 			'staticoso:Page:Lang': Meta['Language'] if Meta['Language'] else f.SiteLang,
-			'staticoso:Page:Chapters': HTMLTitles,
+			'staticoso:Page:Chapters': HtmlTitles,
 			'staticoso:Page:Title': Title,
 			'staticoso:Page:Description': Description,
 			'staticoso:Page:Image': Image,
 			'staticoso:Page:Path': PagePath,
 			'staticoso:Page:Style': Meta['Style'],
 			################
-			'staticoso:SiteMenu': HTMLPagesList,
+			'staticoso:SiteMenu': HtmlPagesList,
 			'staticoso:PageLang': Meta['Language'] if Meta['Language'] else f.SiteLang,
 			'staticoso:PageLanguage': Meta['Language'] if Meta['Language'] else f.SiteLang,
-			'staticoso:PageSections': HTMLTitles,
+			'staticoso:PageSections': HtmlTitles,
 			'staticoso:PageTitle': Title,
 			'staticoso:PageDescription': Description,
 			'staticoso:PageImage': Image,
@@ -126,23 +157,24 @@ def PatchHTML(Flags:dict, File, HTML:str, Snippets:dict, HTMLPagesList:str, Page
 			'staticoso:SiteAbsoluteRoot': f.SiteRoot,
 			'staticoso:SiteRelativeRoot': RelativeRoot,
 		}, InternalMacrosWraps)
+		#Html = WhileFuncResultChanges(HandleTransclusions, {"Html": Html, "Caller": File, "Pages": Pages}, 'Html')
 		for e in Meta['Macros']:
-			HTML = ReplWithEsc(HTML, f"[:{e}:]", Meta['Macros'][e])
+			Html = ReplWithEsc(Html, f"[:{e}:]", Meta['Macros'][e])
 		for e in f.FolderRoots:
-			HTML = WrapDictReplWithEsc(HTML, {
+			Html = WrapDictReplWithEsc(Html, {
 				f'staticoso:CustomPath:{e}': f.FolderRoots[e],
 				f'staticoso:Folder:{e}:AbsoluteRoot': f.FolderRoots[e], #DEPRECATED
 			}, InternalMacrosWraps)
 		for e in Categories:
-			HTML = WrapDictReplWithEsc(HTML, {
+			Html = WrapDictReplWithEsc(Html, {
 				f'staticoso:Category:{e}': Categories[e],
 				f'staticoso:CategoryList:{e}': Categories[e],
 			}, InternalMacrosWraps)
-			HTML = ReplWithEsc(HTML, f'<span>[staticoso:Category:{e}]</span>', Categories[e]) #DEPRECATED
+			Html = ReplWithEsc(Html, f'<span>[staticoso:Category:{e}]</span>', Categories[e]) #DEPRECATED
 
 	# TODO: Clean this doubling?
-	ContentHTML = Content
-	ContentHTML = WrapDictReplWithEsc(ContentHTML, {
+	ContentHtml = Content
+	ContentHtml = WrapDictReplWithEsc(ContentHtml, {
 		# #DEPRECATION #
 		'[staticoso:Page:Title]': Title,
 		'[staticoso:Page:Description]': Description,
@@ -157,21 +189,22 @@ def PatchHTML(Flags:dict, File, HTML:str, Snippets:dict, HTMLPagesList:str, Page
 		'<staticoso:SiteAbsoluteRoot>': f.SiteRoot,
 		'<staticoso:SiteRelativeRoot>': RelativeRoot,
 	}, InternalMacrosWraps)
+	#Html = WhileFuncResultChanges(HandleTransclusions, {"Html": Html, "Caller": File, "Pages": Pages}, 'Html')
 	for e in Meta['Macros']:
-		ContentHTML = ReplWithEsc(ContentHTML, f"[:{e}:]", Meta['Macros'][e])
+		ContentHtml = ReplWithEsc(ContentHtml, f"[:{e}:]", Meta['Macros'][e])
 	for e in f.FolderRoots:
-		ContentHTML = WrapDictReplWithEsc(ContentHTML, {
+		ContentHtml = WrapDictReplWithEsc(ContentHtml, {
 			f'staticoso:CustomPath:{e}': f.FolderRoots[e],
 			f'staticoso:Folder:{e}:AbsoluteRoot': f.FolderRoots[e], #DEPRECATED
 		}, InternalMacrosWraps)
 	for e in Categories:
-		ContentHTML = WrapDictReplWithEsc(ContentHTML, {
+		ContentHtml = WrapDictReplWithEsc(ContentHtml, {
 			f'staticoso:Category:{e}': Categories[e],
 			f'staticoso:CategoryList:{e}': Categories[e],
 		}, InternalMacrosWraps)
-		ContentHTML = ReplWithEsc(ContentHTML, f'<span>[staticoso:Category:{e}]</span>', Categories[e]) #DEPRECATED
+		ContentHtml = ReplWithEsc(ContentHtml, f'<span>[staticoso:Category:{e}]</span>', Categories[e]) #DEPRECATED
 
-	return HTML, ContentHTML, Description, Image
+	return Html, ContentHtml, Description, Image
 
 def BuildPagesSearch(Flags:dict, Pages:list, Template:str, Snippets:dict, Locale:dict):
 	SearchContent = ''
@@ -187,21 +220,16 @@ def BuildPagesSearch(Flags:dict, Pages:list, Template:str, Snippets:dict, Locale
 				{Page["ContentHtml"]}
 			</div>
 		'''
-	return PatchHTML(
+	return PatchHtml(
 		Flags=Flags,
-		File='Search.html',
-		HTML=Template,
+		Pages=[],
+		Page={"File": "Search.html", "PagePath": "Search.html", "Content": Base[0] + SearchContent + Base[1], "Titles": [], "Meta": PageMetaDefault},
+		Context={"Html": Template, "HtmlPagesList": "", "Categories": []},
 		Snippets=Snippets,
-		HTMLPagesList='',
-		PagePath='Search.html',
-		Content=Base[0] + SearchContent + Base[1],
-		Titles=[],
-		Meta=PageMetaDefault,
-		Categories=[],
 		Locale=Locale,
 		LightRun=False)[0]
 
-def HandlePage(Flags:dict, Page:list, Pages, Categories, LimitFiles, Snippets:dict, ConfMenu, Locale:dict):
+def HandlePage(Flags:dict, Page:list, Pages:list, Categories, LimitFiles, Snippets:dict, ConfMenu, Locale:dict):
 	File, Content, Titles, Meta = Page
 	f = NameSpace(Flags)
 	TemplatesText = Snippets['Templates']
@@ -233,17 +261,12 @@ def HandlePage(Flags:dict, Page:list, Pages, Categories, LimitFiles, Snippets:di
 			For='Menu',
 			MenuStyle=TemplateMeta['MenuStyle'])
 
-	HTML, ContentHTML, Description, Image = PatchHTML(
+	HTML, ContentHTML, Description, Image = PatchHtml(
 		Flags,
-		File=File,
-		HTML=TemplatesText[Meta['Template']],
+		Pages=Pages,
+		Page={"File": File, "PagePath": PagePath[len(f"{f.OutDir}/"):], "Content": Content, "Titles": Titles, "Meta": Meta},
+		Context={"Html": TemplatesText[Meta['Template']], "HtmlPagesList": HTMLPagesList, "Categories": Categories},
 		Snippets=Snippets,
-		HTMLPagesList=HTMLPagesList,
-		PagePath=PagePath[len(f"{f.OutDir}/"):],
-		Content=Content,
-		Titles=Titles,
-		Meta=Meta,
-		Categories=Categories,
 		Locale=Locale,
 		LightRun=LightRun)
 
@@ -298,17 +321,12 @@ def HandlePage(Flags:dict, Page:list, Pages, Categories, LimitFiles, Snippets:di
 		WriteFile(ContentPagePath, ContentHTML)
 
 	if not LightRun and 'htmljournal' in ContentHTML.lower(): # Avoid extra cycles
-		HTML, _, _, _ = PatchHTML(
+		HTML, _, _, _ = PatchHtml(
 			Flags,
-			File=File,
-			HTML=TemplatesText[Meta['Template']],
+			Pages=Pages,
+			Page={"File": File, "PagePath": f'{StripExt(File)}.Journal.html', "Content": MakeHTMLJournal(Flags, Locale, f'{StripExt(File)}.html', ContentHTML), "Titles": "", "Meta": Meta},
+			Context={"Html": TemplatesText[Meta['Template']], "HtmlPagesList": HTMLPagesList, "Categories": Categories},
 			Snippets=Snippets,
-			HTMLPagesList=HTMLPagesList,
-			PagePath=f'{StripExt(File)}.Journal.html',
-			Content=MakeHTMLJournal(Flags, Locale, f'{StripExt(File)}.html', ContentHTML),
-			Titles='',
-			Meta=Meta,
-			Categories=Categories,
 			Locale=Locale,
 			LightRun=LightRun)
 		if Flags["JournalRedirect"]:
@@ -338,7 +356,7 @@ def ReorderPagesPaths(Paths:dict, Sorting:dict):
 			Paths[Type].reverse()
 	return Paths
 
-def PopulateCategoryLists(Flags:dict, Pages:list, Categories):
+def PopulateCategoryLists(Flags:dict, Pages:list, Categories:dict):
 	for Cat in Categories:
 		for Type in ('Page', 'Post'):
 			Categories[Cat] += GetHTMLPagesList(
@@ -423,24 +441,5 @@ def MakeSite(Flags:dict, LimitFiles, Snippets, ConfMenu, GlobalMacros:dict, Loca
 
 	logging.info("Writing Pages")
 	MadePages = WriteProcessedPages(Flags, Pages, Categories, ConfMenu, Snippets, LimitFiles, PoolSize, Locale)
-
-	# Do page transclusions here (?)
-	#while True:
-	#	Operated = False
-	#	for di,Dest in enumerate(MadePages):
-	#		#print(Dest[0])
-	#		#TempPath = f'{PathPrefix}{Dest["File"]}'
-	#		#LightRun = False if LimitFiles == False or TempPath in LimitFiles else True
-	#		#if not LightRun:
-	#		if '[staticoso:Transclude:' in Dest[4] and (LimitFiles == False or f'{PathPrefix}{Dest[0]}' in LimitFiles):
-	#			for Item in MadePages:
-	#				SrcPrefix = '' if Item[0].startswith('Posts/') else 'Pages/'
-	#				print(SrcPrefix, Item[0])
-	#				if Item[0] != Dest[0] and f'[staticoso:Transclude:{SrcPrefix}{Item[0]}]' in Dest[4]:
-	#					MadePages[di][4] = ReplWithEsc(Dest[4], f'<staticoso:Transclude:{Item[0]}>', Item[4])
-	#					print(f'[staticoso:Transclude:{SrcPrefix}{Item[0]}]', Item[4])
-	#					Operated = True
-	#	if not Operated:
-	#		break
 
 	return MadePages

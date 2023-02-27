@@ -92,16 +92,24 @@ def FindAllIndex(Str:str, Sub:str):
 def ReplWithEsc(Str:str, Find:str, Repl:str, Esc:str='\\'):
 	New = ''
 	Sects = Str.split(Find)
+	# Every time a substring is found
 	for i,e in enumerate(Sects):
+		# If it's the first split, append it directly to the New string
 		if i == 0:
 			New += e
+		# Wrapping parts of the escaped substrings in HTML tags is done to avoid multiple calls of this function nullifying escaping
 		elif i > 0:
+			# If prev. split ends with 2 times the escape (= escaping of the escape)
 			if Sects[i-1].endswith(Esc*2):
-				New = New[:-1]
+				Wrap = f'<span>{New[-1]}</span>'
+				New = New[:-2] + Wrap
 				New += Repl + e
+			# If prev. split ends with 1 time the escape (escaping of the substring)
 			elif Sects[i-1].endswith(Esc):
 				New = New[:-1]
-				New += Find + e
+				Wrap = f'<span>{Find[0]}</span>'
+				New += Wrap + Find[1:] + e
+			# If no escape char
 			else:
 				New += Repl + e
 	return New
@@ -180,20 +188,30 @@ def PrintProcPercentDots(Proc:dict, DivMult=1):
 		return True
 	return False
 
-def MultiProcFunctWrap(Args:dict):
+def MultiProcFuncWrap(Args:dict):
 	PrintProcPercentDots(Args['Process'])
-	return Args['Process']['Funct'](Args)
+	return Args['Process']['Func'](Args)
 
-def DoMultiProc(Funct, ArgsCollection:list, Threads:int=cpu_count(), Progress:bool=False):
+def DoMultiProc(Func, ArgsCollection:list, Threads:int=cpu_count(), Progress:bool=False):
 	FinalArgsCollection = []
 	for Index, Args in enumerate(ArgsCollection):
 		FinalArgsCollection.append(Args)
-		FinalArgsCollection[Index].update({"Process": {"Funct": Funct, "Num": Index, "Count": len(ArgsCollection)}})
+		FinalArgsCollection[Index].update({"Process": {"Func": Func, "Num": Index, "Count": len(ArgsCollection)}})
 	Results = []
 	if Progress:
 		os.system('printf "["') # Using system print because (see PrintProcPercentDots())
 	with Pool(Threads) as MultiprocPool:
-		Results = MultiprocPool.map(MultiProcFunctWrap if Progress else Funct, FinalArgsCollection)
+		Results = MultiprocPool.map(MultiProcFuncWrap if Progress else Func, FinalArgsCollection)
 	if Progress:
 		os.system('printf "]\n"') # Newline after percentage dots
 	return Results
+
+# Execute a function, whose output is compared to one input argument, as long as the output is different from the previous cycle; the moment it's equal, return
+def WhileFuncResultChanges(Func, Args:dict, ResultKey:str):
+	Result = Args[ResultKey]
+	while True:
+		ResultOld = Result
+		Args.update({ResultKey: Result})
+		Result = Func(**Args)
+		if ResultOld == Result:
+			return Result
