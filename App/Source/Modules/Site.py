@@ -48,10 +48,10 @@ def HandleDynamicParts(Flags:dict, Html:str, Snippets:dict):
 	return Html
 
 # TODO: This would need to be handled either fully before or fully after after all pages' content has been transformed to HTML, else other markups end up in HTML and the page is broken
-def HandleTransclusions(Html:str, Caller:str, Pages:list):
+def HandleTransclusions(Base:str, Caller:str, Pages:list):
 	#if Type == 'Evals': # [% cmd %] | {% cmd %}
 	Targets = []
-	Finding = Html
+	Finding = Base
 	Start = Finding.find('{{')
 	while Start != -1:
 		Start = Start + 2
@@ -61,13 +61,13 @@ def HandleTransclusions(Html:str, Caller:str, Pages:list):
 			Targets += [Finding[:Stop]]
 		Start = Finding.find('{{')
 	for Target in Targets:
-		# Maybe we should show an error message on possible recursive transclusion, as currently this doesn't handle escaped tokens
+		# We should show an error message on inexistant transclusion and possible recursive transclusion, as currently this doesn't handle escaped tokens
 		if Target != Caller:
 			for File, Content, _, _ in Pages:
 				if File == Target:
-					Html = ReplWithEsc(Html, '{{' + Target + '}}', Content)
+					Base = ReplWithEsc(Base, '{{' + Target + '}}', Content)
 					break
-	return Html
+	return Base
 
 def PatchHtml(Flags:dict, Pages:list, Page:dict, Context:dict, Snippets:dict, Locale:dict, LightRun):
 	f = NameSpace(Flags)
@@ -140,6 +140,7 @@ def PatchHtml(Flags:dict, Pages:list, Page:dict, Context:dict, Snippets:dict, Lo
 			'staticoso:PagePath': PagePath,
 			'staticoso:PageHead': Meta['Head'],
 			'staticoso:PageStyle': Meta['Style'],
+			'staticoso:PageCreatedOn': Meta['CreatedOn'],
 			# NOTE: Content is injected in page only at this point! Keep in mind for other substitutions
 			# #DEPRECATION #
 			'staticoso:Page:Content': Content,
@@ -176,18 +177,18 @@ def PatchHtml(Flags:dict, Pages:list, Page:dict, Context:dict, Snippets:dict, Lo
 	ContentHtml = Content
 	ContentHtml = WrapDictReplWithEsc(ContentHtml, {
 		# #DEPRECATION #
-		'[staticoso:Page:Title]': Title,
-		'[staticoso:Page:Description]': Description,
-		'[staticoso:Site:Name]': f.SiteName,
-		'[staticoso:Site:AbsoluteRoot]': f.SiteRoot,
-		'[staticoso:Site:RelativeRoot]': RelativeRoot,
+		'staticoso:Page:Title': Title,
+		'staticoso:Page:Description': Description,
+		'staticoso:Site:Name': f.SiteName,
+		'staticoso:Site:AbsoluteRoot': f.SiteRoot,
+		'staticoso:Site:RelativeRoot': RelativeRoot,
 		################
-		'<staticoso:PageTitle>': Title,
-		'<staticoso:PageDescription>': Description,
-		'<staticoso:SiteDomain>': f.SiteDomain,
-		'<staticoso:SiteName>': f.SiteName,
-		'<staticoso:SiteAbsoluteRoot>': f.SiteRoot,
-		'<staticoso:SiteRelativeRoot>': RelativeRoot,
+		'staticoso:PageTitle': Title,
+		'staticoso:PageDescription': Description,
+		'staticoso:SiteDomain': f.SiteDomain,
+		'staticoso:SiteName': f.SiteName,
+		'staticoso:SiteAbsoluteRoot': f.SiteRoot,
+		'staticoso:SiteRelativeRoot': RelativeRoot,
 	}, InternalMacrosWraps)
 	#Html = WhileFuncResultChanges(HandleTransclusions, {"Html": Html, "Caller": File, "Pages": Pages}, 'Html')
 	for e in Meta['Macros']:
@@ -238,6 +239,9 @@ def HandlePage(Flags:dict, Page:list, Pages:list, Categories, LimitFiles, Snippe
 	PagePath = f'{f.OutDir}/{StripExt(File)}.html'
 	ContentPagePath = f'{f.OutDir}.Content/{StripExt(File)}.html'
 	LightRun = False if LimitFiles == False or File in LimitFiles else True
+
+	# This should be done after all pages are converted to HTML, else issues with different formats will occur
+	Content = HandleTransclusions(Content, File, Pages)
 
 	if FileLower.endswith(FileExtensions['Markdown']):
 		Content = markdown(PagePostprocessor('md', Content, Meta), extensions=f.MarkdownExts)
@@ -429,9 +433,6 @@ def MakeSite(Flags:dict, LimitFiles, Snippets, ConfMenu, GlobalMacros:dict, Loca
 		logging.info("Generating Category Lists")
 	Categories = PopulateCategoryLists(Flags, Pages, Categories)
 	Pages += MakeAutoCategories(Flags, Categories)
-
-	#logging.info("Building the HTML Search Page")
-	#Pages += [PagePreprocessor(Flags, Path='Search.html', TempPath='Search.html', Type='Page', SiteTemplate=SiteTemplate, GlobalMacros=GlobalMacros, LightRun=LightRun, Content=BuildPagesSearch(Flags, Pages))]
 
 	for i,e in enumerate(ConfMenu):
 		for File, Content, Titles, Meta in Pages:

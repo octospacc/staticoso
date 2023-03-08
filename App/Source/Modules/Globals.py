@@ -37,8 +37,9 @@ PageMetaDefault = {
 		'Categories': [],
 		'URLs': [],
 		'CreatedOn': '',
-		'UpdatedOn': '',
+		'PublishedOn': '', # Alias of CreatedOn
 		'EditedOn': '',
+		'UpdatedOn': '', # Alias of EditedOn
 		'Order': None,
 		'Language': None,
 		'Downsync': None

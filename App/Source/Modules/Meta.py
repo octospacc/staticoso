@@ -232,6 +232,8 @@ def PagePreprocessor(Flags:dict, Page:list, GlobalMacros:dict, LightRun:bool=Fal
 					Meta['URLs'] += [j]
 		else:
 			Meta.update({i:MetaDefault[i]})
+	if Meta['PublishedOn']:
+		Meta['CreatedOn'] = Meta['PublishedOn']
 	if Meta['UpdatedOn']:
 		Meta['EditedOn'] = Meta['UpdatedOn']
 	if Meta['Index'].lower() in ('default', 'unspecified', 'categories'):

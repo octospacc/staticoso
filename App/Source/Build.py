@@ -100,16 +100,27 @@ def WriteRedirects(Flags:dict, Pages:list, FinalPaths, Locale:dict):
 	SiteName = Flags['SiteName']
 	for Page in Pages:
 		for URL in Page['Meta']['URLs']:
-			DestFile = f'{Flags["OutDir"]}/{URL}'
-			if DestFile not in FinalPaths:
-				DestURL = f'{GetPathLevels(URL)}{StripExt(Page["File"])}.html'
-				mkdirps(os.path.dirname(DestFile))
-				WriteFile(DestFile, RedirectPageTemplate.format(
-					SiteDomain=Flags['SiteDomain'],
-					DestURL=DestURL,
-					TitlePrefix=f'{SiteName} - ' if SiteName else '',
-					StrClick=Locale['ClickHere'],
-					StrRedirect=Locale['IfNotRedirected']))
+			for DestOpts in ((f'{Flags["OutDir"]}/{URL}', ''), (f'{Flags["OutDir"]}/{StripExt(URL)}/index.html', '../')):
+				DestFile, DestPrefix = DestOpts
+				if DestFile not in FinalPaths:
+					DestURL = f'{DestPrefix}{GetPathLevels(URL)}{StripExt(Page["File"])}.html'
+					mkdirps(os.path.dirname(DestFile))
+					WriteFile(DestFile, RedirectPageTemplate.format(
+						SiteDomain=Flags['SiteDomain'],
+						DestURL=DestURL,
+						TitlePrefix=f'{SiteName} - ' if SiteName else '',
+						StrClick=Locale['ClickHere'],
+						StrRedirect=Locale['IfNotRedirected']))
+		if StripExt(Page["File"]).split('/')[-1].lower() != 'index':
+			DestFile = f'{Flags["OutDir"]}/{StripExt(Page["File"])}/index.html'
+			DestURL = f'../{StripExt(Page["File"]).split("/")[-1]}.html'
+			mkdirps(os.path.dirname(DestFile))
+			WriteFile(DestFile, RedirectPageTemplate.format(
+				SiteDomain=Flags['SiteDomain'],
+				DestURL=DestURL,
+				TitlePrefix=f'{SiteName} - ' if SiteName else '',
+				StrClick=Locale['ClickHere'],
+				StrRedirect=Locale['IfNotRedirected']))
 
 def CopyBaseFiles(Flags:dict):
 	f = NameSpace(Flags)
