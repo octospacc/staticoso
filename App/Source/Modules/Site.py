@@ -49,7 +49,6 @@ def HandleDynamicParts(Flags:dict, Html:str, Snippets:dict):
 
 # TODO: This would need to be handled either fully before or fully after after all pages' content has been transformed to HTML, else other markups end up in HTML and the page is broken
 def HandleTransclusions(Base:str, Caller:str, Pages:list):
-	#if Type == 'Evals': # [% cmd %] | {% cmd %}
 	Targets = []
 	Finding = Base
 	Start = Finding.find('{{')
@@ -64,7 +63,7 @@ def HandleTransclusions(Base:str, Caller:str, Pages:list):
 		# We should show an error message on inexistant transclusion and possible recursive transclusion, as currently this doesn't handle escaped tokens
 		if Target != Caller:
 			for File, Content, _, _ in Pages:
-				if File == Target:
+				if File.lower() == Target.lower():
 					Base = ReplWithEsc(Base, '{{' + Target + '}}', Content)
 					break
 	return Base
@@ -215,7 +214,7 @@ def BuildPagesSearch(Flags:dict, Pages:list, Template:str, Snippets:dict, Locale
 		SearchContent += f'''
 			<div
 				class="staticoso-HtmlSearch-Page"
-				data-staticoso-htmlsearch-name="{html.escape(html.unescape(Page["Titles"][0]), quote=True)}"
+				data-staticoso-htmlsearch-name="{html.escape(html.unescape(Page["Titles"][0] if Page["Titles"] else ""), quote=True)}"
 				data-staticoso-htmlsearch-href="{StripExt(Page["File"])}.html"
 			>
 				{Page["ContentHtml"]}

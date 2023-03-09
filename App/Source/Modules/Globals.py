@@ -22,6 +22,8 @@ PageIndexStrNeg = tuple(list(NegStrBools) + ['none', 'unlisted', 'unindexed', 'h
 
 InternalMacrosWraps = (('[', ']'), ('<', '>'))
 
+PageTypeOutPrefix = {"Pages": "", "Posts": "/Posts"}
+
 PageMetaDefault = {
 		'Template': None, # Replace with var
 		'Head': '',

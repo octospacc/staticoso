@@ -71,7 +71,7 @@ def CheckSafeOutDir(OutDir:str):
 		logging.error(f"⛔ Output and Input directories ({OutDir}) can't be the same. Exiting.")
 		exit(1)
 	elif OutFolder.lower() in ReservedPaths and f"{InDir.lower()}/{OutFolder.lower()}" == OutDir.lower():
-		logging.error(f"⛔ Output directory {OutDir} can't be a reserved subdirectory of the Input. Exiting.")
+		logging.error(f"⛔ Output directory ({OutDir}) can't be a reserved subdirectory of the Input. Exiting.")
 		exit(1)
 
 def GetModifiedFiles(OutDir):
@@ -125,19 +125,52 @@ def WriteRedirects(Flags:dict, Pages:list, FinalPaths, Locale:dict):
 def CopyBaseFiles(Flags:dict):
 	f = NameSpace(Flags)
 	Have = {"Pages": False, "Posts": False}
-	Prefix = {"Pages": "", "Posts": "/Posts"}
 	for Type in ('Pages', 'Posts'):
 		if os.path.isdir(Type):
 			Have[Type] = True
-			shutil.copytree(Type, f'{f.OutDir}{Prefix[Type]}', dirs_exist_ok=True)
-			shutil.copytree(Type, f'{f.OutDir}.Content{Prefix[Type]}', dirs_exist_ok=True)
+			shutil.copytree(Type, f'{f.OutDir}{PageTypeOutPrefix[Type]}', dirs_exist_ok=True)
+			shutil.copytree(Type, f'{f.OutDir}.Content{PageTypeOutPrefix[Type]}', dirs_exist_ok=True)
 			if f.GemtextOutput:
-				shutil.copytree('Posts', f'{f.OutDir}.gmi{Prefix[Type]}', ignore=IgnoreFiles, dirs_exist_ok=True)
+				shutil.copytree('Posts', f'{f.OutDir}.gmi{PageTypeOutPrefix[Type]}', ignore=IgnoreFiles, dirs_exist_ok=True)
 	return Have['Pages'] or Have['Posts']
+
+def DedupeBaseFiles(Flags:dict):
+	f = NameSpace(Flags)
+	Msg = "⚠ Input files with the same name but different {0} are not allowed. Unpredictable issues will arise. You should rename your files to fix this issue."
+	SaidDupes = {"Ext": False, "Name": False}
+	Files = {}
+	Remove = []
+	for Dir in (f.OutDir, f'{f.OutDir}.Content'):
+		for File in Path(Dir).rglob('*'):
+			if os.path.isfile(File):
+				File = str(File)
+				Name = '.'.join(File.split('.')[:-1])
+				Lower = Name.lower()
+				Ext = File.split('.')[-1]
+				# If file with same name exists
+				if Lower in Files:
+					# If extension and name are the same
+					if Files[Lower][-1].lower() == Ext.lower():
+						if not SaidDupes['Name']:
+							logging.warning(Msg.format('capitalization'))
+							SaidDupes['Name'] = True
+					# If extension differs
+					else:
+						if not SaidDupes['Ext']:
+							logging.warning(Msg.format('extension'))
+							SaidDupes['Ext'] = True
+					Remove += [File]
+				else:
+					Files.update({Name.lower(): (Name, Ext)})
+	for File in Remove:
+		# Avoid duplicate prints executed for multiple folders
+		if File.startswith(f'{f.OutDir}/'):
+			Name = '.'.join(File[len(f'{f.OutDir}/'):].split('.')[:-1]) + '.*'
+			print(Name if Name.startswith('Posts/') else f'Pages/{Name}')
+		os.remove(File)
 
 def BuildMain(Args, FeedEntries):
 	Flags, Snippets = {}, {}
-	HavePages, HavePosts = False, False
 	SiteConf = LoadConfFile('Site.ini')
 
 	#ConfigLogging(DefConfOptChoose('Logging', Args.Logging, ReadConf(SiteConf, 'staticoso', 'Logging')))
@@ -222,9 +255,10 @@ def BuildMain(Args, FeedEntries):
 		LimitFiles = False
 
 	logging.info("Reading Base Files")
-	if not (CopyBaseFiles(Flags)):
-		logging.error("⛔ No Pages or posts found. Nothing to do, exiting!")
+	if not CopyBaseFiles(Flags):
+		logging.error("⛔ No Pages or Posts found. Nothing to do, exiting!")
 		exit(1)
+	DedupeBaseFiles(Flags)
 
 	logging.info("Generating HTML")
 	DictPages = MakeSite(
@@ -236,7 +270,7 @@ def BuildMain(Args, FeedEntries):
 		Locale=Locale,
 		Threads=Threads)
 
-	# REFACTOR: Some functions below are still not changed to accept a Page as Dict, so let's convert to Lists
+	# REFACTOR: Some functions below are still not changed to accept a Page as Dict, so let's reconvert to Lists
 	ListPages = DictPages.copy()
 	for i, e in enumerate(ListPages):
 		ListPages[i] = list(e.values())

@@ -50,8 +50,9 @@ def LoadFromDir(Dir:str, Matchs:list):
 	Matchs = SureList(Matchs)
 	for Match in Matchs:
 		for File in Path(Dir).rglob(Match):
-			File = str(File)[len(Dir)+1:]
-			Contents.update({File: ReadFile(f"{Dir}/{File}")})
+			if os.path.isfile(File):
+				Name = str(File)[len(Dir)+1:]
+				Contents.update({Name: ReadFile(File)})
 	return Contents
 
 def mkdirps(Dir:str):
