@@ -7,6 +7,7 @@
 |   Copyright (C) 2022-2023, OctoSpacc |
 | ================================== """
 
+from Modules.Elements import *
 from Modules.Logging import *
 from Modules.Utils import *
 
@@ -19,13 +20,14 @@ except:
 
 def ApplySocialIntegrations(Flags, Pages, LimitFiles, Locale):
 	f = NameSpace(Flags)
-	FinalPaths = []
+	FinalPaths, MastodonPosts = [], []
 
 	if ActivityPub and f.MastodonURL and f.MastodonToken and f.SiteDomain:
 		logging.info("Mastodon Operations")
-		MastodonPosts = MastodonShare(Flags, Pages, Locale)
-	else:
-		MastodonPosts = []
+		try:
+			MastodonPosts = MastodonShare(Flags, Pages, Locale)
+		except:
+			print(TracebackText())
 
 	for File, Content, Titles, Meta, ContentHTML, SlimHTML, Description, Image in Pages:
 		if IsLightRun(File, LimitFiles):
@@ -34,7 +36,7 @@ def ApplySocialIntegrations(Flags, Pages, LimitFiles, Locale):
 		Content = ReadFile(File)
 		Post = ''
 		for p in MastodonPosts:
-			if p['Link'] == SiteDomain + '/' + File[len(f'{f.OutDir}/'):]:
+			if p['Link'] == f.SiteDomain + '/' + File[len(f'{f.OutDir}/'):]:
 				Post = HTMLCommentsBlock.format(
 					StrComments=Locale['Comments'],
 					StrOpen=Locale['OpenInNewTab'],
@@ -42,6 +44,7 @@ def ApplySocialIntegrations(Flags, Pages, LimitFiles, Locale):
 				break
 		#Content = ReplWithEsc(Content, '[staticoso:Comments]', Post)
 		Content = ReplWithEsc(Content, '<staticoso:Comments>', Post)
+		Content = ReplWithEsc(Content, '<staticoso:comments>', Post)
 		WriteFile(File, Content)
 		FinalPaths += [File]
 

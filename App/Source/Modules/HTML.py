@@ -17,8 +17,11 @@ from Modules.Utils import *
 warnings.filterwarnings('ignore', message='The input looks more like a filename than markup.')
 warnings.filterwarnings('ignore', message='The soupsieve package is not installed.')
 
-def MkSoup(Html:str):
-	return BeautifulSoup(Html, 'html.parser')
+def MkSoup(Html):
+	if type(Html) == str:
+		return BeautifulSoup(Html, 'html.parser')
+	elif type(Html) == BeautifulSoup:
+		return Html
 
 def StripAttrs(Html:str):
 	Soup = MkSoup(Html)
@@ -87,6 +90,14 @@ def SquareFnrefs(Html:str): # Different combinations of formatting for Soup .pre
 			s = t.find('a')
 			s.replace_with(f'[{t}]')
 	return str(Soup.prettify(formatter=None))
+
+def HtmlParagraphsToText(Html:str, Sep:str='\n\n'):
+	Soup, Text = MkSoup(Html), ''
+	for Par in Soup.find_all('p'):
+		Par = Par.get_text().strip()
+		if Par:
+			Text += Par + Sep
+	return Text
 
 def DoMinifyHTML(Html:str, KeepComments:bool):
 	return htmlmin.minify(

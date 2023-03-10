@@ -90,7 +90,7 @@ def FindAllIndex(Str:str, Sub:str):
 		i = Str.find(Sub, i+1)
 
 # Replace substrings in a string, except when an escape char is prepended
-def ReplWithEsc(Str:str, Find:str, Repl:str, Esc:str='\\'):
+def ReplWithEsc(Str:str, Find:str, Repl:str, Html:bool=True, Esc:str='\\'):
 	New = ''
 	Sects = Str.split(Find)
 	# Every time a substring is found
@@ -100,16 +100,17 @@ def ReplWithEsc(Str:str, Find:str, Repl:str, Esc:str='\\'):
 			New += e
 		# Wrapping parts of the escaped substrings in HTML tags is done to avoid multiple calls of this function nullifying escaping
 		elif i > 0:
-			# If prev. split ends with 2 times the escape (= escaping of the escape)
+			# If prev. split ends with 2 times the escape (escaping of the escape)
 			if Sects[i-1].endswith(Esc*2):
-				Wrap = f'<span>{New[-1]}</span>'
-				New = New[:-2] + Wrap
+				Wrap1 = f'<span>{New[-1]}</span>' if Html else New[-1]
+				Wrap2 = f'<span>{New[-2]}</span>' if Html else New[-2]
+				New = New[:-3] + Wrap2 + Wrap1
 				New += Repl + e
 			# If prev. split ends with 1 time the escape (escaping of the substring)
 			elif Sects[i-1].endswith(Esc):
 				New = New[:-1]
-				Wrap = f'<span>{Find[0]}</span>'
-				New += Wrap + Find[1:] + e
+				Wrap1 = f'<span>{Find[0]}</span>' if Html else Find[0]
+				New += Wrap1 + Find[1:] + e
 			# If no escape char
 			else:
 				New += Repl + e
@@ -216,3 +217,37 @@ def WhileFuncResultChanges(Func, Args:dict, ResultKey:str):
 		Result = Func(**Args)
 		if ResultOld == Result:
 			return Result
+
+# Ellipsize text if it isn't already, optionally writing over the last chars instead of appending
+def TryEllipsizeText(Text:str, Overwrite:bool=False, Ellipses:str='...'):
+	if not Text.endswith(Ellipses):
+		if Overwrite:
+			Text = Text[:-len(Ellipses)] + Ellipses
+		# Append normally
+		else:
+			Text += Ellipses
+	return Text
+
+# Limit the length of a text, and account for if paragraphs should be sliced or entirely deleted to fit the limit
+def LimitText(Text:str, MaxChars:int, SliceParagraphs:bool=False, ParagraphSep:str='\n'):
+	New = ''
+	Paras = Text.split(ParagraphSep)
+	if not Paras:
+		return ''
+	# The first paragraph; must always be present, ellipsized if needed
+	New = Paras[0]
+	if len(New) > MaxChars:
+		New = TryEllipsizeText(New[:MaxChars], Overwrite=True)
+	# Add a newline to the first paragraph if it wasn't ellipsized
+	else:
+		New += ParagraphSep
+	# All other paragraphs
+	for Par in Paras[1:]:
+		# If adding this paragraph to the new text would go over the limit, and we are allowed to slice, append and ellipsize it
+		if len(New + Par) > MaxChars:
+			if SliceParagraphs:
+				New = TryEllipsizeText(New[:MaxChars], Overwrite=True)
+		# If we still are whitin the limit, just append the paragraph
+		else:
+			New += Par + ParagraphSep
+	return New.strip()

@@ -9,6 +9,7 @@
 
 import logging
 import sys
+from traceback import format_exc as TracebackText
 from Modules.Config import *
 
 LoggingFormat = '[%(levelname)s] %(message)s'

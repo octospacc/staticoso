@@ -77,12 +77,8 @@ def PatchHtml(Flags:dict, Pages:list, Page:dict, Context:dict, Snippets:dict, Lo
 	BodyDescription, BodyImage = '', ''
 	if not File.lower().endswith('.txt'):
 		Soup = MkSoup(Content)
-		if not BodyDescription:# and Soup.p:
-			#BodyDescription = Soup.p.get_text()[:150].replace('\n', ' ').replace('"', "'") + '...'
-			for t in Soup.find_all('p'):
-				if t.get_text():
-					BodyDescription = t.get_text()[:150].replace('\n', ' ').replace('"', "'") + '...'
-					break
+		if not BodyDescription:
+			BodyDescription = html.escape(LimitText(HtmlParagraphsToText(Soup, Sep='\n'), 150).replace('\n', ' '))
 		if not BodyImage and Soup.img and Soup.img['src']:
 			BodyImage = Soup.img['src']
 
@@ -338,12 +334,6 @@ def HandlePage(Flags:dict, Page:list, Pages:list, Categories, LimitFiles, Snippe
 
 	return {"File": File, "Content": Content, "Titles": Titles, "Meta": Meta, "ContentHtml": ContentHTML, "SlimHtml": SlimHTML, "Description": Description, "Image": Image}
 
-def MultiprocPagePreprocessor(d:dict):
-	return PagePreprocessor(d['Flags'], d['Page'], d['GlobalMacros'], d['LightRun'])
-
-def MultiprocHandlePage(d:dict):
-	return HandlePage(d['Flags'], d['Page'], d['Pages'], d['Categories'], d['LimitFiles'], d['Snippets'], d['ConfMenu'], d['Locale'])
-
 def FindPagesPaths():
 	Paths = {"Pages":[], "Posts":[]}
 	for Ext in FileExtensions['Pages']:
@@ -400,11 +390,24 @@ def PreprocessSourcePages(Flags:dict, PagesPaths:dict, LimitFiles, GlobalMacros:
 			MultiprocPages += [{'Flags': Flags, 'Page': [f"{Type}s/{File}", TempPath, Type, None], 'GlobalMacros': GlobalMacros, 'LightRun': LightRun}]
 	return DoMultiProc(MultiprocPagePreprocessor, MultiprocPages, PoolSize, True)
 
+def MultiprocPagePreprocessor(d:dict):
+	return PagePreprocessor(d['Flags'], d['Page'], d['GlobalMacros'], d['LightRun'])
+
 def WriteProcessedPages(Flags:dict, Pages:list, Categories, ConfMenu, Snippets, LimitFiles, PoolSize:int, Locale:dict):
 	MultiprocPages = []
 	for i, Page in enumerate(Pages):
 		MultiprocPages += [{'Flags': Flags, 'Page': Page, 'Pages': Pages, 'Categories': Categories, 'LimitFiles': LimitFiles, 'Snippets': Snippets, 'ConfMenu': ConfMenu, 'Locale': Locale}]
 	return DoMultiProc(MultiprocHandlePage, MultiprocPages, PoolSize, True)
+
+def MultiprocHandlePage(d:dict):
+	return HandlePage(d['Flags'], d['Page'], d['Pages'], d['Categories'], d['LimitFiles'], d['Snippets'], d['ConfMenu'], d['Locale'])
+
+def HandleTransclusionsCaller(Base:str, Caller:str, Pages:list):
+	MultiPages = []
+	return DoMultiProc(MultiprocHandleTransclusions, MultiPages, PoolSize, True)
+
+def MultiprocHandleTransclusions(d:dict):
+	return
 
 def MakeSite(Flags:dict, LimitFiles, Snippets, ConfMenu, GlobalMacros:dict, Locale:dict, Threads:int):
 	Pages, MadePages, Categories = [], [], {}
@@ -441,5 +444,9 @@ def MakeSite(Flags:dict, LimitFiles, Snippets, ConfMenu, GlobalMacros:dict, Loca
 
 	logging.info("Writing Pages")
 	MadePages = WriteProcessedPages(Flags, Pages, Categories, ConfMenu, Snippets, LimitFiles, PoolSize, Locale)
+
+	# TODO: Finish this and remove the transclusion feature from above
+	#logging.info("Resolving Page Transclusions")
+	#HandleTransclusionsCaller(Pages)
 
 	return MadePages
