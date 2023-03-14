@@ -49,23 +49,23 @@ def HandleDynamicParts(Flags:dict, Html:str, Snippets:dict):
 
 # TODO: This would need to be handled either fully before or fully after after all pages' content has been transformed to HTML, else other markups end up in HTML and the page is broken
 def HandleTransclusions(Base:str, Caller:str, Pages:list):
-	Targets = []
-	Finding = Base
-	Start = Finding.find('{{')
-	while Start != -1:
-		Start = Start + 2
-		Finding = Finding[Start:]
-		Stop = Finding.find('}}')
-		if Stop != -1:
-			Targets += [Finding[:Stop]]
-		Start = Finding.find('{{')
-	for Target in Targets:
-		# We should show an error message on inexistant transclusion and possible recursive transclusion, as currently this doesn't handle escaped tokens
-		if Target != Caller:
+	for Target in StrFindWrapped(Base, '{{', '}}'):
+		# Recursive transclusion
+		if Target.lower() in (Caller.lower(), StripExt(Caller.lower())):
+			Base = ReplWithEsc(Base, '{{' + Target + '}}', f'(staticoso - Error - Recursive transclusion of "{Target}")')
+		# Allowed transclusion
+		else:
+			Transed = False
 			for File, Content, _, _ in Pages:
-				if File.lower() == Target.lower():
+				# Target exists, transclude its content
+				if Target.lower() in (File.lower(), StripExt(File.lower())):
+					print(Target)
 					Base = ReplWithEsc(Base, '{{' + Target + '}}', Content)
+					Transed = True
 					break
+			# No target with that name, replace with blank string
+			if not Transed:
+				Base = ReplWithEsc(Base, '{{' + Target + '}}', '')
 	return Base
 
 def PatchHtml(Flags:dict, Pages:list, Page:dict, Context:dict, Snippets:dict, Locale:dict, LightRun):
@@ -338,7 +338,7 @@ def FindPagesPaths():
 	Paths = {"Pages":[], "Posts":[]}
 	for Ext in FileExtensions['Pages']:
 		for Type in ('Pages', 'Posts'):
-			for File in Path(Type).rglob(f'*.{Ext}'):
+			for File in Path(Type).rglob(AnyCaseGlob(f'*.{Ext}')):
 				Paths[Type] += [FileToStr(File, f'{Type}/')]
 	return Paths
 
@@ -369,7 +369,7 @@ def MakeAutoCategories(Flags:dict, Categories):
 		Dir = f'{OutDir}/Categories'
 		for Cat in Categories:
 			Exists = False
-			for File in Path(Dir).rglob(str(Cat)+'.*'):
+			for File in Path(Dir).rglob(AnyCaseGlob(str(Cat)+'.*')):
 				Exists = True
 				break
 			if not Exists:

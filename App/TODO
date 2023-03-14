@@ -30,11 +30,10 @@
 - Override internal HTML snippets (meta lines, page lists, redirects, ...) with config file in Templates/NAME.ini
 - Specify input folder(s)
 - Show page size/words/time in meta line
-- Add feed support for HTML Journal pages
+- Add feed support for HTML Journal pages directly, without the external tool
 - Fix excess whitespace in some section/menu titles
 - Parity presence for [] and <> internal macro enclosure, + streamline the code for that
 - Investigate a strange bug with Macros
-- Handle file extensions with any case sensitivity, not just lowercase; currently the bulk of the issue is finding the files on disk
 - Test sorting by date for files not starting with date, and dated folders
 - Fix arguments - some are only callable from CLI and not Site.ini - make them coherent with INI categories
 - Change FolderRoots arg name to CustomPaths
@@ -53,4 +52,3 @@
 - Exporting sites to different formats (?) (single-page HTML, PDF, EPUB, ...)
 - Disable ActivityPub feed for a specific page
 - Symlinks and direct copies as option instead of redirect pages
-- Automatic redirects/symlinks for making pages work without .html suffix

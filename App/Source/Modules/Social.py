@@ -44,7 +44,10 @@ def ApplySocialIntegrations(Flags, Pages, LimitFiles, Locale):
 				break
 		#Content = ReplWithEsc(Content, '[staticoso:Comments]', Post)
 		Content = ReplWithEsc(Content, '<staticoso:Comments>', Post)
+		# BeautifulSoup issue
 		Content = ReplWithEsc(Content, '<staticoso:comments>', Post)
+		Content = ReplWithEsc(Content, '<staticoso:comments/>', Post)
+		#Content = ReplWithEsc(Content, '</staticoso:comments>', Post)
 		WriteFile(File, Content)
 		FinalPaths += [File]
 

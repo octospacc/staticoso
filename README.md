@@ -52,6 +52,7 @@ All of this is because some crucial things might be changed from one commit to a
 
 ### Features
 
+- [ ] Page transclusions
 - [x] Generation of simplified pages compliant with the [HTML Journal standard](https://journal.miso.town)
 - [x] HTML feeds (pages with list of N most recent posts)
 - [x] Lists of all pages in a site directory

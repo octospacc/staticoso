@@ -38,6 +38,12 @@ def WriteFile(p, c, m='w'):
 		logging.error(f"[E] Error writing file {p}")
 		return False
 
+def AnyCaseGlob(Glob:str):
+	New = ''
+	for c in Glob:
+		New += '[%s%s]' % (c.lower(), c.upper()) if c.isalpha() else c
+	return New
+
 def FileToStr(File:str, Truncate:str=''):
 	return str(File)[len(Truncate):]
 
@@ -49,7 +55,7 @@ def LoadFromDir(Dir:str, Matchs:list):
 	Contents = {}
 	Matchs = SureList(Matchs)
 	for Match in Matchs:
-		for File in Path(Dir).rglob(Match):
+		for File in Path(Dir).rglob(AnyCaseGlob(Match)):
 			if os.path.isfile(File):
 				Name = str(File)[len(Dir)+1:]
 				Contents.update({Name: ReadFile(File)})
@@ -88,6 +94,19 @@ def FindAllIndex(Str:str, Sub:str):
 	while i != -1:
 		yield i
 		i = Str.find(Sub, i+1)
+
+# Find all occurrences of substrings wrapped inside some characters
+def StrFindWrapped(Str:str, Left:str, Right:str):
+	Res = []
+	Start = Str.find(Left)
+	while Start != -1:
+		Start = Start + len(Left)
+		Str = Str[Start:]
+		Stop = Str.find(Right)
+		if Stop != -1:
+			Res += [Str[:Stop]]
+		Start = Str.find(Left)
+	return Res
 
 # Replace substrings in a string, except when an escape char is prepended
 def ReplWithEsc(Str:str, Find:str, Repl:str, Html:bool=True, Esc:str='\\'):

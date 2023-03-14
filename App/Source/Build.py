@@ -35,10 +35,10 @@ def ResetOutDir(OutDir:str):
 
 def DelTmp(OutDir:str):
 	for Ext in FileExtensions['Tmp']:
-		for File in Path(OutDir).rglob(f'*.{Ext}'):
+		for File in Path(OutDir).rglob(AnyCaseGlob(f'*.{Ext}')):
 			os.remove(File)
 	for Dir in (OutDir, f'{OutDir}.gmi'):
-		for File in Path(Dir).rglob('*.tmp'):
+		for File in Path(Dir).rglob(AnyCaseGlob('*.tmp')):
 			os.remove(File)
 
 def SetSorting(Sorting:dict):

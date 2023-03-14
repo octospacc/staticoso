@@ -58,10 +58,11 @@ def GetHTMLPagesList(Flags:dict, Pages:list, PathPrefix:str, CallbackFile=None, 
 					if LastParent != CurParent and ShowPaths:
 						LastParent = CurParent
 						Levels = '.' * ((Depth-2+i) if not Flatten else 0) + ':'
-						# If search node endswith index, it's a page; else, it's a folder
+						# It's a page
 						if StripExt(File).endswith('index'):
 							Title = MakeListTitle(File, Meta, Titles, 'HTMLTitle', f.BlogName, PathPrefix)
 							DoneCount += 1
+						# It's a folder
 						else:
 							Title = CurParent[Depth-2+i]
 						if SingleLine:
