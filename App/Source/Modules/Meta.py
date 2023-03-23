@@ -68,7 +68,7 @@ def GetHTMLPagesList(Flags:dict, Pages:list, PathPrefix:str, CallbackFile=None, 
 						if SingleLine:
 							List += f' <span>{Title}</span> '
 						else:
-							List += f'{Levels}<span>{Title}</span>\n'
+							List += f'{Levels}<span class="staticoso-List-Title">{Title}</span>\n'
 
 			# Pages with any other path
 			if not (Depth > 1 and StripExt(File).split('/')[-1] == 'index'):

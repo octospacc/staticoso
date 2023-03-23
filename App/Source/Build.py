@@ -131,7 +131,7 @@ def CopyBaseFiles(Flags:dict):
 			shutil.copytree(Type, f'{f.OutDir}{PageTypeOutPrefix[Type]}', dirs_exist_ok=True)
 			shutil.copytree(Type, f'{f.OutDir}.Content{PageTypeOutPrefix[Type]}', dirs_exist_ok=True)
 			if f.GemtextOutput:
-				shutil.copytree('Posts', f'{f.OutDir}.gmi{PageTypeOutPrefix[Type]}', ignore=IgnoreFiles, dirs_exist_ok=True)
+				shutil.copytree(Type, f'{f.OutDir}.gmi{PageTypeOutPrefix[Type]}', ignore=IgnoreFiles, dirs_exist_ok=True)
 	return Have['Pages'] or Have['Posts']
 
 def DedupeBaseFiles(Flags:dict):
