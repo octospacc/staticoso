@@ -83,7 +83,10 @@ def MastodonShare(Flags:dict, Pages:list, Locale:dict):
 				for Cat in Meta['Categories']:
 					Hashtags += f' #{Cat.replace("-", "")}'
 				Hashtags = '\n\n' + Hashtags.strip()
-				Desc = LimitText(HtmlParagraphsToText(ContentHTML, '\n'), NoteLimit - len(Read) - UrlLen - len(Hashtags))
+				Desc = Meta['Description']
+				if not Desc:
+					Desc = HtmlParagraphsToText(ContentHTML, '\n')
+				Desc = LimitText(Desc, NoteLimit - len(Read) - UrlLen - len(Hashtags))
 
 				if not SaidPosting:
 					logging.info("Posting to Mastodon")
