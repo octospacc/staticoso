@@ -179,7 +179,7 @@ def BuildMain(Args, FeedEntries):
 	#	os.chdir(Args.InputDir)
 	#	print(f"[I] Current directory: {Args.InputDir}")
 
-	SiteName = Flags['SiteName'] = OptChoose('', Args.SiteName, ReadConf(SiteConf, 'Site', 'Name'))
+	SiteName = Flags['SiteName'] = DefConfOptChoose('SiteName', Args.SiteName, ReadConf(SiteConf, 'Site', 'Name'))
 	if SiteName:
 		logging.info(f"Compiling: {SiteName}")
 
@@ -245,6 +245,12 @@ def BuildMain(Args, FeedEntries):
 
 	SiteDomain = Flags['SiteDomain'] = SiteDomain.removesuffix('/')
 	Locale = LoadLocale(SiteLang)
+
+	if not InSystemPath('pug'):
+		logging.warning("⚠ `pug` not found in system PATH. If you have any .pug pages to be compiled, the program will fail.")
+	if Flags['GemtextOutput'] and not InSystemPath('html2gmi'):
+		logging.warning("⚠ `html2gmi` not found in system PATH. Gemtext generation will be disabled.")
+		Flags['GemtextOutput'] = False
 
 	if DiffBuild:
 		logging.info("Build mode: Differential")
@@ -347,13 +353,13 @@ if __name__ == '__main__':
 
 	ConfigLogging(Args.Logging)
 
-	try:
-		import lxml
-		from Modules.Feed import *
-		FeedEntries = Args.FeedEntries if Args.FeedEntries else 'Default'
-	except:
-		logging.warning("⚠ Can't load the XML libraries. XML Feeds Generation is Disabled. Make sure the 'lxml' library is installed.")
-		FeedEntries = 0
+	#try:
+	#	import lxml
+	from Modules.Feed import *
+	FeedEntries = Args.FeedEntries if Args.FeedEntries else 'Default'
+	#except:
+	#	logging.warning("⚠ Can't load the XML libraries. XML Feeds Generation is Disabled. Make sure the 'lxml' library is installed.")
+	#	FeedEntries = 0
 
 	BuildMain(Args=Args, FeedEntries=FeedEntries)
 	logging.info(f"✅ Done! ({round(time.time()-StartTime, 3)}s)")

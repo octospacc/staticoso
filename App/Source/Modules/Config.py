@@ -15,6 +15,7 @@ DefConf = {
 	"Threads": 0,
 	"DiffBuild": False,
 	"OutDir": "public",
+	"SiteName": "Untitled Site",
 	"SiteLang": "en",
 	"SiteTemplate": "Default.html",
 	"ActivityPubTypeFilter": "Post",
@@ -22,7 +23,7 @@ DefConf = {
 	"CategoriesUncategorized": "Uncategorized",
 	"FeedCategoryFilter": "Blog",
 	"FeedEntries": 10,
-	"JournalRedirect": False
+	"JournalRedirect": False,
 }
 
 def LoadConfFile(File):

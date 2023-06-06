@@ -29,18 +29,19 @@ CategoryPageTemplate = """\
 
 <div><staticoso:Category:{Name}></div>
 """
-RedirectPageTemplate = """\
+RedirectPageTemplate = f"""\
 <!DOCTYPE html>
 <html>
 <head>
 	<meta charset="UTF-8"/>
 	<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-	<title>{TitlePrefix}Redirect</title>
-	<link rel="canonical" href="{SiteDomain}/{DestURL}"/>
-	<meta http-equiv="refresh" content="0; url='{DestURL}'"/>
+	<title>{{TitlePrefix}}Redirect</title>
+	<link rel="canonical" href="{{SiteDomain}}/{{DestURL}}"/>
+	<meta http-equiv="refresh" content="0; url='{{DestURL}}'"/>
+	<meta name="generator" content="{staticosoNameVersion()}"/>
 </head>
 <body>
-	<p><a href="{DestURL}">{StrClick}</a> {StrRedirect}.</p>
+	<p><a href="{{DestURL}}">{{StrClick}}</a> {{StrRedirect}}.</p>
 </body>
 </html>
 """

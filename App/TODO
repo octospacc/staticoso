@@ -2,7 +2,6 @@
 - .html input pages bug: // metadata lines not being removed from final file after parsing
 - Multi-line metadata flags
 - Category-based feeds
-- Meta tag generator showing software version (git commit hash)
 - Customize date format
 - Misskey for ActivityPub
 - Section marking in pages? (for use with external translators)
@@ -25,7 +24,6 @@
 - Support for HTML comment lines (<!-- -->) in any format
 - Support for Wikitext, rST, AsciiDoc (?)
 - Posts in draft state (will not be compiled) (?)
-- Check if external tools (pug-cli, html2gmi) are installed
 - Static code syntax highlighing
 - Override internal HTML snippets (meta lines, page lists, redirects, ...) with config file in Templates/NAME.ini
 - Specify input folder(s)
@@ -39,7 +37,6 @@
 - Change FolderRoots arg name to CustomPaths
 - Accept Macros as CLI arguments + Deprecate FolderRoots (Macros make it redundant)
 - Fix ordering menu in Site.ini (not working for inner pages)
-- Feed generation optionally without native libraries
 - JSON feeds
 - Full XML sitemap
 - SCSS support

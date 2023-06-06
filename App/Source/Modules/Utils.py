@@ -7,8 +7,7 @@
 |   Copyright (C) 2022-2023, OctoSpacc |
 | ================================== """
 
-import json
-import os
+import json, os, subprocess
 from datetime import datetime
 from multiprocessing import Pool, cpu_count
 from pathlib import Path
@@ -21,6 +20,14 @@ def SureList(e):
 # Get base directory path of the staticoso program
 def staticosoBaseDir():
 	return f"{os.path.dirname(os.path.abspath(__file__))}/../../"
+
+def staticosoNameVersion():
+	Version = subprocess.run(('sh', '-c', 'git log | head -n 1'), stdout=subprocess.PIPE).stdout.decode().strip()
+	Version = ' v.' + Version.split(' ')[1][:8] if Version else ''
+	return f'staticoso{Version}'
+
+def InSystemPath(Exec:str):
+	return subprocess.run(('sh', '-c', f'which {Exec}'), stdout=subprocess.PIPE).stdout.decode().strip()
 
 def ReadFile(p:str, m:str='r'):
 	try:
